@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #2DD4BF;
+  --color-bg-dark: #021517;
+  --color-card-bg: rgba(255, 255, 255, 0.05);
+  --color-card-border: rgba(255, 255, 255, 0.1);
+}
+
+@layer base {
+  body {
+    @apply antialiased bg-bg-dark text-white;
+    background: radial-gradient(circle at 50% 0%, #06373A 0%, #021517 70%);
+    background-attachment: fixed;
+  }
+}
+
+.glass {
+  @apply backdrop-blur-xl bg-card-bg border border-card-border rounded-2xl;
+}
+
+.glass-dark {
+  @apply backdrop-blur-2xl bg-black/40 border border-white/5 rounded-3xl;
+}
+
+.glow-brand {
+  box-shadow: 0 0 20px rgba(45, 212, 191, 0.2);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+input::placeholder {
+  @apply text-white/30;
+}

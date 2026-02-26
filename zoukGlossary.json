@@ -1,0 +1,189 @@
+[
+    {
+        "canonicalTerm": "Básico Frente e Trás",
+        "variants": [
+            "Básico adelante y atrás",
+            "Basic Step Forward/Back"
+        ],
+        "category": "foundation"
+    },
+    {
+        "canonicalTerm": "Lateral",
+        "variants": [
+            "Side Step",
+            "Lateral"
+        ],
+        "category": "foundation"
+    },
+    {
+        "canonicalTerm": "Abertura",
+        "variants": [
+            "Apertura",
+            "Opening"
+        ],
+        "category": "foundation"
+    },
+    {
+        "canonicalTerm": "Viradinha",
+        "variants": [
+            "Viradita",
+            "Little Turn",
+            "Small Turn"
+        ],
+        "category": "turns"
+    },
+    {
+        "canonicalTerm": "Elástico",
+        "variants": [
+            "Elastic",
+            "Rubber Band"
+        ],
+        "category": "mechanics"
+    },
+    {
+        "canonicalTerm": "Balanço",
+        "variants": [
+            "Balanceo",
+            "Rock Step",
+            "Sway"
+        ],
+        "category": "mechanics"
+    },
+    {
+        "canonicalTerm": "Frango Assado",
+        "variants": [
+            "Pollo Asado",
+            "Rotisserie",
+            "Roasted Chicken"
+        ],
+        "category": "fun"
+    },
+    {
+        "canonicalTerm": "Caminhada",
+        "variants": [
+            "Caminata",
+            "Walking"
+        ],
+        "category": "foundation"
+    },
+    {
+        "canonicalTerm": "Pulo do Gato",
+        "variants": [
+            "Salto del Gato",
+            "Cat's Jump"
+        ],
+        "category": "tricks"
+    },
+    {
+        "canonicalTerm": "Preparação",
+        "variants": [
+            "Preparación",
+            "Preparation"
+        ],
+        "category": "foundation"
+    },
+    {
+        "canonicalTerm": "Eixo",
+        "variants": [
+            "Eje",
+            "Axis"
+        ],
+        "category": "mechanics"
+    },
+    {
+        "canonicalTerm": "Transferência de Peso",
+        "variants": [
+            "Transferencia de peso",
+            "Weight Transfer"
+        ],
+        "category": "mechanics"
+    },
+    {
+        "canonicalTerm": "Soltinho",
+        "variants": [],
+        "category": "foundation"
+    },
+    {
+        "canonicalTerm": "Bônus",
+        "variants": [
+            "Boom-mer-ang"
+        ],
+        "category": "turns"
+    },
+    {
+        "canonicalTerm": "Io-Iô",
+        "variants": [
+            "Yo-Yo"
+        ],
+        "category": "turns"
+    },
+    {
+        "canonicalTerm": "Chicote",
+        "variants": [
+            "Whip"
+        ],
+        "category": "head"
+    },
+    {
+        "canonicalTerm": "Bate-Cabelo",
+        "variants": [
+            "Hair Whip"
+        ],
+        "category": "head"
+    },
+    {
+        "canonicalTerm": "Boneca",
+        "variants": [
+            "Doll"
+        ],
+        "category": "head"
+    },
+    {
+        "canonicalTerm": "Bamboleio",
+        "variants": [
+            "Sway",
+            "Hula-Hoop Motion"
+        ],
+        "category": "body"
+    },
+    {
+        "canonicalTerm": "Carretel",
+        "variants": [
+            "Spool"
+        ],
+        "category": "turns"
+    },
+    {
+        "canonicalTerm": "Circular",
+        "variants": [],
+        "category": "head"
+    },
+    {
+        "canonicalTerm": "Raul",
+        "variants": [],
+        "category": "advanced"
+    },
+    {
+        "canonicalTerm": "Torta",
+        "variants": [
+            "Cake"
+        ],
+        "category": "advanced"
+    },
+    {
+        "canonicalTerm": "Contrapeso",
+        "variants": [
+            "Counterbalance"
+        ],
+        "category": "advanced"
+    },
+    {
+        "canonicalTerm": "Cambra",
+        "variants": [
+            "Cambré",
+            "Backbend",
+            "Arch"
+        ],
+        "category": "advanced"
+    }
+]
