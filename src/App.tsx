@@ -19,8 +19,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { db } from './lib/db';
-import { callZoukAudioProcessor, callZoukSessionConsolidator } from './lib/mcp';
-import { Session, AudioEntry, Language } from './types';
+import { callZoukAudioProcessor } from './lib/mcp';
 import { Session, AudioEntry, Language } from './types';
 import Markdown from 'react-markdown';
 
