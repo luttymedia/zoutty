@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev": "vite --port=5173 --host=0.0.0.0",
     "build": "vite build && npm run build:server",
-    "build:server": "tsc server.ts --outDir dist-server --esModuleInterop --module NodeNext --moduleResolution NodeNext",
+    "build:server": "tsc --project tsconfig.server.json",
     "start": "node dist-server/server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
