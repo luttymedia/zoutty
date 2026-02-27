@@ -559,6 +559,7 @@ function SessionDetail({
   const [tempTitle, setTempTitle] = useState(session.title);
   const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
   const [tempSubtitle, setTempSubtitle] = useState(session.subtitle ?? '');
+  const [isNoteVisible, setIsNoteVisible] = useState(false);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -722,13 +723,36 @@ function SessionDetail({
       {/* Notes Section */}
       <div className="mt-8">
         <div className="glass p-6">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-white/30 mb-4">Notes</h3>
-          <textarea
-            placeholder="Add your session notes here..."
-            value={session.notes || ''}
-            onChange={(e) => onUpdateSession({ notes: e.target.value })}
-            className="w-full min-h-[150px] bg-black/20 text-white/80 p-4 rounded-xl border border-white/5 outline-none focus:border-brand/50 transition-colors resize-y"
-          />
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">Notes</h3>
+            {!isNoteVisible && !session.notes && (
+              <button
+                onClick={() => setIsNoteVisible(true)}
+                className="text-brand hover:text-brand/80 font-bold text-sm transition-colors"
+              >
+                + Add note
+              </button>
+            )}
+          </div>
+          {(isNoteVisible || !!session.notes) && (
+            <textarea
+              autoFocus={isNoteVisible && !session.notes}
+              placeholder="Add your session notes here..."
+              value={session.notes || ''}
+              onChange={(e) => {
+                onUpdateSession({ notes: e.target.value });
+                if (e.target.value.trim().length === 0) {
+                  setIsNoteVisible(false);
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value.trim().length === 0) {
+                  setIsNoteVisible(false);
+                }
+              }}
+              className="w-full min-h-[150px] bg-black/20 text-white/80 p-4 rounded-xl border border-white/5 outline-none focus:border-brand/50 transition-colors resize-y"
+            />
+          )}
         </div>
       </div>
 
