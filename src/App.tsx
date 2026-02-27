@@ -981,7 +981,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
 
       {/* ── Per-audio entries ── */}
       {entries.map((audio, index) => {
-        const time = new Date(audio.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const time = new Date(audio.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         const displayTitle = audio.filename || `Audio Entry ${entries.length - index}`;
         const isOpen = isEntryOpen(audio.id);
         const isProcessing = processingIds.has(audio.id);
