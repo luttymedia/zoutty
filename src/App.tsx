@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { db } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
 import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights } from './types';
+import { ZouttyIcon } from './components/ZouttyIcon';
 import Markdown from 'react-markdown';
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -361,6 +362,7 @@ export default function App() {
               <ChevronLeft className="w-6 h-6" />
             </button>
           )}
+          <ZouttyIcon className="w-10 h-10 text-brand shrink-0" />
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-brand font-bold">Zoutty</p>
             <h1 className="text-xl font-bold tracking-tight">
