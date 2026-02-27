@@ -16,7 +16,8 @@ import {
   Sparkles,
   Edit2,
   Globe,
-  Download
+  Download,
+  Zap
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { db } from './lib/db';
@@ -82,6 +83,7 @@ export default function App() {
   const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   // Listen for beforeinstallprompt for PWA install button
   useEffect(() => {
@@ -121,6 +123,39 @@ export default function App() {
   const showSpinner = (text: string) => setSpinnerText(text);
   const hideSpinner = () => setSpinnerText(null);
 
+  // Migration: Update old session titles to new format
+  useEffect(() => {
+    const migrateTitles = async () => {
+      // Matches "Fri, Feb 27, 2026"
+      const oldFormatRegex = /^[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}, \d{4}$/;
+      const needsMigration = sessions.filter(s => oldFormatRegex.test(s.title));
+
+      if (needsMigration.length > 0) {
+        console.log(`[Migration] Updating ${needsMigration.length} session titles to new format`);
+        const updatedSessions = [...sessions];
+        let changed = false;
+
+        for (const session of needsMigration) {
+          const newTitle = format(new Date(session.date), "EEE, d MMM ''yy");
+          const idx = updatedSessions.findIndex(s => s.id === session.id);
+          if (idx !== -1) {
+            updatedSessions[idx] = { ...updatedSessions[idx], title: newTitle };
+            await db.saveSession(updatedSessions[idx]);
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          setSessions(updatedSessions);
+        }
+      }
+    };
+    if (sessions.length > 0) {
+      migrateTitles();
+    }
+  }, [sessions.length > 0]); // Run once when sessions are loaded
+
+
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
 
   // --- Actions ---
@@ -128,7 +163,7 @@ export default function App() {
   const createSession = async () => {
     const newSession: Session = {
       id: crypto.randomUUID(),
-      title: format(new Date(), 'EEE, MMM d, yyyy'),
+      title: format(new Date(), "EEE, d MMM ''yy"),
       subtitle: '',
       date: Date.now(),
     };
@@ -228,41 +263,48 @@ export default function App() {
       audioBlob: blob,
     };
 
-    // Optimistically update UI
+    // Save to IndexedDB and update UI
+    await db.saveAudioEntry(newEntry);
     setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
+    showToast(filename ? `[${filename}] added!` : 'Audio added!');
+  };
+
+  const handleProcessEntry = async (entryId: string) => {
+    const entry = audioEntries[entryId];
+    if (!entry || !entry.audioBlob) return;
 
     try {
-      showSpinner(`Processing ${type}...`);
+      setProcessingIds(prev => new Set(prev).add(entryId));
+      showSpinner(`Processing ${entry.filename || 'audio'}...`);
 
       // Call MCP Skill
       const result: any = await callZoukAudioProcessor({
-        audio: blob,
-        language,
-        sessionId,
-        filename
+        audio: entry.audioBlob,
+        language: entry.language,
+        sessionId: entry.sessionId,
+        filename: entry.filename
       });
 
       // Update entry with result
       const finalizedEntry: any = {
-        ...newEntry,
+        ...entry,
         ...result
       };
 
-      console.log('[addAudioEntry] Finalized entry structure - hasStrictSummary:', !!(finalizedEntry as any).strictSummary, '| hasTranscript:', !!(finalizedEntry as any).transcript);
+      console.log('[handleProcessEntry] Finalized entry structure - hasStrictSummary:', !!(finalizedEntry as any).strictSummary, '| hasTranscript:', !!(finalizedEntry as any).transcript);
       await db.saveAudioEntry(finalizedEntry);
       setAudioEntries(prev => ({ ...prev, [entryId]: finalizedEntry }));
 
-      showToast(filename ? `[${filename}] processed!` : 'Audio processed!');
+      showToast(entry.filename ? `[${entry.filename}] processed!` : 'Audio processed!');
     } catch (error) {
       console.error('Processing failed:', error);
-      showToast(filename ? `[${filename}] failed to process` : 'Recording failed', true);
-      // Remove failed optimistic entry
-      setAudioEntries(prev => {
-        const copy = { ...prev };
-        delete copy[entryId];
-        return copy;
-      });
+      showToast(entry.filename ? `[${entry.filename}] failed to process` : 'Processing failed', true);
     } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(entryId);
+        return next;
+      });
       hideSpinner();
     }
   };
@@ -379,8 +421,8 @@ export default function App() {
           <ZouttyIcon className="w-10 h-10 text-brand shrink-0" />
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-brand font-bold">Zoutty</p>
-            <h1 className="text-xl font-bold tracking-tight">
-              {view === 'list' ? 'My Sessions' : selectedSession?.title}
+            <h1 className="text-lg font-bold tracking-tight">
+              Session Notes
             </h1>
           </div>
         </div>
@@ -436,7 +478,7 @@ export default function App() {
                         <FileAudio className="w-6 h-6 text-brand" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate text-white">{session.title}</h3>
+                        <h3 className="text-sm font-semibold truncate text-white">{session.title}</h3>
                         <p className="text-xs text-white/40 mt-1 truncate">{session.subtitle || 'Zouk Lesson'}</p>
                       </div>
                       <button
@@ -459,11 +501,13 @@ export default function App() {
           <SessionDetail
             session={selectedSession}
             entries={Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp)}
+            processingIds={processingIds}
             onRecording={(blob, lang) => addAudioEntry(selectedSession.id, blob, lang, 'recording')}
             onUpload={(e, lang) => handleFileUpload(e, lang)}
             onConsolidate={handleConsolidate}
             onUpdateSession={(changes) => updateSession(selectedSession.id, changes)}
             onDeleteEntry={(id) => requestDeleteAudio(id, 'Audio Entry')}
+            onProcessEntry={handleProcessEntry}
             onError={(msg) => showToast(msg, true)}
           />
         )}
@@ -477,20 +521,24 @@ export default function App() {
 function SessionDetail({
   session,
   entries,
+  processingIds,
   onRecording,
   onUpload,
   onConsolidate,
   onUpdateSession,
   onDeleteEntry,
+  onProcessEntry,
   onError
 }: {
   session: Session;
   entries: AudioEntry[];
+  processingIds: Set<string>;
   onRecording: (blob: Blob, lang: Language) => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>, lang: Language) => void;
   onConsolidate: () => void;
   onUpdateSession: (changes: Partial<Pick<Session, 'title' | 'subtitle'>>) => void;
   onDeleteEntry: (entryId: string) => void;
+  onProcessEntry: (entryId: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -587,7 +635,7 @@ function SessionDetail({
       {/* Session Header: date (white) + optional editable subtitle */}
       <div className="glass p-6">
         {/* Date line — always shown, white, bold */}
-        <p className="text-2xl font-bold text-white">{session.title}</p>
+        <p className="text-xl font-bold text-white">{session.title}</p>
 
         {/* Subtitle line — editable, optional */}
         {isEditingSubtitle ? (
@@ -624,7 +672,9 @@ function SessionDetail({
         <SessionStructuredData
           sessionId={session.id}
           entries={entries}
+          processingIds={processingIds}
           onDeleteEntry={onDeleteEntry}
+          onProcessEntry={onProcessEntry}
         />
       </div>
 
@@ -753,7 +803,7 @@ function TranscriptBlock({ text }: { text: string }) {
 
 // ─── Session Structured Data ────────────────────────────────────────────────
 
-function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionId: string; entries: AudioEntry[]; onDeleteEntry: (id: string) => void }) {
+function SessionStructuredData({ sessionId, entries, processingIds, onDeleteEntry, onProcessEntry }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void> }) {
   const [report, setReport] = useState<any | null>(null);
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
 
@@ -848,9 +898,9 @@ function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionI
       {/* ── Per-audio entries ── */}
       {entries.map((audio, index) => {
         const time = new Date(audio.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const title = audio.filename ? `${audio.filename} (${time})` : `Audio Entry ${entries.length - index} (${time})`;
+        const displayTitle = audio.filename || `Audio Entry ${entries.length - index}`;
         const isOpen = isEntryOpen(audio.id);
-        const isProcessing = !audio.transcript && !audio.strictSummary && !audio.bulletPoints;
+        const isProcessing = processingIds.has(audio.id);
 
         // Determine if new shape: strictSummary is a non-empty array
         const hasNewShape = Array.isArray(audio.strictSummary);
@@ -874,7 +924,8 @@ function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionI
         return (
           <AudioEntryCard
             key={audio.id}
-            title={title}
+            displayTitle={displayTitle}
+            time={time}
             audio={audio}
             isOpen={isOpen}
             isProcessing={isProcessing}
@@ -882,6 +933,7 @@ function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionI
             legacyContent={legacyContent}
             onToggle={() => toggleEntry(audio.id)}
             onDelete={() => onDeleteEntry(audio.id)}
+            onProcess={() => onProcessEntry(audio.id)}
           />
         );
       })}
@@ -895,8 +947,9 @@ function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionI
   );
 }
 
-function AudioEntryCard({ title, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onDelete }: {
-  title: string;
+function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onDelete, onProcess }: {
+  displayTitle: string;
+  time: string;
   audio: AudioEntry;
   isOpen: boolean;
   isProcessing: boolean;
@@ -904,6 +957,7 @@ function AudioEntryCard({ title, audio, isOpen, isProcessing, hasNewShape, legac
   legacyContent: any;
   onToggle: () => void;
   onDelete: () => void;
+  onProcess: () => void;
 }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
@@ -922,15 +976,24 @@ function AudioEntryCard({ title, audio, isOpen, isProcessing, hasNewShape, legac
         className="p-4 sm:p-5 cursor-pointer flex justify-between items-center hover:bg-white/5 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-white/10 text-white/60">
-            <Clock className="w-5 h-5" />
+          <div className="flex flex-col">
+            <span className="font-bold text-sm text-white">{displayTitle}</span>
+            <span className="text-xs text-white/40">{time}h</span>
           </div>
-          <span className="font-bold text-base sm:text-lg">{title}</span>
           {isProcessing && (
             <span className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand animate-pulse bg-brand/10 px-3 py-1.5 rounded-lg border border-brand/20">PROCESSING...</span>
           )}
         </div>
         <div className="flex items-center gap-3">
+          {!isProcessing && !audio.transcript && !audio.strictSummary && !audio.bulletPoints && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onProcess(); }}
+              className="p-3 bg-brand/20 hover:bg-brand/30 text-brand rounded-xl border border-brand/30 transition-all shadow-lg shadow-brand/10 flex items-center justify-center min-h-[44px] min-w-[44px]"
+              title="Process audio"
+            >
+              <Zap className="w-5 h-5" />
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
