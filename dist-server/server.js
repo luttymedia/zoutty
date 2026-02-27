@@ -71,7 +71,7 @@ Do not use markdown formatting like \`\`\`json.`;
         let response;
         try {
             response = await genAI.models.generateContent({
-                model: 'gemini-1.5-flash',
+                model: 'gemini-1.5-flash-001',
                 contents: [
                     {
                         parts: [
@@ -179,7 +179,7 @@ Return ONLY valid JSON with exactly these keys:
 Do not use markdown formatting like \`\`\`json.`;
             try {
                 const response = await genAI.models.generateContent({
-                    model: 'gemini-1.5-flash',
+                    model: 'gemini-1.5-flash-001',
                     contents: [
                         {
                             parts: [
