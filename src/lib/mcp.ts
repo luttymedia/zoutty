@@ -38,7 +38,19 @@ export const callZoukAudioProcessor = async (payload: {
     });
 
     if (!response.ok) {
-        throw new Error(`Backend error: ${response.statusText}`);
+        let errorMessage = `Backend error: ${response.statusText}`;
+        try {
+            const errorBody = await response.json();
+            if (errorBody.error) {
+                errorMessage = errorBody.error;
+                if (errorBody.details) {
+                    errorMessage += ` — ${errorBody.details}`;
+                }
+            }
+        } catch (_) {
+            // ignore parse errors, keep default message
+        }
+        throw new Error(errorMessage);
     }
 
     return await response.json();

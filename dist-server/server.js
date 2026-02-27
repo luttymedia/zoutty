@@ -71,7 +71,7 @@ Do not use markdown formatting like \`\`\`json.`;
         let response;
         try {
             response = await genAI.models.generateContent({
-                model: 'gemini-1.5-flash-001',
+                model: 'gemini-2.0-flash-lite',
                 contents: [
                     {
                         parts: [
@@ -91,11 +91,19 @@ Do not use markdown formatting like \`\`\`json.`;
             });
         }
         catch (geminiError) {
+            const status = geminiError?.status || geminiError?.code;
+            const isQuotaError = status === 429 || (geminiError?.message || '').toLowerCase().includes('quota');
             console.error('[/api/gemini/process-single-audio] Gemini SDK call failed:', {
                 message: geminiError?.message,
-                status: geminiError?.status,
+                status,
                 stack: geminiError?.stack
             });
+            if (isQuotaError) {
+                return res.status(429).json({
+                    error: 'Gemini API quota exceeded. Please wait a moment and try again.',
+                    details: geminiError?.message || String(geminiError)
+                });
+            }
             return res.status(500).json({
                 error: 'Gemini API call failed',
                 details: geminiError?.message || String(geminiError)
@@ -179,7 +187,7 @@ Return ONLY valid JSON with exactly these keys:
 Do not use markdown formatting like \`\`\`json.`;
             try {
                 const response = await genAI.models.generateContent({
-                    model: 'gemini-1.5-flash-001',
+                    model: 'gemini-2.0-flash-lite',
                     contents: [
                         {
                             parts: [
@@ -210,11 +218,20 @@ Do not use markdown formatting like \`\`\`json.`;
                 }
             }
             catch (err) {
+                const errStatus = err?.status || err?.code;
+                const isQuotaErr = errStatus === 429 || (err?.message || '').toLowerCase().includes('quota');
                 console.error(`[/api/gemini/process-audio] Gemini SDK Error for audio id=${audioId}:`, {
                     message: err?.message,
-                    status: err?.status,
+                    status: errStatus,
                     stack: err?.stack
                 });
+                if (isQuotaErr) {
+                    // Stop processing further — quota is exhausted
+                    return res.status(429).json({
+                        error: 'Gemini API quota exceeded. Please wait a moment and try again.',
+                        details: err?.message || String(err)
+                    });
+                }
                 // Continue processing remaining audios even if one fails
             }
         }
