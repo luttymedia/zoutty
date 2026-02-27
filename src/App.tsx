@@ -1096,7 +1096,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                 <Edit2 className="w-3 h-3 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0 cursor-pointer" />
               </span>
             )}
-            <span className="text-xs text-white/40">{time}h</span>
+            <span className="text-xs text-white/40">{time}h - {audio.type === 'recording' ? 'Live' : 'Clip'}</span>
           </div>
           {isProcessing && (
             <span className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand animate-pulse bg-brand/10 px-3 py-1.5 rounded-lg border border-brand/20">PROCESSING...</span>
