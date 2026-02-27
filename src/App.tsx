@@ -25,6 +25,7 @@ import { callZoukAudioProcessor } from './lib/mcp';
 import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights } from './types';
 import { ZouttyIcon } from './components/ZouttyIcon';
 import Markdown from 'react-markdown';
+import { exportDocx } from './lib/exportDocx';
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -433,6 +434,28 @@ export default function App() {
               Session Notes
             </h1>
           </div>
+          {view === 'detail' && selectedSession && (
+            <button
+              onClick={async () => {
+                showSpinner('Generating document...');
+                try {
+                  const report = await db.getSessionFinalReport(selectedSession.id);
+                  const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp);
+                  await exportDocx(selectedSession, sessionEntries, report);
+                  showToast('Document exported successfully!');
+                } catch (err) {
+                  console.error(err);
+                  showToast('Failed to export document', true);
+                } finally {
+                  hideSpinner();
+                }
+              }}
+              className="w-10 h-10 ml-2 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
+              title="Export to Word"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+          )}
         </div>
         {deferredPrompt && (
           <button

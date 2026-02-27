@@ -1,0 +1,4 @@
+# Project Rules
+
+## Development Environment
+- **Local Deployment Port**: The application development server must ALWAYS run on `http://localhost:3000/`. Never use the Vite default `5173` or any other port unless explicitly instructed by the user.
