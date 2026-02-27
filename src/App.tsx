@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Sparkles,
   Edit2,
-  Globe
+  Globe,
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { db } from './lib/db';
@@ -79,6 +80,19 @@ export default function App() {
   const [spinnerText, setSpinnerText] = useState<string | null>(null);
 
   const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
+
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // Listen for beforeinstallprompt for PWA install button
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      console.log('beforeinstallprompt event fired');
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
 
   // Load from IndexedDB on mount
   useEffect(() => {
@@ -370,6 +384,23 @@ export default function App() {
             </h1>
           </div>
         </div>
+        {deferredPrompt && (
+          <button
+            onClick={async () => {
+              if (!deferredPrompt) return;
+              deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              console.log(`User response to the install prompt: ${outcome}`);
+              if (outcome === 'accepted') {
+                setDeferredPrompt(null);
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded-xl border border-brand/20 transition-all font-sans text-sm shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Install App</span>
+          </button>
+        )}
       </header>
 
       <main className="max-w-2xl mx-auto px-6 pb-32">
