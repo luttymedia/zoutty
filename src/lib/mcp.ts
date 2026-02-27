@@ -22,6 +22,9 @@ export const callZoukAudioProcessor = async (payload: {
 }) => {
     const base64Audio = await blobToBase64(payload.audio);
     const mimeType = payload.audio.type || 'audio/webm';
+    console.log('[mcp] MIME type:', mimeType);
+    console.log('[mcp] Base64 length:', base64Audio.length);
+    console.log('[mcp] Base64 head:', base64Audio.slice(0, 40));
 
     const response = await fetch('/api/gemini/process-single-audio', {
         method: 'POST',
@@ -45,6 +48,9 @@ export const callZoukAudioProcessor = async (payload: {
                 errorMessage = errorBody.error;
                 if (errorBody.details) {
                     errorMessage += ` — ${errorBody.details}`;
+                }
+                if (errorBody.retryAfter) {
+                    errorMessage += ` (retry after ${errorBody.retryAfter})`;
                 }
             }
         } catch (_) {

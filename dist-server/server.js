@@ -55,23 +55,79 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
             }
         }
         const resolvedMimeType = mimeType || 'audio/webm';
-        console.log(`[/api/gemini/process-single-audio] Processing audio for session=${sessionId}, mimeType=${resolvedMimeType}, base64Length=${base64Audio.length}`);
-        const prompt = `You are an expert Brazilian Zouk instructor. Transcribe and analyze this Brazilian Zouk lesson audio. 
-The student's language preference is: ${language || 'Auto'}. 
+        console.log(`[/api/gemini/process-single-audio] Processing audio for session=${sessionId}`);
+        console.log('MIME:', resolvedMimeType);
+        console.log('Base64 length:', base64Audio.length);
+        console.log('Base64 head:', base64Audio.slice(0, 40));
+        const prompt = `You are an expert Brazilian Zouk instructor. Transcribe and analyze this Brazilian Zouk lesson audio.
+The student's language preference is: ${language || 'Auto'}.
 Here is a glossary of terms you should use if relevant: ${JSON.stringify(zoukGlossary)}.
-Return ONLY valid JSON with keys: 
-- transcript (string)
-- summary (string)
-- concepts (array of strings)
-- drills (array of strings)
-- homework (array of strings)
-- mechanics (array of strings)
-- emotionalNotes (array of strings)
-Do not use markdown formatting like \`\`\`json.`;
+
+You are extracting atomic technical notes from a dance lesson.
+
+STRICT SUMMARY RULES:
+
+- Return ONLY a JSON object.
+- strictSummary must be an array of bullet points.
+- Each bullet must express ONE complete idea.
+- Each bullet must be self-contained and make sense alone.
+- Use concise technical phrasing.
+- Do NOT copy transcript sentences verbatim.
+- Do NOT invent drills, homework, or theory.
+- Do NOT expand beyond what was explicitly stated.
+- Do NOT categorize.
+- Do NOT use headers.
+- Do NOT write paragraphs.
+- Keep bullets short but semantically complete.
+- Prefer compressed technical wording over conversational phrasing.
+
+EXPANDED INSIGHTS RULES:
+- This is a separate section from strictSummary.
+- You MAY infer and generate drills, homework, technical expansions, and emotional notes here based on the transcript.
+- Must always be present in JSON even if all arrays are empty.
+
+Good example:
+Transcript: 'Stay low in plié for control; rise only for speed.'
+Output:
+{
+  "strictSummary": [
+    "Soltinho right turn uses plié",
+    "Stay low for control",
+    "Rise only to increase speed"
+  ],
+  "expandedInsights": {
+    "drills": [],
+    "homework": [],
+    "technicalExpansion": [],
+    "emotionalNotes": []
+  },
+  "transcript": "Stay low in plié for control; rise only for speed."
+}
+
+Bad example of strictSummary array (forbidden conversational style):
+[
+  "In Soltinho, when the leader turns right, do a plié and stay low for more control."
+]
+
+Return format:
+
+{
+  "strictSummary": ["..."],
+  "expandedInsights": {
+    "drills": [],
+    "homework": [],
+    "technicalExpansion": [],
+    "emotionalNotes": []
+  },
+  "transcript": "..."
+}`;
         let response;
         try {
             response = await genAI.models.generateContent({
-                model: 'gemini-2.0-flash-lite',
+                model: 'gemini-2.5-flash',
+                config: {
+                    responseMimeType: 'application/json'
+                },
                 contents: [
                     {
                         parts: [
@@ -84,10 +140,7 @@ Do not use markdown formatting like \`\`\`json.`;
                             }
                         ]
                     }
-                ],
-                config: {
-                    responseMimeType: 'application/json'
-                }
+                ]
             });
         }
         catch (geminiError) {
@@ -99,9 +152,11 @@ Do not use markdown formatting like \`\`\`json.`;
                 stack: geminiError?.stack
             });
             if (isQuotaError) {
+                const retryDelay = geminiError?.retryDelay || geminiError?.details?.[0]?.retryDelay;
                 return res.status(429).json({
                     error: 'Gemini API quota exceeded. Please wait a moment and try again.',
-                    details: geminiError?.message || String(geminiError)
+                    details: geminiError?.message || String(geminiError),
+                    retryAfter: retryDelay
                 });
             }
             return res.status(500).json({
@@ -114,12 +169,24 @@ Do not use markdown formatting like \`\`\`json.`;
             console.error('[/api/gemini/process-single-audio] Gemini returned empty response text');
             return res.status(500).json({ error: 'Gemini returned an empty response' });
         }
-        console.log(`[/api/gemini/process-single-audio] Gemini response received, length=${textResult.length}`);
+        console.log('[Gemini] Raw response length:', textResult.length);
+        console.log('[Gemini] Raw response head:', textResult.slice(0, 200));
+        // Strip markdown fences if present (e.g. ```json ... ```)
+        const cleanText = textResult
+            .replace(/^```(?:json)?\s*/i, '')
+            .replace(/```\s*$/i, '')
+            .trim();
+        const emptyResult = {
+            strictSummary: [],
+            expandedInsights: { drills: [], homework: [], technicalExpansion: [], emotionalNotes: [] },
+            transcript: ''
+        };
         try {
-            const resultJson = JSON.parse(textResult);
+            const resultJson = JSON.parse(cleanText);
             return res.json({
                 status: 'success',
                 processedAt: new Date().toISOString(),
+                ...emptyResult,
                 ...resultJson,
                 mockData: false
             });
@@ -129,10 +196,12 @@ Do not use markdown formatting like \`\`\`json.`;
                 message: parseError?.message,
                 rawText: textResult.substring(0, 500)
             });
-            return res.status(500).json({
-                error: 'Failed to parse Gemini response as JSON',
-                details: parseError?.message,
-                rawText: textResult.substring(0, 500)
+            return res.json({
+                status: 'success',
+                processedAt: new Date().toISOString(),
+                ...emptyResult,
+                transcript: cleanText,
+                mockData: false
             });
         }
     }
@@ -171,23 +240,85 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             }
         }
         const transcripts = [];
-        let summaries = [];
+        const strictSummaryAccum = [];
+        const expandedInsightsAccum = { drills: [], homework: [], technicalExpansion: [], emotionalNotes: [] };
         for (let i = 0; i < audios.length; i++) {
             const audio = audios[i];
             const audioId = audio.audioId || `audio-${i}`;
             const language = audio.language || 'Auto';
             const resolvedMimeType = audio.mimeType || 'audio/webm';
-            console.log(`[/api/gemini/process-audio] Processing audio ${i + 1}/${audios.length}, id=${audioId}, mimeType=${resolvedMimeType}`);
+            console.log(`[/api/gemini/process-audio] Processing audio ${i + 1}/${audios.length}, id=${audioId}`);
+            console.log('MIME:', resolvedMimeType);
+            console.log('Base64 length:', audio.base64?.length || 0);
+            console.log('Base64 head:', (audio.base64 || '').slice(0, 40));
             const prompt = `You are an expert Brazilian Zouk instructor. Transcribe and analyze this Brazilian Zouk lesson audio.
 The student's language preference is: ${language}.
 Here is a glossary of terms you should use if relevant: ${JSON.stringify(zoukGlossary)}.
-Return ONLY valid JSON with exactly these keys:
-- transcript (string): The transcript of the audio in its original language.
-- summary (array of strings): Key points and optional "homework/technique" highlights in concise bullet points.
-Do not use markdown formatting like \`\`\`json.`;
+
+You are extracting atomic technical notes from a dance lesson.
+
+STRICT SUMMARY RULES:
+
+- Return ONLY a JSON object.
+- strictSummary must be an array of bullet points.
+- Each bullet must express ONE complete idea.
+- Each bullet must be self-contained and make sense alone.
+- Use concise technical phrasing.
+- Do NOT copy transcript sentences verbatim.
+- Do NOT invent drills, homework, or theory.
+- Do NOT expand beyond what was explicitly stated.
+- Do NOT categorize.
+- Do NOT use headers.
+- Do NOT write paragraphs.
+- Keep bullets short but semantically complete.
+- Prefer compressed technical wording over conversational phrasing.
+
+EXPANDED INSIGHTS RULES:
+- This is a separate section from strictSummary.
+- You MAY infer and generate drills, homework, technical expansions, and emotional notes here based on the transcript.
+- Must always be present in JSON even if all arrays are empty.
+
+Good example:
+Transcript: 'Stay low in plié for control; rise only for speed.'
+Output:
+{
+  "strictSummary": [
+    "Soltinho right turn uses plié",
+    "Stay low for control",
+    "Rise only to increase speed"
+  ],
+  "expandedInsights": {
+    "drills": [],
+    "homework": [],
+    "technicalExpansion": [],
+    "emotionalNotes": []
+  },
+  "transcript": "Stay low in plié for control; rise only for speed."
+}
+
+Bad example of strictSummary array (forbidden conversational style):
+[
+  "In Soltinho, when the leader turns right, do a plié and stay low for more control."
+]
+
+Return format:
+
+{
+  "strictSummary": ["..."],
+  "expandedInsights": {
+    "drills": [],
+    "homework": [],
+    "technicalExpansion": [],
+    "emotionalNotes": []
+  },
+  "transcript": "..."
+}`;
             try {
                 const response = await genAI.models.generateContent({
-                    model: 'gemini-2.0-flash-lite',
+                    model: 'gemini-2.5-flash',
+                    config: {
+                        responseMimeType: 'application/json'
+                    },
                     contents: [
                         {
                             parts: [
@@ -200,20 +331,42 @@ Do not use markdown formatting like \`\`\`json.`;
                                 }
                             ]
                         }
-                    ],
-                    config: {
-                        responseMimeType: 'application/json'
-                    }
+                    ]
                 });
                 const textResult = response.text;
                 if (textResult) {
-                    const parsed = JSON.parse(textResult);
-                    transcripts.push({
-                        audioId: audioId,
-                        text: parsed.transcript || ''
-                    });
-                    if (parsed.summary && Array.isArray(parsed.summary)) {
-                        summaries = summaries.concat(parsed.summary);
+                    console.log('[Gemini bulk] Raw response head:', textResult.slice(0, 200));
+                    const cleanText = textResult
+                        .replace(/^```(?:json)?\s*/i, '')
+                        .replace(/```\s*$/i, '')
+                        .trim();
+                    try {
+                        const parsed = JSON.parse(cleanText);
+                        transcripts.push({
+                            audioId: audioId,
+                            text: parsed.transcript || ''
+                        });
+                        // Accumulate strictSummary (flat array)
+                        if (Array.isArray(parsed.strictSummary)) {
+                            strictSummaryAccum.push(...parsed.strictSummary);
+                        }
+                        // Accumulate expandedInsights arrays
+                        if (parsed.expandedInsights) {
+                            const ei = parsed.expandedInsights;
+                            if (Array.isArray(ei.drills))
+                                expandedInsightsAccum.drills.push(...ei.drills);
+                            if (Array.isArray(ei.homework))
+                                expandedInsightsAccum.homework.push(...ei.homework);
+                            if (Array.isArray(ei.technicalExpansion))
+                                expandedInsightsAccum.technicalExpansion.push(...ei.technicalExpansion);
+                            if (Array.isArray(ei.emotionalNotes))
+                                expandedInsightsAccum.emotionalNotes.push(...ei.emotionalNotes);
+                        }
+                    }
+                    catch (parseErr) {
+                        console.error(`[/api/gemini/process-audio] JSON parse failed for audio ${audioId}:`, parseErr);
+                        // Fallback: treat whole response as transcript
+                        transcripts.push({ audioId: audioId, text: cleanText });
                     }
                 }
             }
@@ -226,20 +379,22 @@ Do not use markdown formatting like \`\`\`json.`;
                     stack: err?.stack
                 });
                 if (isQuotaErr) {
+                    const retryDelay = err?.retryDelay || err?.details?.[0]?.retryDelay;
                     // Stop processing further — quota is exhausted
                     return res.status(429).json({
                         error: 'Gemini API quota exceeded. Please wait a moment and try again.',
-                        details: err?.message || String(err)
+                        details: err?.message || String(err),
+                        retryAfter: retryDelay
                     });
                 }
                 // Continue processing remaining audios even if one fails
             }
         }
-        const finalSummary = summaries.map(s => ({ bullet: s }));
-        console.log(`[/api/gemini/process-audio] Done. transcripts=${transcripts.length}, bullets=${finalSummary.length}`);
+        console.log(`[/api/gemini/process-audio] Done. transcripts=${transcripts.length}`);
         return res.json({
             transcripts,
-            summary: finalSummary
+            strictSummary: strictSummaryAccum,
+            expandedInsights: expandedInsightsAccum
         });
     }
     catch (error) {

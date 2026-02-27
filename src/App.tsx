@@ -20,7 +20,7 @@ import {
 import { format } from 'date-fns';
 import { db } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
-import { Session, AudioEntry, Language } from './types';
+import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights } from './types';
 import Markdown from 'react-markdown';
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -113,7 +113,8 @@ export default function App() {
   const createSession = async () => {
     const newSession: Session = {
       id: crypto.randomUUID(),
-      title: `Lesson ${format(new Date(), 'MMM d, yyyy')}`,
+      title: format(new Date(), 'EEE, MMM d, yyyy'),
+      subtitle: '',
       date: Date.now(),
     };
 
@@ -124,10 +125,10 @@ export default function App() {
     setView('detail');
   };
 
-  const updateSessionTitle = async (id: string, title: string) => {
+  const updateSession = async (id: string, changes: Partial<Pick<Session, 'title' | 'subtitle'>>) => {
     const session = sessions.find(s => s.id === id);
     if (!session) return;
-    const updated = { ...session, title };
+    const updated = { ...session, ...changes };
     await db.saveSession(updated);
     setSessions(prev => prev.map(s => s.id === id ? updated : s));
   };
@@ -232,6 +233,7 @@ export default function App() {
         ...result
       };
 
+      console.log('[addAudioEntry] Finalized entry structure - hasStrictSummary:', !!(finalizedEntry as any).strictSummary, '| hasTranscript:', !!(finalizedEntry as any).transcript);
       await db.saveAudioEntry(finalizedEntry);
       setAudioEntries(prev => ({ ...prev, [entryId]: finalizedEntry }));
 
@@ -301,6 +303,9 @@ export default function App() {
       }
 
       const reportResult = await response.json();
+      console.log('[handleConsolidate] API response structure:', JSON.stringify(reportResult).slice(0, 400));
+      console.log('[handleConsolidate] Has strictSummary:', !!reportResult.strictSummary);
+      console.log('[handleConsolidate] Has expandedInsights:', !!reportResult.expandedInsights);
 
       await db.saveFinalReport({
         id: crypto.randomUUID(),
@@ -398,8 +403,8 @@ export default function App() {
                         <FileAudio className="w-6 h-6 text-brand" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{session.title}</h3>
-                        <p className="text-xs text-white/40 mt-1">{format(session.date, 'EEE, MMM d, yyyy')}</p>
+                        <h3 className="font-semibold truncate text-white">{session.title}</h3>
+                        <p className="text-xs text-white/40 mt-1 truncate">{session.subtitle || 'Zouk Lesson'}</p>
                       </div>
                       <button
                         onClick={(e) => {
@@ -424,7 +429,7 @@ export default function App() {
             onRecording={(blob, lang) => addAudioEntry(selectedSession.id, blob, lang, 'recording')}
             onUpload={(e, lang) => handleFileUpload(e, lang)}
             onConsolidate={handleConsolidate}
-            onUpdateTitle={(title) => updateSessionTitle(selectedSession.id, title)}
+            onUpdateSession={(changes) => updateSession(selectedSession.id, changes)}
             onDeleteEntry={(id) => requestDeleteAudio(id, 'Audio Entry')}
             onError={(msg) => showToast(msg, true)}
           />
@@ -442,7 +447,7 @@ function SessionDetail({
   onRecording,
   onUpload,
   onConsolidate,
-  onUpdateTitle,
+  onUpdateSession,
   onDeleteEntry,
   onError
 }: {
@@ -451,34 +456,79 @@ function SessionDetail({
   onRecording: (blob: Blob, lang: Language) => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>, lang: Language) => void;
   onConsolidate: () => void;
-  onUpdateTitle: (title: string) => void;
+  onUpdateSession: (changes: Partial<Pick<Session, 'title' | 'subtitle'>>) => void;
   onDeleteEntry: (entryId: string) => void;
   onError: (msg: string) => void;
 }) {
   const [isRecording, setIsRecording] = useState(false);
+  const [micLevel, setMicLevel] = useState(0); // 0..1 live mic energy
   const [language, setLanguage] = useState<Language>('auto');
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [tempTitle, setTempTitle] = useState(session.title);
+  const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
+  const [tempSubtitle, setTempSubtitle] = useState(session.subtitle ?? '');
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const animFrameRef = useRef<number | null>(null);
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder.current = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 48000 }
+      });
+
+      // Live mic level meter via AudioContext analyser
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const updateLevel = () => {
+        analyser.getByteTimeDomainData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          const v = (dataArray[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+        setMicLevel(Math.min(1, rms * 6)); // scale so normal speech hits 0.4–0.8
+        animFrameRef.current = requestAnimationFrame(updateLevel);
+      };
+      animFrameRef.current = requestAnimationFrame(updateLevel);
+
+      // Pick the best supported MIME type so the Blob type is accurate
+      const preferredMime = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4'
+      ].find(t => MediaRecorder.isTypeSupported(t)) || '';
+      console.log('[MediaRecorder] Preferred mimeType:', preferredMime || '(browser default)');
+
+      mediaRecorder.current = new MediaRecorder(stream, preferredMime ? { mimeType: preferredMime } : {});
       audioChunks.current = [];
 
       mediaRecorder.current.ondataavailable = (event) => {
-        audioChunks.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunks.current.push(event.data);
+          console.log('[MediaRecorder] chunk received, size:', event.data.size, 'total chunks:', audioChunks.current.length);
+        }
       };
 
       mediaRecorder.current.onstop = () => {
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+        const actualMime = mediaRecorder.current?.mimeType || preferredMime || 'audio/webm';
+        // Use plain audio/webm for blob type — codec specifier can confuse some browsers during playback
+        const blobType = actualMime.split(';')[0] || 'audio/webm';
+        console.log('[MediaRecorder] Actual mimeType after stop:', actualMime);
+        console.log('[MediaRecorder] Total chunks:', audioChunks.current.length);
+        const audioBlob = new Blob(audioChunks.current, { type: blobType });
+        console.log('[MediaRecorder] Blob size:', audioBlob.size, 'type:', audioBlob.type);
         onRecording(audioBlob, language);
         stream.getTracks().forEach(track => track.stop());
       };
 
-      mediaRecorder.current.start();
+      mediaRecorder.current.start(250); // 250ms timeslice — guarantees chunks are written regularly
       setIsRecording(true);
     } catch (err) {
       console.error('Error accessing microphone:', err);
@@ -487,45 +537,53 @@ function SessionDetail({
   };
 
   const stopRecording = () => {
+    if (animFrameRef.current !== null) cancelAnimationFrame(animFrameRef.current);
+    if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+    setMicLevel(0);
     mediaRecorder.current?.stop();
     setIsRecording(false);
   };
 
-  const handleTitleSubmit = () => {
-    onUpdateTitle(tempTitle);
-    setIsEditingTitle(false);
+  const handleSubtitleSubmit = () => {
+    onUpdateSession({ subtitle: tempSubtitle.trim() });
+    setIsEditingSubtitle(false);
   };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Editable Title */}
+      {/* Session Header: date (white) + optional editable subtitle */}
       <div className="glass p-6">
-        {isEditingTitle ? (
-          <div className="flex items-center gap-2">
+        {/* Date line — always shown, white, bold */}
+        <p className="text-2xl font-bold text-white">{session.title}</p>
+
+        {/* Subtitle line — editable, optional */}
+        {isEditingSubtitle ? (
+          <div className="flex items-center gap-2 mt-2">
             <input
               autoFocus
-              value={tempTitle}
-              onChange={(e) => setTempTitle(e.target.value)}
-              onBlur={handleTitleSubmit}
-              onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
-              className="bg-transparent text-2xl font-bold outline-none border-b border-brand w-full py-1"
+              placeholder="Add a subtitle…"
+              value={tempSubtitle}
+              onChange={(e) => setTempSubtitle(e.target.value)}
+              onBlur={handleSubtitleSubmit}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSubtitleSubmit(); if (e.key === 'Escape') setIsEditingSubtitle(false); }}
+              className="bg-transparent text-sm text-white/40 outline-none border-b border-brand/50 w-full py-0.5 placeholder:text-white/20"
             />
           </div>
         ) : (
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">{session.title}</h2>
+          <div className="flex items-center justify-between mt-1.5">
             <button
-              onClick={() => setIsEditingTitle(true)}
-              className="p-3 bg-white/5 text-brand rounded-lg hover:bg-white/10 transition-colors"
+              onClick={() => setIsEditingSubtitle(true)}
+              className="text-sm text-white/40 hover:text-white/60 transition-colors text-left flex items-center gap-2 group"
             >
-              <Edit2 className="w-5 h-5" />
+              {session.subtitle ? (
+                <span>{session.subtitle}</span>
+              ) : (
+                <span className="italic text-white/20 group-hover:text-white/40">Zouk Lesson</span>
+              )}
+              <Edit2 className="w-3.5 h-3.5 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0" />
             </button>
           </div>
         )}
-        <p className="text-sm text-white/40 mt-2 flex items-center gap-2">
-          <Calendar className="w-3.5 h-3.5" />
-          {format(session.date, 'EEE, MMM d, yyyy')}
-        </p>
       </div>
 
       {/* New Structured Session Detail Content */}
@@ -552,10 +610,14 @@ function SessionDetail({
         <button
           id="recordBtn"
           onClick={isRecording ? stopRecording : startRecording}
+          style={isRecording ? {
+            boxShadow: `0 0 0 ${4 + micLevel * 16}px rgba(239,68,68,${0.3 + micLevel * 0.6})`
+          } : {}}
           className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full font-bold transition-all shadow-lg ${isRecording
-            ? 'bg-red-500 text-white shadow-red-500/50 animate-pulse'
+            ? 'bg-red-500 text-white'
             : 'bg-brand text-bg-dark hover:bg-brand/90 glow-brand scale-110'
             }`}
+          title={isRecording ? `Mic level: ${Math.round(micLevel * 100)}%` : 'Start recording'}
         >
           {isRecording ? <Square className="w-6 h-6 sm:w-8 sm:h-8 fill-current" /> : <Mic className="w-7 h-7 sm:w-10 sm:h-10" />}
         </button>
@@ -573,9 +635,93 @@ function SessionDetail({
   );
 }
 
+// ─── New display helpers ───────────────────────────────────────────────────
+
+function CollapsiblePanel({ title, children, defaultOpen = true, accent = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean; accent?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className={`rounded-xl border overflow-hidden ${accent ? 'border-brand/30' : 'border-white/10'}`}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${accent ? 'bg-brand/10 hover:bg-brand/15' : 'bg-white/5 hover:bg-white/10'}`}
+      >
+        <span className={`text-xs font-bold uppercase tracking-widest ${accent ? 'text-brand' : 'text-white/50'}`}>{title}</span>
+        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${open ? '' : '-rotate-90'}`} />
+      </button>
+      {open && <div className="px-4 pb-4 pt-2">{children}</div>}
+    </div>
+  );
+}
+
+function BulletList({ items }: { items: string[] }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <ul className="space-y-2 mt-1">
+      {items.map((item, i) => (
+        <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-white/80">
+          <div className="w-4 h-4 rounded-full bg-brand/20 flex items-center justify-center shrink-0 mt-0.5">
+            <CheckCircle2 className="w-3 h-3 text-brand" />
+          </div>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function StrictSummaryBlock({ data }: { data: string[] }) {
+  if (!data || data.length === 0) return <p className="text-white/30 italic text-sm">No strict summary content extracted.</p>;
+  return <BulletList items={data} />;
+}
+
+function ExpandedInsightsBlock({ data }: { data: ExpandedInsights }) {
+  const allEmpty =
+    (data.drills?.length ?? 0) === 0 &&
+    (data.homework?.length ?? 0) === 0 &&
+    (data.technicalExpansion?.length ?? 0) === 0 &&
+    (data.emotionalNotes?.length ?? 0) === 0;
+  if (allEmpty) return null;
+  return (
+    <div className="border border-purple-500/20 rounded-2xl overflow-hidden">
+      <details>
+        <summary className="px-5 py-3 cursor-pointer flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/15 transition-colors list-none">
+          <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+          <span className="font-bold text-purple-300 text-sm">Expanded Insights (AI Enhanced)</span>
+          <ChevronDown className="w-4 h-4 text-purple-400/50 ml-auto" />
+        </summary>
+        <div className="p-4 space-y-3 bg-black/20">
+          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title="Drills" defaultOpen={true}><BulletList items={data.drills} /></CollapsiblePanel>}
+          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title="Homework" defaultOpen={true}><BulletList items={data.homework} /></CollapsiblePanel>}
+          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title="Technical Expansion" defaultOpen={true}><BulletList items={data.technicalExpansion} /></CollapsiblePanel>}
+          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title="Emotional Notes" defaultOpen={true}><BulletList items={data.emotionalNotes} /></CollapsiblePanel>}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function TranscriptBlock({ text }: { text: string }) {
+  if (!text) return null;
+  return (
+    <div className="border border-white/10 rounded-2xl overflow-hidden">
+      <details>
+        <summary className="px-5 py-3 cursor-pointer flex items-center gap-3 bg-white/5 hover:bg-white/8 transition-colors list-none">
+          <FileAudio className="w-4 h-4 text-white/40 shrink-0" />
+          <span className="font-bold text-white/50 text-sm">View Transcript</span>
+          <ChevronDown className="w-4 h-4 text-white/20 ml-auto" />
+        </summary>
+        <div className="p-4 bg-black/20">
+          <p className="text-white/50 text-sm italic leading-relaxed whitespace-pre-wrap">{text}</p>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+// ─── Session Structured Data ────────────────────────────────────────────────
+
 function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionId: string; entries: AudioEntry[]; onDeleteEntry: (id: string) => void }) {
   const [report, setReport] = useState<any | null>(null);
-  const [allOpen, setAllOpen] = useState(true);
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -584,7 +730,7 @@ function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionI
         const dbReport = await db.getSessionFinalReport(sessionId);
         setReport(dbReport || null);
       } catch (err) {
-        console.error("Failed to load generic content for session", err);
+        console.error('Failed to load generic content for session', err);
       }
     };
     load();
@@ -592,120 +738,206 @@ function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionI
     return () => clearInterval(intervalId);
   }, [sessionId]);
 
-  const toggleAll = () => {
-    const newState = !allOpen;
-    setAllOpen(newState);
-    const newOpenStates: Record<string, boolean> = {};
-    if (report && report.report) newOpenStates['report'] = newState;
-    entries.forEach(a => newOpenStates[a.id] = newState);
-    setOpenStates(newOpenStates);
-  };
+  const isEntryOpen = (id: string) => openStates[id] ?? true;
+  const toggleEntry = (id: string) => setOpenStates(prev => ({ ...prev, [id]: !prev[id] }));
 
-  const isSectionOpen = (id: string) => openStates[id] ?? allOpen;
-  const toggleSection = (id: string) => setOpenStates(prev => ({ ...prev, [id]: !prev[id] }));
+  // Parse consolidated report — new shape takes priority, falls back to legacy
+  let consolidatedStrictSummary: string[] | null = null;
+  let consolidatedExpanded: ExpandedInsights | null = null;
+  let consolidatedTranscripts: string | null = null;
+  let legacyReportContent: any = null;
 
-  // Parse report
-  let reportContent: any = null;
-  let transcripts: any = null;
-
-  if (report && report.report) {
+  if (report?.report) {
     let r = report.report;
-    const contentToRender: any = {};
-    const reportKeys = ['summary', 'homework', 'drills', 'coreConcepts', 'emotionalThemes', 'crossSessionPatterns', 'prioritiesNextLesson'];
-
     if (typeof r === 'string') {
       try { r = JSON.parse(r); } catch (e) { r = { RawSummary: r }; }
     }
-
-    if (typeof r === 'object') {
-      if (r.transcripts) transcripts = r.transcripts;
-
-      reportKeys.forEach(k => {
-        if (r[k]) {
-          // If it's the new array style [{bullet: "..."}]
-          if (Array.isArray(r[k]) && r[k].length > 0 && r[k][0].bullet) {
-            contentToRender[k] = r[k].map((item: any) => item.bullet);
-          } else {
-            contentToRender[k] = r[k];
-          }
+    if (typeof r === 'object' && r !== null) {
+      if (Array.isArray(r.strictSummary)) {
+        consolidatedStrictSummary = r.strictSummary as string[];
+        consolidatedExpanded = (r.expandedInsights ?? { drills: [], homework: [], technicalExpansion: [], emotionalNotes: [] }) as ExpandedInsights;
+        if (r.transcripts && Array.isArray(r.transcripts)) {
+          consolidatedTranscripts = r.transcripts.map((t: any) => t.text || '').join('\n\n---\n\n');
         }
-      });
-
-      if (Object.keys(contentToRender).length === 0 && !r.transcripts) Object.assign(contentToRender, r);
-    } else {
-      contentToRender['RawSummary'] = r;
+      } else {
+        // Legacy shape
+        const legacyKeys = ['summary', 'homework', 'drills', 'coreConcepts', 'emotionalThemes', 'crossSessionPatterns', 'prioritiesNextLesson'];
+        const contentToRender: any = {};
+        if (r.transcripts) consolidatedTranscripts = r.transcripts.map((t: any) => t.text || '').join('\n\n---\n\n');
+        legacyKeys.forEach(k => {
+          if (r[k]) {
+            if (Array.isArray(r[k]) && r[k].length > 0 && r[k][0]?.bullet) {
+              contentToRender[k] = r[k].map((item: any) => item.bullet);
+            } else {
+              contentToRender[k] = r[k];
+            }
+          }
+        });
+        if (Object.keys(contentToRender).length === 0 && !r.transcripts) Object.assign(contentToRender, r);
+        if (Object.keys(contentToRender).length > 0) legacyReportContent = contentToRender;
+      }
     }
-
-    if (Object.keys(contentToRender).length > 0) reportContent = contentToRender;
   }
+
+  const hasConsolidated = consolidatedStrictSummary || legacyReportContent;
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end mb-2">
-        <button
-          onClick={toggleAll}
-          className="px-4 py-2 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-colors shadow-sm text-sm"
-        >
-          {allOpen ? 'Collapse All' : 'Expand All'}
-        </button>
-      </div>
 
-      {reportContent && (
-        <CollapsibleSection
-          title="Consolidated Session Report"
-          contentObj={reportContent}
-          isReport={true}
-          isOpen={isSectionOpen('report')}
-          onToggle={() => toggleSection('report')}
-        />
+      {/* ── Consolidated report ── */}
+      {hasConsolidated && (
+        <div className={`border rounded-2xl overflow-hidden shadow-sm ${consolidatedStrictSummary ? 'border-brand/40 bg-brand/5' : 'border-white/10 glass'}`}>
+          <div className="px-5 py-3 flex items-center gap-3 bg-brand/10">
+            <Sparkles className="w-5 h-5 text-brand" />
+            <span className="font-bold text-base">Consolidated Session Report</span>
+          </div>
+          <div className="p-4 space-y-4 bg-black/20">
+            {consolidatedStrictSummary && (
+              <>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
+                  <StrictSummaryBlock data={consolidatedStrictSummary} />
+                </div>
+                {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} />}
+                {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} />}
+              </>
+            )}
+            {legacyReportContent && (
+              <>
+                <StructuredBullets contentObj={legacyReportContent} isReport={true} />
+                {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} />}
+              </>
+            )}
+          </div>
+        </div>
       )}
 
-      {transcripts && transcripts.length > 0 && (
-        <CollapsibleSection
-          title="Session Transcripts (Raw)"
-          contentObj={{}}
-          isReport={false}
-          isOpen={isSectionOpen('transcripts')}
-          onToggle={() => toggleSection('transcripts')}
-          audioData={{ transcript: transcripts.map((t: any) => t.text).join('\n\n---\n\n') }}
-        />
-      )}
-
+      {/* ── Per-audio entries ── */}
       {entries.map((audio, index) => {
-        const sourceData = (audio as any).processedData || audio;
-        const content: any = {};
-        const keys = ['concepts', 'drills', 'homework', 'mechanics', 'emotionalNotes'];
-
-        keys.forEach(k => { if (sourceData[k]) content[k] = sourceData[k]; });
-        if (Object.keys(content).length === 0 && audio.transcript) {
-          try {
-            const pd = JSON.parse(audio.transcript);
-            keys.forEach(k => { if (pd[k]) content[k] = pd[k]; });
-          } catch (e) { }
-        }
-        if (Object.keys(content).length === 0 && audio.bulletPoints && audio.bulletPoints.length > 0) {
-          content.bulletPoints = audio.bulletPoints;
-        }
-
         const time = new Date(audio.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const title = audio.filename ? `${audio.filename} (${time})` : `Audio Entry ${entries.length - index} (${time})`;
+        const isOpen = isEntryOpen(audio.id);
+        const isProcessing = !audio.transcript && !audio.strictSummary && !audio.bulletPoints;
+
+        // Determine if new shape: strictSummary is a non-empty array
+        const hasNewShape = Array.isArray(audio.strictSummary);
+        // Legacy fallback: read from flat fields
+        const legacyContent: any = {};
+        if (!hasNewShape) {
+          const keys = ['concepts', 'drills', 'homework', 'mechanics', 'emotionalNotes'];
+          const src = (audio as any).processedData || audio;
+          keys.forEach(k => { if ((src as any)[k]) legacyContent[k] = (src as any)[k]; });
+          if (Object.keys(legacyContent).length === 0 && audio.transcript) {
+            try {
+              const pd = JSON.parse(audio.transcript);
+              keys.forEach(k => { if (pd[k]) legacyContent[k] = pd[k]; });
+            } catch (_) { }
+          }
+          if (Object.keys(legacyContent).length === 0 && audio.bulletPoints?.length) {
+            legacyContent.bulletPoints = audio.bulletPoints;
+          }
+        }
 
         return (
-          <CollapsibleSection
+          <AudioEntryCard
             key={audio.id}
             title={title}
-            contentObj={content}
-            isOpen={isSectionOpen(audio.id)}
-            onToggle={() => toggleSection(audio.id)}
-            audioData={audio}
+            audio={audio}
+            isOpen={isOpen}
+            isProcessing={isProcessing}
+            hasNewShape={hasNewShape}
+            legacyContent={legacyContent}
+            onToggle={() => toggleEntry(audio.id)}
             onDelete={() => onDeleteEntry(audio.id)}
           />
         );
       })}
 
-      {!reportContent && entries.length === 0 && (
+      {!hasConsolidated && entries.length === 0 && (
         <div className="p-8 text-center text-white/40 text-sm border border-white/10 border-dashed rounded-xl glass">
           No structured data available for this session yet.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AudioEntryCard({ title, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onDelete }: {
+  title: string;
+  audio: AudioEntry;
+  isOpen: boolean;
+  isProcessing: boolean;
+  hasNewShape: boolean;
+  legacyContent: any;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (audio.audioBlob) {
+      const url = URL.createObjectURL(audio.audioBlob);
+      setAudioUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [audio.audioBlob]);
+
+  return (
+    <div className="border border-white/10 glass rounded-2xl overflow-hidden shadow-sm">
+      <div
+        onClick={onToggle}
+        className="p-4 sm:p-5 cursor-pointer flex justify-between items-center hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-white/10 text-white/60">
+            <Clock className="w-5 h-5" />
+          </div>
+          <span className="font-bold text-base sm:text-lg">{title}</span>
+          {isProcessing && (
+            <span className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand animate-pulse bg-brand/10 px-3 py-1.5 rounded-lg border border-brand/20">PROCESSING...</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          >
+            <Trash2 className="w-5 h-5 shrink-0" />
+          </button>
+          <ChevronUp className={`w-5 h-5 text-white/40 transition-transform ${isOpen ? '' : 'rotate-180'}`} />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="p-4 sm:p-5 bg-black/20 border-t border-white/5 space-y-4">
+          {audioUrl && (
+            <audio controls src={audioUrl} className="w-full h-10 opacity-90 rounded-xl bg-black/20" />
+          )}
+
+          {hasNewShape ? (
+            <>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
+                <StrictSummaryBlock data={audio.strictSummary as string[]} />
+              </div>
+              {audio.expandedInsights && <ExpandedInsightsBlock data={audio.expandedInsights} />}
+              <TranscriptBlock text={audio.transcript ?? ''} />
+            </>
+          ) : (
+            <>
+              {Object.keys(legacyContent).length > 0 ? (
+                <StructuredBullets contentObj={legacyContent} />
+              ) : isProcessing ? (
+                <p className="text-white/40 italic text-sm">Waiting for content generation...</p>
+              ) : null}
+              {audio.transcript && !hasNewShape && (
+                <div className="mt-4 pt-4 border-t border-white/5 text-sm">
+                  <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">Raw Transcript</span>
+                  <p className="text-white/60 italic leading-relaxed">"{audio.transcript}"</p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
