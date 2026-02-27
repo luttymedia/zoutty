@@ -183,6 +183,14 @@ export default function App() {
     setSessions(prev => prev.map(s => s.id === id ? updated : s));
   };
 
+  const updateAudioEntry = async (id: string, changes: Partial<AudioEntry>) => {
+    const entry = audioEntries[id];
+    if (!entry) return;
+    const updated = { ...entry, ...changes };
+    await db.saveAudioEntry(updated);
+    setAudioEntries(prev => ({ ...prev, [id]: updated }));
+  };
+
   const handleUndo = (id: string, type: 'session' | 'audio', data: any, extraData: any, timeoutId: NodeJS.Timeout) => {
     clearTimeout(timeoutId);
     if (type === 'session') {
@@ -506,6 +514,7 @@ export default function App() {
             onUpload={(e, lang) => handleFileUpload(e, lang)}
             onConsolidate={handleConsolidate}
             onUpdateSession={(changes) => updateSession(selectedSession.id, changes)}
+            onUpdateEntry={updateAudioEntry}
             onDeleteEntry={(id) => requestDeleteAudio(id, 'Audio Entry')}
             onProcessEntry={handleProcessEntry}
             onError={(msg) => showToast(msg, true)}
@@ -526,6 +535,7 @@ function SessionDetail({
   onUpload,
   onConsolidate,
   onUpdateSession,
+  onUpdateEntry,
   onDeleteEntry,
   onProcessEntry,
   onError
@@ -537,6 +547,7 @@ function SessionDetail({
   onUpload: (e: React.ChangeEvent<HTMLInputElement>, lang: Language) => void;
   onConsolidate: () => void;
   onUpdateSession: (changes: Partial<Pick<Session, 'title' | 'subtitle' | 'notes'>>) => void;
+  onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void;
   onDeleteEntry: (entryId: string) => void;
   onProcessEntry: (entryId: string) => Promise<void>;
   onError: (msg: string) => void;
@@ -544,6 +555,8 @@ function SessionDetail({
   const [isRecording, setIsRecording] = useState(false);
   const [micLevel, setMicLevel] = useState(0); // 0..1 live mic energy
   const [language, setLanguage] = useState<Language>('auto');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState(session.title);
   const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
   const [tempSubtitle, setTempSubtitle] = useState(session.subtitle ?? '');
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -630,12 +643,39 @@ function SessionDetail({
     setIsEditingSubtitle(false);
   };
 
+  const handleTitleSubmit = () => {
+    if (tempTitle.trim() && tempTitle.trim() !== session.title) {
+      onUpdateSession({ title: tempTitle.trim() });
+    } else {
+      setTempTitle(session.title);
+    }
+    setIsEditingTitle(false);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Session Header: date (white) + optional editable subtitle */}
       <div className="glass p-6">
         {/* Date line — always shown, white, bold */}
-        <p className="text-xl font-bold text-white">{session.title}</p>
+        {isEditingTitle ? (
+          <input
+            autoFocus
+            value={tempTitle}
+            onChange={(e) => setTempTitle(e.target.value)}
+            onBlur={handleTitleSubmit}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleTitleSubmit(); if (e.key === 'Escape') { setTempTitle(session.title); setIsEditingTitle(false); } }}
+            className="bg-transparent text-xl font-bold text-white outline-none w-full py-0.5"
+          />
+        ) : (
+          <p
+            className="text-xl font-bold text-white cursor-text hover:text-white/80 transition-colors flex items-center gap-2 group w-max"
+            onClick={() => { setTempTitle(session.title); setIsEditingTitle(true); }}
+            title="Edit title"
+          >
+            {session.title}
+            <Edit2 className="w-4 h-4 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0 cursor-pointer" />
+          </p>
+        )}
 
         {/* Subtitle line — editable, optional */}
         {isEditingSubtitle ? (
@@ -673,6 +713,7 @@ function SessionDetail({
           sessionId={session.id}
           entries={entries}
           processingIds={processingIds}
+          onUpdateEntry={onUpdateEntry}
           onDeleteEntry={onDeleteEntry}
           onProcessEntry={onProcessEntry}
         />
@@ -816,7 +857,7 @@ function TranscriptBlock({ text }: { text: string }) {
 
 // ─── Session Structured Data ────────────────────────────────────────────────
 
-function SessionStructuredData({ sessionId, entries, processingIds, onDeleteEntry, onProcessEntry }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void> }) {
+function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntry, onDeleteEntry, onProcessEntry }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void> }) {
   const [report, setReport] = useState<any | null>(null);
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
 
@@ -945,6 +986,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, onDeleteEntr
             hasNewShape={hasNewShape}
             legacyContent={legacyContent}
             onToggle={() => toggleEntry(audio.id)}
+            onUpdateTitle={(newTitle) => onUpdateEntry(audio.id, { filename: newTitle })}
             onDelete={() => onDeleteEntry(audio.id)}
             onProcess={() => onProcessEntry(audio.id)}
           />
@@ -960,7 +1002,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, onDeleteEntr
   );
 }
 
-function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onDelete, onProcess }: {
+function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onUpdateTitle, onDelete, onProcess }: {
   displayTitle: string;
   time: string;
   audio: AudioEntry;
@@ -969,10 +1011,22 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
   hasNewShape: boolean;
   legacyContent: any;
   onToggle: () => void;
+  onUpdateTitle: (newTitle: string) => void;
   onDelete: () => void;
   onProcess: () => void;
 }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState(displayTitle);
+
+  const handleTitleSubmit = () => {
+    if (tempTitle.trim() && tempTitle.trim() !== displayTitle) {
+      onUpdateTitle(tempTitle.trim());
+    } else {
+      setTempTitle(displayTitle);
+    }
+    setIsEditingTitle(false);
+  };
 
   useEffect(() => {
     if (audio.audioBlob) {
@@ -985,12 +1039,33 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
   return (
     <div className="border border-white/10 glass rounded-2xl overflow-hidden shadow-sm">
       <div
-        onClick={onToggle}
+        onClick={(e) => {
+          if (!isEditingTitle) onToggle();
+        }}
         className="p-4 sm:p-5 cursor-pointer flex justify-between items-center hover:bg-white/5 transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
-            <span className="font-bold text-sm text-white">{displayTitle}</span>
+            {isEditingTitle ? (
+              <input
+                autoFocus
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                onBlur={handleTitleSubmit}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleTitleSubmit(); if (e.key === 'Escape') { setTempTitle(displayTitle); setIsEditingTitle(false); } }}
+                className="bg-transparent font-bold text-sm text-white outline-none w-full"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span
+                className="font-bold text-sm text-white cursor-text hover:text-white/80 transition-colors flex items-center gap-2 group w-max"
+                onClick={(e) => { e.stopPropagation(); setTempTitle(displayTitle); setIsEditingTitle(true); }}
+                title="Edit clip name"
+              >
+                {displayTitle}
+                <Edit2 className="w-3 h-3 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0 cursor-pointer" />
+              </span>
+            )}
             <span className="text-xs text-white/40">{time}h</span>
           </div>
           {isProcessing && (
