@@ -175,7 +175,7 @@ export default function App() {
     setView('detail');
   };
 
-  const updateSession = async (id: string, changes: Partial<Pick<Session, 'title' | 'subtitle'>>) => {
+  const updateSession = async (id: string, changes: Partial<Pick<Session, 'title' | 'subtitle' | 'notes'>>) => {
     const session = sessions.find(s => s.id === id);
     if (!session) return;
     const updated = { ...session, ...changes };
@@ -536,7 +536,7 @@ function SessionDetail({
   onRecording: (blob: Blob, lang: Language) => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>, lang: Language) => void;
   onConsolidate: () => void;
-  onUpdateSession: (changes: Partial<Pick<Session, 'title' | 'subtitle'>>) => void;
+  onUpdateSession: (changes: Partial<Pick<Session, 'title' | 'subtitle' | 'notes'>>) => void;
   onDeleteEntry: (entryId: string) => void;
   onProcessEntry: (entryId: string) => Promise<void>;
   onError: (msg: string) => void;
@@ -676,6 +676,19 @@ function SessionDetail({
           onDeleteEntry={onDeleteEntry}
           onProcessEntry={onProcessEntry}
         />
+      </div>
+
+      {/* Notes Section */}
+      <div className="mt-8">
+        <div className="glass p-6">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-white/30 mb-4">Notes</h3>
+          <textarea
+            placeholder="Add your session notes here..."
+            value={session.notes || ''}
+            onChange={(e) => onUpdateSession({ notes: e.target.value })}
+            className="w-full min-h-[150px] bg-black/20 text-white/80 p-4 rounded-xl border border-white/5 outline-none focus:border-brand/50 transition-colors resize-y"
+          />
+        </div>
       </div>
 
       {/* Controls - Floating at bottom */}

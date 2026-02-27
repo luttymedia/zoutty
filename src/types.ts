@@ -30,6 +30,7 @@ export interface Session {
   subtitle?: string; // Optional subtitle (editable by user)
   date: number;
   summary?: string;
+  notes?: string; // Optional user notes
 }
 
 export interface FinalReport {
