@@ -185,5 +185,14 @@
             "Arch"
         ],
         "category": "advanced"
+    },
+    {
+        "canonicalTerm": "Boom-chick-chick",
+        "variants": [
+            "Tum-chi-chi",
+            "Tum-tá-tá",
+            "Bum-chi-chi"
+        ],
+        "category": "counting"
     }
 ]
