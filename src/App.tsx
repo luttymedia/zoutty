@@ -880,7 +880,11 @@ function BulletList({ items, onChange }: { items: string[], onChange?: (newItems
                 multiline={true}
                 onChange={(newVal) => {
                   const copy = [...items];
-                  copy[i] = newVal;
+                  if (!newVal.trim()) {
+                    copy.splice(i, 1);
+                  } else {
+                    copy[i] = newVal;
+                  }
                   onChange(copy);
                 }}
               />
@@ -1368,10 +1372,19 @@ function StructuredBullets({ contentObj, isReport, onChange }: { contentObj: any
                 let curr = copy;
                 for (let i = 0; i < path.length - 1; i++) curr = curr[path[i]];
                 const last = path[path.length - 1];
-                if (typeof origItem === 'string') {
-                  curr[last] = newVal;
+
+                if (!newVal.trim()) {
+                  if (typeof last === 'number' && Array.isArray(curr)) {
+                    curr.splice(last, 1);
+                  } else {
+                    delete curr[last];
+                  }
                 } else {
-                  try { curr[last] = JSON.parse(newVal); } catch (e) { curr[last] = newVal; }
+                  if (typeof origItem === 'string') {
+                    curr[last] = newVal;
+                  } else {
+                    try { curr[last] = JSON.parse(newVal); } catch (e) { curr[last] = newVal; }
+                  }
                 }
                 onChange(copy);
               }}
