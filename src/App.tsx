@@ -798,6 +798,56 @@ function SessionDetail({
 
 // ─── New display helpers ───────────────────────────────────────────────────
 
+function EditableText({ value, onChange, className, multiline = false }: { value: string, onChange: (v: string) => void, className?: string, multiline?: boolean }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempValue, setTempValue] = useState(value);
+
+  const handleSubmit = () => {
+    if (tempValue.trim() !== value.trim()) {
+      onChange(tempValue);
+    }
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    if (multiline) {
+      return (
+        <textarea
+          autoFocus
+          value={tempValue}
+          onChange={(e) => setTempValue(e.target.value)}
+          onBlur={handleSubmit}
+          className={`w-full bg-black/40 text-white/90 p-3 rounded-xl border border-brand/50 outline-none focus:border-brand transition-colors resize-y min-h-[100px] text-sm ${className || ''}`}
+        />
+      );
+    }
+    return (
+      <input
+        autoFocus
+        value={tempValue}
+        onChange={(e) => setTempValue(e.target.value)}
+        onBlur={handleSubmit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleSubmit();
+          if (e.key === 'Escape') { setTempValue(value); setIsEditing(false); }
+        }}
+        className={`w-full bg-black/40 text-white/90 p-2 rounded-lg border border-brand/50 outline-none focus:border-brand transition-colors text-sm ${className || ''}`}
+      />
+    );
+  }
+
+  return (
+    <div
+      onClick={(e) => { e.stopPropagation(); setTempValue(value); setIsEditing(true); }}
+      className={`cursor-text hover:bg-white/5 rounded px-1 -mx-1 transition-colors group relative w-full ${className || ''}`}
+      title="Click to edit"
+    >
+      <div className="whitespace-pre-wrap w-full">{value}</div>
+      <Edit2 className="w-3.5 h-3.5 text-brand opacity-0 group-hover:opacity-60 absolute top-1 right-1" />
+    </div>
+  );
+}
+
 function CollapsiblePanel({ title, children, defaultOpen = true, accent = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean; accent?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -814,7 +864,7 @@ function CollapsiblePanel({ title, children, defaultOpen = true, accent = false 
   );
 }
 
-function BulletList({ items }: { items: string[] }) {
+function BulletList({ items, onChange }: { items: string[], onChange?: (newItems: string[]) => void }) {
   if (!items || items.length === 0) return null;
   return (
     <ul className="space-y-2 mt-1">
@@ -823,25 +873,44 @@ function BulletList({ items }: { items: string[] }) {
           <div className="w-4 h-4 rounded-full bg-brand/20 flex items-center justify-center shrink-0 mt-0.5">
             <CheckCircle2 className="w-3 h-3 text-brand" />
           </div>
-          <span>{item}</span>
+          <div className="flex-1 w-full min-w-0 pr-2">
+            {onChange ? (
+              <EditableText
+                value={item}
+                multiline={true}
+                onChange={(newVal) => {
+                  const copy = [...items];
+                  copy[i] = newVal;
+                  onChange(copy);
+                }}
+              />
+            ) : (
+              <span>{item}</span>
+            )}
+          </div>
         </li>
       ))}
     </ul>
   );
 }
 
-function StrictSummaryBlock({ data }: { data: string[] }) {
+function StrictSummaryBlock({ data, onChange }: { data: string[], onChange?: (newItems: string[]) => void }) {
   if (!data || data.length === 0) return <p className="text-white/30 italic text-sm">No strict summary content extracted.</p>;
-  return <BulletList items={data} />;
+  return <BulletList items={data} onChange={onChange} />;
 }
 
-function ExpandedInsightsBlock({ data }: { data: ExpandedInsights }) {
+function ExpandedInsightsBlock({ data, onChange }: { data: ExpandedInsights, onChange?: (newData: ExpandedInsights) => void }) {
   const allEmpty =
     (data.drills?.length ?? 0) === 0 &&
     (data.homework?.length ?? 0) === 0 &&
     (data.technicalExpansion?.length ?? 0) === 0 &&
     (data.emotionalNotes?.length ?? 0) === 0;
   if (allEmpty) return null;
+
+  const handleChange = (key: keyof ExpandedInsights, newItems: string[]) => {
+    if (onChange) onChange({ ...data, [key]: newItems });
+  };
+
   return (
     <div className="border border-purple-500/20 rounded-2xl overflow-hidden">
       <details>
@@ -851,17 +920,17 @@ function ExpandedInsightsBlock({ data }: { data: ExpandedInsights }) {
           <ChevronDown className="w-4 h-4 text-purple-400/50 ml-auto" />
         </summary>
         <div className="p-4 space-y-3 bg-black/20">
-          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title="Drills" defaultOpen={true}><BulletList items={data.drills} /></CollapsiblePanel>}
-          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title="Homework" defaultOpen={true}><BulletList items={data.homework} /></CollapsiblePanel>}
-          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title="Technical Expansion" defaultOpen={true}><BulletList items={data.technicalExpansion} /></CollapsiblePanel>}
-          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title="Emotional Notes" defaultOpen={true}><BulletList items={data.emotionalNotes} /></CollapsiblePanel>}
+          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title="Drills" defaultOpen={true}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} /></CollapsiblePanel>}
+          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title="Homework" defaultOpen={true}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} /></CollapsiblePanel>}
+          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title="Technical Expansion" defaultOpen={true}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} /></CollapsiblePanel>}
+          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title="Emotional Notes" defaultOpen={true}><BulletList items={data.emotionalNotes} onChange={onChange ? (arr) => handleChange('emotionalNotes', arr) : undefined} /></CollapsiblePanel>}
         </div>
       </details>
     </div>
   );
 }
 
-function TranscriptBlock({ text }: { text: string }) {
+function TranscriptBlock({ text, onChange }: { text: string, onChange?: (newText: string) => void }) {
   if (!text) return null;
   return (
     <div className="border border-white/10 rounded-2xl overflow-hidden">
@@ -871,8 +940,12 @@ function TranscriptBlock({ text }: { text: string }) {
           <span className="font-bold text-white/50 text-sm">View Transcript</span>
           <ChevronDown className="w-4 h-4 text-white/20 ml-auto" />
         </summary>
-        <div className="p-4 bg-black/20">
-          <p className="text-white/50 text-sm italic leading-relaxed whitespace-pre-wrap">{text}</p>
+        <div className="p-4 bg-black/20 text-white/50 text-sm italic leading-relaxed">
+          {onChange ? (
+            <EditableText value={text} onChange={onChange} multiline={true} className="whitespace-pre-wrap block" />
+          ) : (
+            <span className="whitespace-pre-wrap">{text}</span>
+          )}
         </div>
       </details>
     </div>
@@ -943,6 +1016,30 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
 
   const hasConsolidated = consolidatedStrictSummary || legacyReportContent;
 
+  const handleUpdateConsolidated = async (key: string, newValue: any) => {
+    if (!report || !report.report || typeof report.report !== 'object') return;
+    const newReportData = { ...report.report, [key]: newValue };
+    const newDbReport = { ...report, report: newReportData };
+    setReport(newDbReport);
+    try { await db.saveFinalReport(newDbReport); } catch (e) { console.error(e); }
+  };
+
+  const handleUpdateConsolidatedTranscripts = async (newText: string) => {
+    if (!report || !report.report || typeof report.report !== 'object') return;
+    const newReportData = { ...report.report, transcripts: [{ text: newText }] };
+    const newDbReport = { ...report, report: newReportData };
+    setReport(newDbReport);
+    try { await db.saveFinalReport(newDbReport); } catch (e) { console.error(e); }
+  };
+
+  const handleUpdateLegacyConsolidated = async (newObj: any) => {
+    if (!report || !report.report || typeof report.report !== 'object') return;
+    const newReportData = { ...report.report, ...newObj };
+    const newDbReport = { ...report, report: newReportData };
+    setReport(newDbReport);
+    try { await db.saveFinalReport(newDbReport); } catch (e) { console.error(e); }
+  };
+
   return (
     <div className="space-y-4">
 
@@ -962,16 +1059,16 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
                 <>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
-                    <StrictSummaryBlock data={consolidatedStrictSummary} />
+                    <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} />
                   </div>
-                  {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} />}
-                  {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} />}
+                  {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} />}
+                  {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} onChange={handleUpdateConsolidatedTranscripts} />}
                 </>
               )}
               {legacyReportContent && (
                 <>
-                  <StructuredBullets contentObj={legacyReportContent} isReport={true} />
-                  {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} />}
+                  <StructuredBullets contentObj={legacyReportContent} isReport={true} onChange={handleUpdateLegacyConsolidated} />
+                  {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} onChange={handleUpdateConsolidatedTranscripts} />}
                 </>
               )}
             </div>
@@ -1019,6 +1116,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
             onUpdateTitle={(newTitle) => onUpdateEntry(audio.id, { filename: newTitle })}
             onDelete={() => onDeleteEntry(audio.id)}
             onProcess={() => onProcessEntry(audio.id)}
+            onUpdateContent={(changes) => onUpdateEntry(audio.id, changes)}
           />
         );
       })}
@@ -1032,7 +1130,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
   );
 }
 
-function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onUpdateTitle, onDelete, onProcess }: {
+function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onUpdateTitle, onDelete, onProcess, onUpdateContent }: {
   displayTitle: string;
   time: string;
   audio: AudioEntry;
@@ -1044,6 +1142,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
   onUpdateTitle: (newTitle: string) => void;
   onDelete: () => void;
   onProcess: () => void;
+  onUpdateContent: (changes: Partial<AudioEntry>) => void;
 }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -1132,22 +1231,32 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
             <>
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
-                <StrictSummaryBlock data={audio.strictSummary as string[]} />
+                <StrictSummaryBlock data={audio.strictSummary as string[]} onChange={(s) => onUpdateContent({ strictSummary: s })} />
               </div>
-              {audio.expandedInsights && <ExpandedInsightsBlock data={audio.expandedInsights} />}
-              <TranscriptBlock text={audio.transcript ?? ''} />
+              {audio.expandedInsights && <ExpandedInsightsBlock data={audio.expandedInsights} onChange={(ei) => onUpdateContent({ expandedInsights: ei })} />}
+              <TranscriptBlock text={audio.transcript ?? ''} onChange={(t) => onUpdateContent({ transcript: t })} />
             </>
           ) : (
             <>
               {Object.keys(legacyContent).length > 0 ? (
-                <StructuredBullets contentObj={legacyContent} />
+                <StructuredBullets contentObj={legacyContent} onChange={(newObj) => {
+                  if ((audio as any).processedData) {
+                    onUpdateContent({ processedData: { ...(audio as any).processedData, ...newObj } } as any);
+                  } else if (audio.transcript && typeof legacyContent === 'object') {
+                    try {
+                      onUpdateContent({ transcript: JSON.stringify({ ...JSON.parse(audio.transcript), ...newObj }) });
+                    } catch (e) { }
+                  } else {
+                    onUpdateContent(newObj as any);
+                  }
+                }} />
               ) : isProcessing ? (
                 <p className="text-white/40 italic text-sm">Waiting for content generation...</p>
               ) : null}
               {audio.transcript && !hasNewShape && (
                 <div className="mt-4 pt-4 border-t border-white/5 text-sm">
                   <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">Raw Transcript</span>
-                  <p className="text-white/60 italic leading-relaxed">"{audio.transcript}"</p>
+                  <EditableText value={audio.transcript} onChange={(t) => onUpdateContent({ transcript: t })} multiline className="text-white/60 italic leading-relaxed whitespace-pre-wrap block" />
                 </div>
               )}
             </>
@@ -1229,11 +1338,11 @@ function CollapsibleSection({ title, contentObj, isReport = false, isOpen, onTog
   );
 }
 
-function StructuredBullets({ contentObj, isReport }: { contentObj: any, isReport?: boolean }) {
+function StructuredBullets({ contentObj, isReport, onChange }: { contentObj: any, isReport?: boolean, onChange?: (newObj: any) => void }) {
   if (!contentObj || typeof contentObj !== 'object') return null;
 
-  const processBulletItem = (item: any, key: React.Key) => {
-    const text = typeof item === 'string' ? item : JSON.stringify(item);
+  const processBulletItem = (origItem: any, key: React.Key, path?: (string | number)[]) => {
+    const text = typeof origItem === 'string' ? origItem : JSON.stringify(origItem);
     const lowerText = text.toLowerCase();
     const isHighlight = lowerText.includes('homework') ||
       lowerText.includes('priorit') ||
@@ -1249,7 +1358,28 @@ function StructuredBullets({ contentObj, isReport }: { contentObj: any, isReport
         <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 shadow-sm ${isHighlight ? 'bg-red-500/20' : 'bg-brand/20'}`}>
           <CheckCircle2 className={`w-3.5 h-3.5 ${isHighlight ? 'text-red-400' : 'text-brand'}`} />
         </div>
-        <span>{text}</span>
+        <div className="flex-1 w-full min-w-0 pr-2">
+          {onChange && path ? (
+            <EditableText
+              value={text}
+              multiline={true}
+              onChange={(newVal) => {
+                const copy = JSON.parse(JSON.stringify(contentObj));
+                let curr = copy;
+                for (let i = 0; i < path.length - 1; i++) curr = curr[path[i]];
+                const last = path[path.length - 1];
+                if (typeof origItem === 'string') {
+                  curr[last] = newVal;
+                } else {
+                  try { curr[last] = JSON.parse(newVal); } catch (e) { curr[last] = newVal; }
+                }
+                onChange(copy);
+              }}
+            />
+          ) : (
+            <span>{text}</span>
+          )}
+        </div>
       </li>
     );
   };
@@ -1270,7 +1400,7 @@ function StructuredBullets({ contentObj, isReport }: { contentObj: any, isReport
     );
 
     if (Array.isArray(value)) {
-      value.forEach((item, i) => listItems.push(processBulletItem(item, `arr-${keyIdx}-${i}`)));
+      value.forEach((item, i) => listItems.push(processBulletItem(item, `arr-${keyIdx}-${i}`, [key, i])));
     } else if (typeof value === 'object') {
       for (const [subKey, subValue] of Object.entries(value)) {
         if (Array.isArray(subValue)) {
@@ -1283,7 +1413,7 @@ function StructuredBullets({ contentObj, isReport }: { contentObj: any, isReport
         keyIdx++;
       }
     } else {
-      listItems.push(processBulletItem(value, `val-${keyIdx}`));
+      listItems.push(processBulletItem(value, `val-${keyIdx}`, [key]));
     }
     keyIdx++;
   }
