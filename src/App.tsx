@@ -21,7 +21,24 @@ import { format } from 'date-fns';
 import { db } from './lib/db';
 import { callZoukAudioProcessor, callZoukSessionConsolidator } from './lib/mcp';
 import { Session, AudioEntry, Language } from './types';
+import { Session, AudioEntry, Language } from './types';
 import Markdown from 'react-markdown';
+
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (reader.result) {
+        const b64 = (reader.result as string).split(',')[1];
+        resolve(b64);
+      } else {
+        reject(new Error("Failed to convert blob to base64"));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
 // --- Toast & Spinner Components ---
 function Toast({ message, isError, actionText, onAction, onClose }: { message: string, isError: boolean, actionText?: string, onAction?: () => void, onClose: () => void }) {
@@ -258,17 +275,33 @@ export default function App() {
         return;
       }
 
-      // Look for previous report
-      const allReports = await db.getFinalReports();
-      allReports.sort((a, b) => b.timestamp - a.timestamp);
-      // Get the newest report that isn't from the current session
-      const previousReport = allReports.find(r => r.sessionId !== selectedSession.id);
+      // Prepare base64 audios payload
+      const audiosPayload = await Promise.all(
+        sessionAudios.map(async (a) => {
+          const b64 = await blobToBase64(a.audioBlob);
+          return {
+            audioId: a.id,
+            base64: b64,
+            language: a.language,
+            mimeType: a.audioBlob.type || 'audio/webm'
+          };
+        })
+      );
 
-      const reportResult: any = await callZoukSessionConsolidator({
-        sessionId: selectedSession.id,
-        audios: sessionAudios,
-        previousReport: previousReport
+      const response = await fetch('/api/gemini/process-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: selectedSession.id,
+          audios: audiosPayload
+        })
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to process audio on backend. Status: ${response.status}`);
+      }
+
+      const reportResult = await response.json();
 
       await db.saveFinalReport({
         id: crypto.randomUUID(),
@@ -574,22 +607,36 @@ function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionI
 
   // Parse report
   let reportContent: any = null;
+  let transcripts: any = null;
+
   if (report && report.report) {
-    const r = report.report;
+    let r = report.report;
     const contentToRender: any = {};
     const reportKeys = ['summary', 'homework', 'drills', 'coreConcepts', 'emotionalThemes', 'crossSessionPatterns', 'prioritiesNextLesson'];
-    if (typeof r === 'object') {
-      reportKeys.forEach(k => { if (r[k]) contentToRender[k] = r[k]; });
-      if (Object.keys(contentToRender).length === 0) Object.assign(contentToRender, r);
-    } else {
-      try {
-        const parsed = JSON.parse(r);
-        reportKeys.forEach(k => { if (parsed[k]) contentToRender[k] = parsed[k]; });
-        if (Object.keys(contentToRender).length === 0) Object.assign(contentToRender, parsed);
-      } catch (e) {
-        contentToRender['RawSummary'] = r;
-      }
+
+    if (typeof r === 'string') {
+      try { r = JSON.parse(r); } catch (e) { r = { RawSummary: r }; }
     }
+
+    if (typeof r === 'object') {
+      if (r.transcripts) transcripts = r.transcripts;
+
+      reportKeys.forEach(k => {
+        if (r[k]) {
+          // If it's the new array style [{bullet: "..."}]
+          if (Array.isArray(r[k]) && r[k].length > 0 && r[k][0].bullet) {
+            contentToRender[k] = r[k].map((item: any) => item.bullet);
+          } else {
+            contentToRender[k] = r[k];
+          }
+        }
+      });
+
+      if (Object.keys(contentToRender).length === 0 && !r.transcripts) Object.assign(contentToRender, r);
+    } else {
+      contentToRender['RawSummary'] = r;
+    }
+
     if (Object.keys(contentToRender).length > 0) reportContent = contentToRender;
   }
 
@@ -611,6 +658,17 @@ function SessionStructuredData({ sessionId, entries, onDeleteEntry }: { sessionI
           isReport={true}
           isOpen={isSectionOpen('report')}
           onToggle={() => toggleSection('report')}
+        />
+      )}
+
+      {transcripts && transcripts.length > 0 && (
+        <CollapsibleSection
+          title="Session Transcripts (Raw)"
+          contentObj={{}}
+          isReport={false}
+          isOpen={isSectionOpen('transcripts')}
+          onToggle={() => toggleSection('transcripts')}
+          audioData={{ transcript: transcripts.map((t: any) => t.text).join('\n\n---\n\n') }}
         />
       )}
 
