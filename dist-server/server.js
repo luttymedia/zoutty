@@ -65,6 +65,20 @@ Here is a glossary of terms you should use if relevant: ${JSON.stringify(zoukGlo
 
 You are extracting atomic technical notes from a dance lesson.
 
+Clean the transcription lightly while preserving the speaker’s exact meaning and structure.
+
+Apply only the following cleanup rules:
+- Remove filler words such as “uh”, “eh”, “ah”, and similar vocal fillers.
+- Remove duplicated fragments caused by self-correction (e.g., “de de de” → “de”).
+- Fix obvious mid-sentence restarts (e.g., “no no tempo” → “no tempo”).
+- Preserve the original wording and terminology.
+- Do NOT rephrase for style.
+- Do NOT summarize.
+- Do NOT improve clarity beyond removing speech disfluencies.
+- Do NOT add new content.
+
+The result should read like a clean spoken explanation, not a rewritten text.
+
 STRICT SUMMARY RULES:
 
 - Return ONLY a JSON object.
@@ -256,6 +270,20 @@ The student's language preference is: ${language}.
 Here is a glossary of terms you should use if relevant: ${JSON.stringify(zoukGlossary)}.
 
 You are extracting atomic technical notes from a dance lesson.
+
+Clean the transcription lightly while preserving the speaker’s exact meaning and structure.
+
+Apply only the following cleanup rules:
+- Remove filler words such as “uh”, “eh”, “ah”, and similar vocal fillers.
+- Remove duplicated fragments caused by self-correction (e.g., “de de de” → “de”).
+- Fix obvious mid-sentence restarts (e.g., “no no tempo” → “no tempo”).
+- Preserve the original wording and terminology.
+- Do NOT rephrase for style.
+- Do NOT summarize.
+- Do NOT improve clarity beyond removing speech disfluencies.
+- Do NOT add new content.
+
+The result should read like a clean spoken explanation, not a rewritten text.
 
 STRICT SUMMARY RULES:
 

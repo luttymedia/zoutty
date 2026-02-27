@@ -884,6 +884,7 @@ function TranscriptBlock({ text }: { text: string }) {
 function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntry, onDeleteEntry, onProcessEntry }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void> }) {
   const [report, setReport] = useState<any | null>(null);
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
+  const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -948,28 +949,33 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
       {/* ── Consolidated report ── */}
       {hasConsolidated && (
         <div className={`border rounded-2xl overflow-hidden shadow-sm ${consolidatedStrictSummary ? 'border-brand/40 bg-brand/5' : 'border-white/10 glass'}`}>
-          <div className="px-5 py-3 flex items-center gap-3 bg-brand/10">
+          <div
+            className="px-5 py-3 flex items-center gap-3 bg-brand/10 cursor-pointer select-none transition-colors hover:bg-brand/20"
+            onClick={() => setIsConsolidatedOpen(o => !o)}
+          >
             <Sparkles className="w-5 h-5 text-brand" />
             <span className="font-bold text-base">Consolidated Session Report</span>
           </div>
-          <div className="p-4 space-y-4 bg-black/20">
-            {consolidatedStrictSummary && (
-              <>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
-                  <StrictSummaryBlock data={consolidatedStrictSummary} />
-                </div>
-                {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} />}
-                {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} />}
-              </>
-            )}
-            {legacyReportContent && (
-              <>
-                <StructuredBullets contentObj={legacyReportContent} isReport={true} />
-                {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} />}
-              </>
-            )}
-          </div>
+          {isConsolidatedOpen && (
+            <div className="p-4 space-y-4 bg-black/20 border-t border-brand/20">
+              {consolidatedStrictSummary && (
+                <>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
+                    <StrictSummaryBlock data={consolidatedStrictSummary} />
+                  </div>
+                  {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} />}
+                  {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} />}
+                </>
+              )}
+              {legacyReportContent && (
+                <>
+                  <StructuredBullets contentObj={legacyReportContent} isReport={true} />
+                  {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} />}
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 
