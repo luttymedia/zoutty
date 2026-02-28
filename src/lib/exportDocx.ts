@@ -311,11 +311,11 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
 
     const blob = await Packer.toBlob(doc);
     const dateStr = format(new Date(session.date), "yyyy-MM-dd");
-    let fileName = `Session_${dateStr}`;
+    let fileName = `Zoutty_${dateStr}`;
     if (session.title) {
         // Clean title for file name
-        const safeTitle = session.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        fileName = `${safeTitle}`;
+        const safeTitle = session.title.replace(/[<>:"/\\|?*]/g, '_').trim();
+        fileName = `Zoutty_${safeTitle}`;
     }
 
     saveAs(blob, `${fileName}.docx`);

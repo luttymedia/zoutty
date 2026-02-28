@@ -156,7 +156,7 @@ export default function App() {
         let changed = false;
 
         for (const session of needsMigration) {
-          const newTitle = format(new Date(session.date), "EEE, d MMM ''yy");
+          const newTitle = format(new Date(session.date), "EEE dd/MM/yy");
           const idx = updatedSessions.findIndex(s => s.id === session.id);
           if (idx !== -1) {
             updatedSessions[idx] = { ...updatedSessions[idx], title: newTitle };
@@ -183,7 +183,7 @@ export default function App() {
   const createSession = async () => {
     const newSession: Session = {
       id: crypto.randomUUID(),
-      title: format(new Date(), "EEE, d MMM ''yy"),
+      title: format(new Date(), "EEE dd/MM/yy"),
       subtitle: '',
       date: Date.now(),
     };
@@ -1239,7 +1239,12 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
 
   // --- DndKit setup ---
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5
+      }
+    }),
     useSensor(TouchSensor, {
       activationConstraint: {
         delay: 250,      // "Tap and hold" on mobile
