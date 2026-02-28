@@ -17,7 +17,8 @@ import {
   Edit2,
   Globe,
   Download,
-  Zap
+  Zap,
+  GripHorizontal
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { db } from './lib/db';
@@ -26,6 +27,24 @@ import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights } from '
 import { ZouttyIcon } from './components/ZouttyIcon';
 import Markdown from 'react-markdown';
 import { exportDocx } from './lib/exportDocx';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -569,7 +588,7 @@ function SessionDetail({
   onRecording: (blob: Blob, lang: Language) => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>, lang: Language) => void;
   onConsolidate: () => void;
-  onUpdateSession: (changes: Partial<Pick<Session, 'title' | 'subtitle' | 'notes'>>) => void;
+  onUpdateSession: (changes: Partial<Pick<Session, 'title' | 'subtitle' | 'notes' | 'cardOrder'>>) => void;
   onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void;
   onDeleteEntry: (entryId: string) => void;
   onProcessEntry: (entryId: string) => Promise<void>;
@@ -740,44 +759,14 @@ function SessionDetail({
           onUpdateEntry={onUpdateEntry}
           onDeleteEntry={onDeleteEntry}
           onProcessEntry={onProcessEntry}
+          cardOrder={session.cardOrder}
+          onUpdateOrder={(newOrder) => onUpdateSession({ cardOrder: newOrder })}
+          sessionNotes={session.notes}
+          onUpdateNotes={(newNotes) => onUpdateSession({ notes: newNotes })}
         />
       </div>
 
-      {/* Notes Section */}
-      <div className="mt-8">
-        <div className="glass p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">Notes</h3>
-            {!isNoteVisible && !session.notes && (
-              <button
-                onClick={() => setIsNoteVisible(true)}
-                className="text-brand hover:text-brand/80 font-bold text-sm transition-colors"
-              >
-                + Add note
-              </button>
-            )}
-          </div>
-          {(isNoteVisible || !!session.notes) && (
-            <textarea
-              autoFocus={isNoteVisible && !session.notes}
-              placeholder="Add your session notes here..."
-              value={session.notes || ''}
-              onChange={(e) => {
-                onUpdateSession({ notes: e.target.value });
-                if (e.target.value.trim().length === 0) {
-                  setIsNoteVisible(false);
-                }
-              }}
-              onBlur={(e) => {
-                if (e.target.value.trim().length === 0) {
-                  setIsNoteVisible(false);
-                }
-              }}
-              className="w-full min-h-[150px] bg-black/20 text-white/80 p-4 rounded-xl border border-white/5 outline-none focus:border-brand/50 transition-colors resize-y"
-            />
-          )}
-        </div>
-      </div>
+      {/* Notes Section moved into SessionStructuredData for reorderability */}
 
       {/* Controls - Floating at bottom */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 glass p-4 rounded-full flex items-center justify-center gap-4 sm:gap-6 shadow-2xl z-40 border border-white/10 bg-black/60 backdrop-blur-md">
@@ -947,10 +936,10 @@ function ExpandedInsightsBlock({ data, onChange }: { data: ExpandedInsights, onC
           <ChevronDown className="w-4 h-4 text-purple-400/50 ml-auto" />
         </summary>
         <div className="p-4 space-y-3 bg-black/20">
-          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title="Drills" defaultOpen={true}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} /></CollapsiblePanel>}
-          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title="Homework" defaultOpen={true}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} /></CollapsiblePanel>}
-          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title="Technical Expansion" defaultOpen={true}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} /></CollapsiblePanel>}
-          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title="Emotional Notes" defaultOpen={true}><BulletList items={data.emotionalNotes} onChange={onChange ? (arr) => handleChange('emotionalNotes', arr) : undefined} /></CollapsiblePanel>}
+          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title="Drills" defaultOpen={false}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} /></CollapsiblePanel>}
+          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title="Homework" defaultOpen={false}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} /></CollapsiblePanel>}
+          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title="Technical Expansion" defaultOpen={false}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} /></CollapsiblePanel>}
+          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title="Emotional Notes" defaultOpen={false}><BulletList items={data.emotionalNotes} onChange={onChange ? (arr) => handleChange('emotionalNotes', arr) : undefined} /></CollapsiblePanel>}
         </div>
       </details>
     </div>
@@ -979,12 +968,47 @@ function TranscriptBlock({ text, onChange }: { text: string, onChange?: (newText
   );
 }
 
+function SortableCard({ id, children, isDraggable = true }: { id: string; children: React.ReactNode; isDraggable?: boolean }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: !isDraggable });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 1,
+    opacity: isDragging ? 0.9 : 1,
+    position: 'relative' as const,
+    touchAction: 'none', // Critical for mobile dnd-kit tap-and-hold
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...(isDraggable ? attributes : {})}
+      {...(isDraggable ? listeners : {})}
+      className={isDragging ? 'shadow-2xl scale-[1.02] cursor-grabbing' : (isDraggable ? 'cursor-grab touch-pan-y active:scale-[0.99] transition-transform' : '')}
+    >
+      <div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // ─── Session Structured Data ────────────────────────────────────────────────
 
-function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntry, onDeleteEntry, onProcessEntry }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void> }) {
+function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntry, onDeleteEntry, onProcessEntry, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void }) {
   const [report, setReport] = useState<any | null>(null);
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
-  const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(true);
+  const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(false);
+  const [isNoteVisible, setIsNoteVisible] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -1000,7 +1024,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
     return () => clearInterval(intervalId);
   }, [sessionId]);
 
-  const isEntryOpen = (id: string) => openStates[id] ?? true;
+  const isEntryOpen = (id: string) => openStates[id] ?? false;
   const toggleEntry = (id: string) => setOpenStates(prev => ({ ...prev, [id]: !prev[id] }));
 
   // Parse consolidated report — new shape takes priority, falls back to legacy
@@ -1067,86 +1091,185 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
     try { await db.saveFinalReport(newDbReport); } catch (e) { console.error(e); }
   };
 
-  return (
-    <div className="space-y-4">
+  // Determine items to render in sortable list
+  const reportId = `report-${sessionId}`;
 
-      {/* ── Consolidated report ── */}
-      {hasConsolidated && (
-        <div className={`border rounded-2xl overflow-hidden shadow-sm ${consolidatedStrictSummary ? 'border-brand/40 bg-brand/5' : 'border-white/10 glass'}`}>
-          <div
-            className="px-5 py-3 flex items-center gap-3 bg-brand/10 cursor-pointer select-none transition-colors hover:bg-brand/20"
-            onClick={() => setIsConsolidatedOpen(o => !o)}
-          >
-            <Sparkles className="w-5 h-5 text-brand" />
-            <span className="font-bold text-base">Consolidated Session Report</span>
+  // Create an array to map sortable block components
+  const availableItems = new Map<string, React.ReactNode>();
+
+  if (hasConsolidated) {
+    availableItems.set(reportId, (
+      <div className={`border rounded-2xl overflow-hidden shadow-sm ${consolidatedStrictSummary ? 'border-brand/40 bg-brand/5' : 'border-white/10 glass'}`}>
+        <div
+          className="px-5 py-3 flex items-center gap-3 bg-brand/10 cursor-pointer select-none transition-colors hover:bg-brand/20"
+          onClick={() => setIsConsolidatedOpen(o => !o)}
+        >
+          <Sparkles className="w-5 h-5 text-brand" />
+          <span className="font-bold text-base">Consolidated Session Report</span>
+        </div>
+        {isConsolidatedOpen && (
+          <div className="p-4 space-y-4 bg-black/20 border-t border-brand/20">
+            {consolidatedStrictSummary && (
+              <>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
+                  <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} />
+                </div>
+                {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} />}
+                {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} onChange={handleUpdateConsolidatedTranscripts} />}
+              </>
+            )}
+            {legacyReportContent && (
+              <>
+                <StructuredBullets contentObj={legacyReportContent} isReport={true} onChange={handleUpdateLegacyConsolidated} />
+                {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} onChange={handleUpdateConsolidatedTranscripts} />}
+              </>
+            )}
           </div>
-          {isConsolidatedOpen && (
-            <div className="p-4 space-y-4 bg-black/20 border-t border-brand/20">
-              {consolidatedStrictSummary && (
-                <>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
-                    <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} />
-                  </div>
-                  {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} />}
-                  {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} onChange={handleUpdateConsolidatedTranscripts} />}
-                </>
-              )}
-              {legacyReportContent && (
-                <>
-                  <StructuredBullets contentObj={legacyReportContent} isReport={true} onChange={handleUpdateLegacyConsolidated} />
-                  {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} onChange={handleUpdateConsolidatedTranscripts} />}
-                </>
-              )}
-            </div>
+        )}
+      </div>
+    ));
+  }
+
+  // Build audio card maps
+  entries.forEach((audio, index) => {
+    const time = new Date(audio.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const displayTitle = audio.filename || `Audio Entry ${entries.length - index}`;
+    const isOpen = isEntryOpen(audio.id);
+    const isProcessing = processingIds.has(audio.id);
+
+    const hasNewShape = Array.isArray(audio.strictSummary);
+    const legacyContent: any = {};
+    if (!hasNewShape) {
+      const keys = ['concepts', 'drills', 'homework', 'mechanics', 'emotionalNotes'];
+      const src = (audio as any).processedData || audio;
+      keys.forEach(k => { if ((src as any)[k]) legacyContent[k] = (src as any)[k]; });
+      if (Object.keys(legacyContent).length === 0 && audio.transcript) {
+        try {
+          const pd = JSON.parse(audio.transcript);
+          keys.forEach(k => { if (pd[k]) legacyContent[k] = pd[k]; });
+        } catch (_) { }
+      }
+      if (Object.keys(legacyContent).length === 0 && audio.bulletPoints?.length) {
+        legacyContent.bulletPoints = audio.bulletPoints;
+      }
+    }
+
+    const cardId = `audio-${audio.id}`;
+    availableItems.set(cardId, (
+      <AudioEntryCard
+        key={audio.id}
+        displayTitle={displayTitle}
+        time={time}
+        audio={audio}
+        isOpen={isOpen}
+        isProcessing={isProcessing}
+        hasNewShape={hasNewShape}
+        legacyContent={legacyContent}
+        onToggle={() => toggleEntry(audio.id)}
+        onUpdateTitle={(newTitle) => onUpdateEntry(audio.id, { filename: newTitle })}
+        onDelete={() => onDeleteEntry(audio.id)}
+        onProcess={() => onProcessEntry(audio.id)}
+        onUpdateContent={(changes) => onUpdateEntry(audio.id, changes)}
+      />
+    ));
+  });
+
+  // Add the Notes Card
+  const notesId = `notes-${sessionId}`;
+  if (sessionNotes || isNoteVisible || entries.length > 0) {
+    availableItems.set(notesId, (
+      <div className="glass p-6 rounded-2xl border border-white/10 shadow-sm relative w-full box-border">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">Notes</h3>
+          {!isNoteVisible && !sessionNotes && (
+            <button
+              onClick={() => setIsNoteVisible(true)}
+              className="text-brand hover:text-brand/80 font-bold text-sm transition-colors"
+            >
+              + Add note
+            </button>
           )}
         </div>
-      )}
-
-      {/* ── Per-audio entries ── */}
-      {entries.map((audio, index) => {
-        const time = new Date(audio.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-        const displayTitle = audio.filename || `Audio Entry ${entries.length - index}`;
-        const isOpen = isEntryOpen(audio.id);
-        const isProcessing = processingIds.has(audio.id);
-
-        // Determine if new shape: strictSummary is a non-empty array
-        const hasNewShape = Array.isArray(audio.strictSummary);
-        // Legacy fallback: read from flat fields
-        const legacyContent: any = {};
-        if (!hasNewShape) {
-          const keys = ['concepts', 'drills', 'homework', 'mechanics', 'emotionalNotes'];
-          const src = (audio as any).processedData || audio;
-          keys.forEach(k => { if ((src as any)[k]) legacyContent[k] = (src as any)[k]; });
-          if (Object.keys(legacyContent).length === 0 && audio.transcript) {
-            try {
-              const pd = JSON.parse(audio.transcript);
-              keys.forEach(k => { if (pd[k]) legacyContent[k] = pd[k]; });
-            } catch (_) { }
-          }
-          if (Object.keys(legacyContent).length === 0 && audio.bulletPoints?.length) {
-            legacyContent.bulletPoints = audio.bulletPoints;
-          }
-        }
-
-        return (
-          <AudioEntryCard
-            key={audio.id}
-            displayTitle={displayTitle}
-            time={time}
-            audio={audio}
-            isOpen={isOpen}
-            isProcessing={isProcessing}
-            hasNewShape={hasNewShape}
-            legacyContent={legacyContent}
-            onToggle={() => toggleEntry(audio.id)}
-            onUpdateTitle={(newTitle) => onUpdateEntry(audio.id, { filename: newTitle })}
-            onDelete={() => onDeleteEntry(audio.id)}
-            onProcess={() => onProcessEntry(audio.id)}
-            onUpdateContent={(changes) => onUpdateEntry(audio.id, changes)}
+        {(isNoteVisible || !!sessionNotes) && (
+          <textarea
+            autoFocus={isNoteVisible && !sessionNotes}
+            placeholder="Add your session notes here..."
+            value={sessionNotes || ''}
+            onChange={(e) => {
+              onUpdateNotes(e.target.value);
+              if (e.target.value.trim().length === 0) {
+                setIsNoteVisible(false);
+              }
+            }}
+            onBlur={(e) => {
+              if (e.target.value.trim().length === 0) {
+                setIsNoteVisible(false);
+              }
+            }}
+            className="w-full min-h-[150px] bg-black/20 text-white/80 p-4 rounded-xl border border-white/5 outline-none focus:border-brand/50 transition-colors resize-y overflow-hidden box-border"
           />
-        );
-      })}
+        )}
+      </div>
+    ));
+  }
+
+  // Calculate sorted order 
+  const currentKeys = Array.from(availableItems.keys());
+  let sortedKeys = cardOrder || [];
+
+  // Add new items that aren't in the saved order yet
+  const missingKeys = currentKeys.filter(k => !sortedKeys.includes(k));
+  if (missingKeys.length > 0) {
+    if (!cardOrder) {
+      // Original default logic: Report first, then entries backwards, then notes
+      sortedKeys = [];
+      if (hasConsolidated) sortedKeys.push(reportId);
+      entries.forEach(e => sortedKeys.push(`audio-${e.id}`));
+      // Show notes at the bottom by default if visible or if entries > 0 (old behavior logic)
+      if (availableItems.has(notesId)) sortedKeys.push(notesId);
+    } else {
+      // Appended new items
+      sortedKeys = [...sortedKeys, ...missingKeys];
+    }
+  }
+
+  // Filter out items that no longer exist (deleted audios)
+  sortedKeys = sortedKeys.filter(k => availableItems.has(k));
+
+  // --- DndKit setup ---
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,      // "Tap and hold" on mobile
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id && over) {
+      const oldIndex = sortedKeys.indexOf(active.id as string);
+      const newIndex = sortedKeys.indexOf(over.id as string);
+      const newOrder = arrayMove(sortedKeys, oldIndex, newIndex);
+      onUpdateOrder(newOrder); // pass bubbling up
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={sortedKeys} strategy={verticalListSortingStrategy}>
+          {sortedKeys.map((key) => (
+            <SortableCard key={key} id={key}>
+              {availableItems.get(key)}
+            </SortableCard>
+          ))}
+        </SortableContext>
+      </DndContext>
 
       {!hasConsolidated && entries.length === 0 && (
         <div className="p-8 text-center text-white/40 text-sm border border-white/10 border-dashed rounded-xl glass">

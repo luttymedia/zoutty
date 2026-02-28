@@ -31,6 +31,7 @@ export interface Session {
   date: number;
   summary?: string;
   notes?: string; // Optional user notes
+  cardOrder?: string[]; // IDs of cards in preferred order
 }
 
 export interface FinalReport {
