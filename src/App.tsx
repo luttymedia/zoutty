@@ -601,6 +601,7 @@ function SessionDetail({
   const [tempTitle, setTempTitle] = useState(session.title);
   const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
   const [tempSubtitle, setTempSubtitle] = useState(session.subtitle ?? '');
+  const [isReordering, setIsReordering] = useState(false);
   const [isNoteVisible, setIsNoteVisible] = useState(false);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
@@ -698,7 +699,7 @@ function SessionDetail({
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Session Header: date (white) + optional editable subtitle */}
-      <div className="glass p-6">
+      <div>
         {/* Date line — always shown, white, bold */}
         {isEditingTitle ? (
           <input
@@ -746,16 +747,23 @@ function SessionDetail({
               )}
               <Edit2 className="w-3.5 h-3.5 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0" />
             </button>
+            <button
+              onClick={() => setIsReordering(!isReordering)}
+              className={`p-2 rounded-xl border transition-colors flex items-center justify-center ${isReordering ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'}`}
+              title={isReordering ? "Disable reorder mode" : "Enable reorder mode"}
+            >
+              <GripHorizontal className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>
 
-      {/* New Structured Session Detail Content */}
       <div id="sessionDetailContent" className="mt-8">
         <SessionStructuredData
           sessionId={session.id}
           entries={entries}
           processingIds={processingIds}
+          isReordering={isReordering}
           onUpdateEntry={onUpdateEntry}
           onDeleteEntry={onDeleteEntry}
           onProcessEntry={onProcessEntry}
@@ -968,7 +976,7 @@ function TranscriptBlock({ text, onChange }: { text: string, onChange?: (newText
   );
 }
 
-function SortableCard({ id, children, isDraggable = true }: { id: string; children: React.ReactNode; isDraggable?: boolean }) {
+function SortableCard({ id, children, isDraggable = true, isReordering = false }: { id: string; children: React.ReactNode; isDraggable?: boolean; isReordering?: boolean }) {
   const {
     attributes,
     listeners,
@@ -976,7 +984,7 @@ function SortableCard({ id, children, isDraggable = true }: { id: string; childr
     transform,
     transition,
     isDragging,
-  } = useSortable({ id, disabled: !isDraggable });
+  } = useSortable({ id, disabled: !isDraggable || !isReordering });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -984,16 +992,16 @@ function SortableCard({ id, children, isDraggable = true }: { id: string; childr
     zIndex: isDragging ? 50 : 1,
     opacity: isDragging ? 0.9 : 1,
     position: 'relative' as const,
-    touchAction: 'none', // Critical for mobile dnd-kit tap-and-hold
+    ...(isReordering ? { touchAction: 'none' } : {})
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...(isDraggable ? attributes : {})}
-      {...(isDraggable ? listeners : {})}
-      className={isDragging ? 'shadow-2xl scale-[1.02] cursor-grabbing' : (isDraggable ? 'cursor-grab touch-pan-y active:scale-[0.99] transition-transform' : '')}
+      {...(isDraggable && isReordering ? attributes : {})}
+      {...(isDraggable && isReordering ? listeners : {})}
+      className={isDragging ? 'shadow-2xl scale-[1.02] cursor-grabbing ring-2 ring-brand rounded-2xl' : (isDraggable && isReordering ? 'cursor-grab touch-none active:scale-[0.99] transition-transform ring-1 ring-brand/50 rounded-2xl' : '')}
     >
       <div>
         {children}
@@ -1004,7 +1012,7 @@ function SortableCard({ id, children, isDraggable = true }: { id: string; childr
 
 // ─── Session Structured Data ────────────────────────────────────────────────
 
-function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntry, onDeleteEntry, onProcessEntry, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void }) {
+function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void }) {
   const [report, setReport] = useState<any | null>(null);
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
   const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(false);
@@ -1265,11 +1273,16 @@ function SessionStructuredData({ sessionId, entries, processingIds, onUpdateEntr
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${isReordering ? 'bg-brand/5 p-4 rounded-3xl border border-brand/20 relative' : ''}`}>
+      {isReordering && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-black text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full shadow-lg z-10 flex items-center gap-1.5">
+          <GripHorizontal className="w-3 h-3" /> Reorder Mode
+        </div>
+      )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sortedKeys} strategy={verticalListSortingStrategy}>
           {sortedKeys.map((key) => (
-            <SortableCard key={key} id={key}>
+            <SortableCard key={key} id={key} isReordering={isReordering}>
               {availableItems.get(key)}
             </SortableCard>
           ))}
