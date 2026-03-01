@@ -45,6 +45,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { version } from './version';
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -101,6 +102,8 @@ export default function App() {
   const [spinnerText, setSpinnerText] = useState<string | null>(null);
 
   const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
+  const [reprocessModal, setReprocessModal] = useState<string | null>(null);
+  const [showVersionModal, setShowVersionModal] = useState(false);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -278,6 +281,13 @@ export default function App() {
   const requestDeleteSession = (id: string, title: string) => setDeleteModal({ id, type: 'session', title });
   const requestDeleteAudio = (id: string, title: string) => setDeleteModal({ id, type: 'audio', title });
 
+  const confirmReprocess = () => {
+    if (!reprocessModal) return;
+    const idToProcess = reprocessModal;
+    setReprocessModal(null);
+    handleProcessEntry(idToProcess);
+  };
+
   const addAudioEntry = async (sessionId: string, blob: Blob, language: Language, type: 'recording' | 'upload', filename?: string) => {
     const entryId = crypto.randomUUID();
 
@@ -435,6 +445,46 @@ export default function App() {
         </div>
       )}
 
+      {/* Reprocess Modal */}
+      {reprocessModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <Zap className="w-6 h-6 text-brand" />
+              Confirm Reprocess
+            </h3>
+            <p className="text-white/70">
+              Are you sure you want to reprocess this audio clip? This will overwrite the previous processing.
+            </p>
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button onClick={() => setReprocessModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Cancel</button>
+              <button onClick={confirmReprocess} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px]">Reprocess</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Version Modal */}
+      {showVersionModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 text-center relative">
+            <ZouttyIcon className="w-16 h-16 text-brand mx-auto" />
+            <h3 className="text-xs uppercase tracking-[0.2em] text-brand font-bold mt-2">ZOUTTY</h3>
+            <p className="inline-block mt-2 px-4 py-1 bg-white/10 text-white/70 font-mono font-medium rounded-full border border-white/20 text-sm tracking-widest">
+              v{version}
+            </p>
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => setShowVersionModal(false)}
+                className="px-8 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Bar */}
       <header className="px-6 py-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -446,13 +496,22 @@ export default function App() {
               <ChevronLeft className="w-6 h-6" />
             </button>
           )}
-          <ZouttyIcon className="w-10 h-10 text-brand shrink-0" />
+          <button
+            onClick={() => setShowVersionModal(true)}
+            className="hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-xl"
+            title="Show App Version"
+          >
+            <ZouttyIcon className="w-10 h-10 text-brand shrink-0" />
+          </button>
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-brand font-bold">Zoutty</p>
             <h1 className="text-lg font-bold tracking-tight">
               Session Notes
             </h1>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3">
           {view === 'detail' && selectedSession && (
             <button
               onClick={async () => {
@@ -469,30 +528,30 @@ export default function App() {
                   hideSpinner();
                 }
               }}
-              className="w-10 h-10 ml-2 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
+              className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
               title="Export to Word"
             >
               <Download className="w-5 h-5" />
             </button>
           )}
+          {deferredPrompt && (
+            <button
+              onClick={async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                if (outcome === 'accepted') {
+                  setDeferredPrompt(null);
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded-xl border border-brand/20 transition-all font-sans text-sm shadow-sm"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
+          )}
         </div>
-        {deferredPrompt && (
-          <button
-            onClick={async () => {
-              if (!deferredPrompt) return;
-              deferredPrompt.prompt();
-              const { outcome } = await deferredPrompt.userChoice;
-              console.log(`User response to the install prompt: ${outcome}`);
-              if (outcome === 'accepted') {
-                setDeferredPrompt(null);
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded-xl border border-brand/20 transition-all font-sans text-sm shadow-sm"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Install App</span>
-          </button>
-        )}
       </header>
 
       <main className="max-w-2xl mx-auto px-6 pb-32">
@@ -559,6 +618,7 @@ export default function App() {
             onUpdateEntry={updateAudioEntry}
             onDeleteEntry={(id) => requestDeleteAudio(id, 'Audio Entry')}
             onProcessEntry={handleProcessEntry}
+            onRequestReprocess={(id) => setReprocessModal(id)}
             onError={(msg) => showToast(msg, true)}
           />
         )}
@@ -580,6 +640,7 @@ function SessionDetail({
   onUpdateEntry,
   onDeleteEntry,
   onProcessEntry,
+  onRequestReprocess,
   onError
 }: {
   session: Session;
@@ -592,6 +653,7 @@ function SessionDetail({
   onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void;
   onDeleteEntry: (entryId: string) => void;
   onProcessEntry: (entryId: string) => Promise<void>;
+  onRequestReprocess: (id: string) => void;
   onError: (msg: string) => void;
 }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -767,6 +829,7 @@ function SessionDetail({
           onUpdateEntry={onUpdateEntry}
           onDeleteEntry={onDeleteEntry}
           onProcessEntry={onProcessEntry}
+          onRequestReprocess={onRequestReprocess}
           cardOrder={session.cardOrder}
           onUpdateOrder={(newOrder) => onUpdateSession({ cardOrder: newOrder })}
           sessionNotes={session.notes}
@@ -1012,7 +1075,7 @@ function SortableCard({ id, children, isDraggable = true, isReordering = false }
 
 // ─── Session Structured Data ────────────────────────────────────────────────
 
-function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void }) {
+function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void }) {
   const [report, setReport] = useState<any | null>(null);
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
   const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(false);
@@ -1178,6 +1241,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
         onUpdateTitle={(newTitle) => onUpdateEntry(audio.id, { filename: newTitle })}
         onDelete={() => onDeleteEntry(audio.id)}
         onProcess={() => onProcessEntry(audio.id)}
+        onRequestReprocess={() => onRequestReprocess(audio.id)}
         onUpdateContent={(changes) => onUpdateEntry(audio.id, changes)}
       />
     ));
@@ -1298,7 +1362,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   );
 }
 
-function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onUpdateTitle, onDelete, onProcess, onUpdateContent }: {
+function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onUpdateTitle, onDelete, onProcess, onRequestReprocess, onUpdateContent }: {
   displayTitle: string;
   time: string;
   audio: AudioEntry;
@@ -1310,6 +1374,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
   onUpdateTitle: (newTitle: string) => void;
   onDelete: () => void;
   onProcess: () => void;
+  onRequestReprocess: () => void;
   onUpdateContent: (changes: Partial<AudioEntry>) => void;
 }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -1428,6 +1493,21 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                 </div>
               )}
             </>
+          )}
+
+          {!isProcessing && (audio.transcript || audio.strictSummary || audio.bulletPoints || Object.keys(legacyContent).length > 0) && (
+            <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestReprocess();
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm font-bold shadow-sm"
+              >
+                <Zap className="w-4 h-4" />
+                Reprocess Clip
+              </button>
+            </div>
           )}
         </div>
       )}

@@ -18,6 +18,11 @@ const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY || '' });
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Rate limiter state for audio requests
+const audioRequestTimestamps: number[] = [];
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_MINUTE = 10;
+
 // Resolve __dirname since we are in an ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,10 +43,107 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+async function processAudioWithGemini(base64Audio: string, mimeType: string, language: string, zoukGlossary: any) {
+    let totalPromptTokens = 0;
+    let totalResponseTokens = 0;
+
+    // Flatten the glossary JSON into a dense, comma-separated string to save tokens
+    const compressedGlossary = Array.isArray(zoukGlossary) ? zoukGlossary.map((item: any) => {
+        const variants = item.variants && item.variants.length > 0 ? ` (${item.variants.join(', ')})` : '';
+        return `${item.canonicalTerm || ''}${variants}`;
+    }).filter(Boolean).join(', ') : '';
+
+    const glossaryContext = compressedGlossary ? `\n\nKnown Brazilian Zouk terminology to listen for:\n${compressedGlossary}` : '';
+
+    const prompt = `You are an expert Brazilian Zouk instructor processing a lesson audio (Language: ${language || 'Auto'}).
+Perform the following three tasks based on the audio and return the result EXACTLY as a single JSON object.
+
+1. transcript: Provide a clean transcription. Remove speech disfluencies and false starts, but preserve exact meaning and terminology.
+2. strictSummary: Extract atomic technical notes from the lesson. Each bullet must be self-contained (ONE complete technical idea). Use concise, compressed technical phrasing (no conversational filler).
+3. expandedInsights: Infer drills, homework, technical expansions, and emotional notes based ONLY on the audio. Leave arrays empty if inapplicable.
+${glossaryContext}
+
+Do not include any markdown formatting like \`\`\`json. Return ONLY valid JSON matching this schema:
+{
+  "transcript": "Full clean transcription here...",
+  "strictSummary": ["note 1", "note 2"],
+  "expandedInsights": {
+    "drills": ["drill 1"],
+    "homework": [],
+    "technicalExpansion": [],
+    "emotionalNotes": []
+  }
+}`;
+
+    const result = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        config: {
+            temperature: 0.2, // Low temp for more accurate transcription
+            maxOutputTokens: 2500, // Enough room for long transcripts + JSON structure
+            responseMimeType: 'application/json'
+        },
+        contents: [
+            {
+                parts: [
+                    { text: prompt },
+                    {
+                        inlineData: {
+                            mimeType: mimeType,
+                            data: base64Audio
+                        }
+                    }
+                ]
+            }
+        ]
+    });
+
+    totalPromptTokens = result.usageMetadata?.promptTokenCount || 0;
+    totalResponseTokens = result.usageMetadata?.candidatesTokenCount || 0;
+    const totalTokens = result.usageMetadata?.totalTokenCount || (totalPromptTokens + totalResponseTokens);
+
+    let transcript = '';
+    let strictSummary: string[] = [];
+    let expandedInsights = { drills: [], homework: [], technicalExpansion: [], emotionalNotes: [] };
+
+    try {
+        const cleanText = (result.text || '').replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+        const parsed = JSON.parse(cleanText || '{}');
+
+        transcript = parsed.transcript || '';
+        strictSummary = Array.isArray(parsed.strictSummary) ? parsed.strictSummary : [];
+        if (parsed.expandedInsights) {
+            expandedInsights = { ...expandedInsights, ...parsed.expandedInsights };
+        }
+    } catch (e) {
+        console.error('Failed to parse combined JSON from Gemini:', e, 'Raw output:', result.text);
+    }
+
+    console.log(`[Gemini Usage] Prompt: ${totalPromptTokens} tokens`);
+    console.log(`[Gemini Usage] Response: ${totalResponseTokens} tokens`);
+    console.log(`[Gemini Usage] Total: ${totalTokens} tokens`);
+
+    return {
+        transcript,
+        strictSummary,
+        expandedInsights
+    };
+}
+
+
 // Gemini Process Single Audio Route
 app.post('/api/gemini/process-single-audio', async (req, res) => {
     try {
         console.log('[/api/gemini/process-single-audio] Request received');
+
+        const now = Date.now();
+        while (audioRequestTimestamps.length > 0 && audioRequestTimestamps[0] < now - RATE_LIMIT_WINDOW_MS) {
+            audioRequestTimestamps.shift();
+        }
+        if (audioRequestTimestamps.length >= MAX_REQUESTS_PER_MINUTE) {
+            console.warn(`[/api/gemini/process-single-audio] Rate limit exceeded. Current count: ${audioRequestTimestamps.length}`);
+            return res.status(429).json({ error: 'Too many audio requests. Maximum 10 per minute allowed.' });
+        }
+        audioRequestTimestamps.push(now);
 
         const { sessionId, language, filename, base64Audio, mimeType } = req.body;
 
@@ -74,104 +176,9 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
         console.log('Base64 length:', base64Audio.length);
         console.log('Base64 head:', base64Audio.slice(0, 40));
 
-        const prompt = `You are an expert Brazilian Zouk instructor. Transcribe and analyze this Brazilian Zouk lesson audio.
-The student's language preference is: ${language || 'Auto'}.
-Here is a glossary of terms you should use if relevant: ${JSON.stringify(zoukGlossary)}.
-
-You are extracting atomic technical notes from a dance lesson.
-
-Clean the transcription lightly while preserving the speaker’s exact meaning and structure.
-
-Apply only the following cleanup rules:
-- Remove filler words such as “uh”, “eh”, “ah”, and similar vocal fillers.
-- Remove duplicated fragments caused by self-correction (e.g., “de de de” → “de”).
-- Fix obvious mid-sentence restarts (e.g., “no no tempo” → “no tempo”).
-- Preserve the original wording and terminology.
-- Do NOT rephrase for style.
-- Do NOT summarize.
-- Do NOT improve clarity beyond removing speech disfluencies.
-- Do NOT add new content.
-
-The result should read like a clean spoken explanation, not a rewritten text.
-
-STRICT SUMMARY RULES:
-
-- Return ONLY a JSON object.
-- strictSummary must be an array of bullet points.
-- Each bullet must express ONE complete idea.
-- Each bullet must be self-contained and make sense alone.
-- Use concise technical phrasing.
-- Do NOT copy transcript sentences verbatim.
-- Do NOT invent drills, homework, or theory.
-- Do NOT expand beyond what was explicitly stated.
-- Do NOT categorize.
-- Do NOT use headers.
-- Do NOT write paragraphs.
-- Keep bullets short but semantically complete.
-- Prefer compressed technical wording over conversational phrasing.
-
-EXPANDED INSIGHTS RULES:
-- This is a separate section from strictSummary.
-- You MAY infer and generate drills, homework, technical expansions, and emotional notes here based on the transcript.
-- Must always be present in JSON even if all arrays are empty.
-
-Good example:
-Transcript: 'Stay low in plié for control; rise only for speed.'
-Output:
-{
-  "strictSummary": [
-    "Soltinho right turn uses plié",
-    "Stay low for control",
-    "Rise only to increase speed"
-  ],
-  "expandedInsights": {
-    "drills": [],
-    "homework": [],
-    "technicalExpansion": [],
-    "emotionalNotes": []
-  },
-  "transcript": "Stay low in plié for control; rise only for speed."
-}
-
-Bad example of strictSummary array (forbidden conversational style):
-[
-  "In Soltinho, when the leader turns right, do a plié and stay low for more control."
-]
-
-Return format:
-
-{
-  "strictSummary": ["..."],
-  "expandedInsights": {
-    "drills": [],
-    "homework": [],
-    "technicalExpansion": [],
-    "emotionalNotes": []
-  },
-  "transcript": "..."
-}`;
-
-        let response;
+        let result;
         try {
-            response = await genAI.models.generateContent({
-                model: 'gemini-2.5-flash',
-                config: {
-                    responseMimeType: 'application/json'
-                },
-                contents: [
-                    {
-                        parts: [
-                            { text: prompt },
-                            {
-                                inlineData: {
-                                    mimeType: resolvedMimeType,
-                                    data: base64Audio
-                                }
-                            }
-                        ]
-                    }
-                ]
-            });
+            result = await processAudioWithGemini(base64Audio, resolvedMimeType, language || 'Auto', zoukGlossary);
         } catch (geminiError: any) {
             const status = geminiError?.status || geminiError?.code;
             const isQuotaError = status === 429 || (geminiError?.message || '').toLowerCase().includes('quota');
@@ -194,49 +201,19 @@ Return format:
             });
         }
 
-        const textResult = response.text;
-        if (!textResult) {
-            console.error('[/api/gemini/process-single-audio] Gemini returned empty response text');
-            return res.status(500).json({ error: 'Gemini returned an empty response' });
-        }
-
-        console.log('[Gemini] Raw response length:', textResult.length);
-        console.log('[Gemini] Raw response head:', textResult.slice(0, 200));
-
-        // Strip markdown fences if present (e.g. ```json ... ```)
-        const cleanText = textResult
-            .replace(/^```(?:json)?\s*/i, '')
-            .replace(/```\s*$/i, '')
-            .trim();
-
         const emptyResult = {
             strictSummary: [] as string[],
             expandedInsights: { drills: [], homework: [], technicalExpansion: [], emotionalNotes: [] },
             transcript: ''
         };
 
-        try {
-            const resultJson = JSON.parse(cleanText);
-            return res.json({
-                status: 'success',
-                processedAt: new Date().toISOString(),
-                ...emptyResult,
-                ...resultJson,
-                mockData: false
-            });
-        } catch (parseError: any) {
-            console.error('[/api/gemini/process-single-audio] Failed to parse Gemini JSON response:', {
-                message: parseError?.message,
-                rawText: textResult.substring(0, 500)
-            });
-            return res.json({
-                status: 'success',
-                processedAt: new Date().toISOString(),
-                ...emptyResult,
-                transcript: cleanText,
-                mockData: false
-            });
-        }
+        return res.json({
+            status: 'success',
+            processedAt: new Date().toISOString(),
+            ...emptyResult,
+            ...result,
+            mockData: false
+        });
 
     } catch (error: any) {
         console.error('[/api/gemini/process-single-audio] Unhandled error:', {
@@ -254,6 +231,16 @@ Return format:
 app.post('/api/gemini/process-audio', async (req, res) => {
     try {
         console.log('[/api/gemini/process-audio] Request received');
+
+        const now = Date.now();
+        while (audioRequestTimestamps.length > 0 && audioRequestTimestamps[0] < now - RATE_LIMIT_WINDOW_MS) {
+            audioRequestTimestamps.shift();
+        }
+        if (audioRequestTimestamps.length >= MAX_REQUESTS_PER_MINUTE) {
+            console.warn(`[/api/gemini/process-audio] Rate limit exceeded. Current count: ${audioRequestTimestamps.length}`);
+            return res.status(429).json({ error: 'Too many audio requests. Maximum 10 per minute allowed.' });
+        }
+        audioRequestTimestamps.push(now);
 
         const { sessionId, audios } = req.body;
         if (!sessionId || !audios || !Array.isArray(audios)) {
@@ -291,134 +278,24 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             console.log('Base64 length:', audio.base64?.length || 0);
             console.log('Base64 head:', (audio.base64 || '').slice(0, 40));
 
-            const prompt = `You are an expert Brazilian Zouk instructor. Transcribe and analyze this Brazilian Zouk lesson audio.
-The student's language preference is: ${language}.
-Here is a glossary of terms you should use if relevant: ${JSON.stringify(zoukGlossary)}.
-
-You are extracting atomic technical notes from a dance lesson.
-
-Clean the transcription lightly while preserving the speaker’s exact meaning and structure.
-
-Apply only the following cleanup rules:
-- Remove filler words such as “uh”, “eh”, “ah”, and similar vocal fillers.
-- Remove duplicated fragments caused by self-correction (e.g., “de de de” → “de”).
-- Fix obvious mid-sentence restarts (e.g., “no no tempo” → “no tempo”).
-- Preserve the original wording and terminology.
-- Do NOT rephrase for style.
-- Do NOT summarize.
-- Do NOT improve clarity beyond removing speech disfluencies.
-- Do NOT add new content.
-
-The result should read like a clean spoken explanation, not a rewritten text.
-
-STRICT SUMMARY RULES:
-
-- Return ONLY a JSON object.
-- strictSummary must be an array of bullet points.
-- Each bullet must express ONE complete idea.
-- Each bullet must be self-contained and make sense alone.
-- Use concise technical phrasing.
-- Do NOT copy transcript sentences verbatim.
-- Do NOT invent drills, homework, or theory.
-- Do NOT expand beyond what was explicitly stated.
-- Do NOT categorize.
-- Do NOT use headers.
-- Do NOT write paragraphs.
-- Keep bullets short but semantically complete.
-- Prefer compressed technical wording over conversational phrasing.
-
-EXPANDED INSIGHTS RULES:
-- This is a separate section from strictSummary.
-- You MAY infer and generate drills, homework, technical expansions, and emotional notes here based on the transcript.
-- Must always be present in JSON even if all arrays are empty.
-
-Good example:
-Transcript: 'Stay low in plié for control; rise only for speed.'
-Output:
-{
-  "strictSummary": [
-    "Soltinho right turn uses plié",
-    "Stay low for control",
-    "Rise only to increase speed"
-  ],
-  "expandedInsights": {
-    "drills": [],
-    "homework": [],
-    "technicalExpansion": [],
-    "emotionalNotes": []
-  },
-  "transcript": "Stay low in plié for control; rise only for speed."
-}
-
-Bad example of strictSummary array (forbidden conversational style):
-[
-  "In Soltinho, when the leader turns right, do a plié and stay low for more control."
-]
-
-Return format:
-
-{
-  "strictSummary": ["..."],
-  "expandedInsights": {
-    "drills": [],
-    "homework": [],
-    "technicalExpansion": [],
-    "emotionalNotes": []
-  },
-  "transcript": "..."
-}`;
-
             try {
-                const response = await genAI.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    config: {
-                        responseMimeType: 'application/json'
-                    },
-                    contents: [
-                        {
-                            parts: [
-                                { text: prompt },
-                                {
-                                    inlineData: {
-                                        mimeType: resolvedMimeType,
-                                        data: audio.base64
-                                    }
-                                }
-                            ]
-                        }
-                    ]
+                const result = await processAudioWithGemini(audio.base64, resolvedMimeType, language, zoukGlossary);
+
+                transcripts.push({
+                    audioId: audioId,
+                    text: result.transcript || ''
                 });
 
-                const textResult = response.text;
-                if (textResult) {
-                    console.log('[Gemini bulk] Raw response head:', textResult.slice(0, 200));
-                    const cleanText = textResult
-                        .replace(/^```(?:json)?\s*/i, '')
-                        .replace(/```\s*$/i, '')
-                        .trim();
-                    try {
-                        const parsed = JSON.parse(cleanText);
-                        transcripts.push({
-                            audioId: audioId,
-                            text: parsed.transcript || ''
-                        });
-                        // Accumulate strictSummary (flat array)
-                        if (Array.isArray(parsed.strictSummary)) {
-                            strictSummaryAccum.push(...parsed.strictSummary);
-                        }
-                        // Accumulate expandedInsights arrays
-                        if (parsed.expandedInsights) {
-                            const ei = parsed.expandedInsights;
-                            if (Array.isArray(ei.drills)) expandedInsightsAccum.drills.push(...ei.drills);
-                            if (Array.isArray(ei.homework)) expandedInsightsAccum.homework.push(...ei.homework);
-                            if (Array.isArray(ei.technicalExpansion)) expandedInsightsAccum.technicalExpansion.push(...ei.technicalExpansion);
-                            if (Array.isArray(ei.emotionalNotes)) expandedInsightsAccum.emotionalNotes.push(...ei.emotionalNotes);
-                        }
-                    } catch (parseErr) {
-                        console.error(`[/api/gemini/process-audio] JSON parse failed for audio ${audioId}:`, parseErr);
-                        // Fallback: treat whole response as transcript
-                        transcripts.push({ audioId: audioId, text: cleanText });
-                    }
+                if (Array.isArray(result.strictSummary)) {
+                    strictSummaryAccum.push(...result.strictSummary);
+                }
+
+                if (result.expandedInsights) {
+                    const ei = result.expandedInsights;
+                    if (Array.isArray(ei.drills)) expandedInsightsAccum.drills.push(...ei.drills);
+                    if (Array.isArray(ei.homework)) expandedInsightsAccum.homework.push(...ei.homework);
+                    if (Array.isArray(ei.technicalExpansion)) expandedInsightsAccum.technicalExpansion.push(...ei.technicalExpansion);
+                    if (Array.isArray(ei.emotionalNotes)) expandedInsightsAccum.emotionalNotes.push(...ei.emotionalNotes);
                 }
             } catch (err: any) {
                 const errStatus = err?.status || err?.code;
