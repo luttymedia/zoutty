@@ -1118,9 +1118,9 @@ function SortableCard({ id, children, isDraggable = true, isReordering = false }
       style={style}
       {...(isDraggable && isReordering ? attributes : {})}
       {...(isDraggable && isReordering ? listeners : {})}
-      className={isDragging ? 'shadow-2xl scale-[1.02] cursor-grabbing ring-2 ring-brand rounded-2xl' : (isDraggable && isReordering ? 'cursor-grab touch-none active:scale-[0.99] transition-transform ring-1 ring-brand/50 rounded-2xl' : '')}
+      className={isDragging ? 'shadow-2xl scale-[1.02] cursor-grabbing ring-2 ring-brand rounded-2xl bg-[#141414]' : (isDraggable && isReordering ? 'cursor-grab touch-none active:scale-[0.99] transition-all ring-2 ring-brand/40 bg-brand/5 rounded-2xl' : 'transition-all')}
     >
-      <div>
+      <div className={isDraggable && isReordering && !isDragging ? 'opacity-80 pointer-events-none' : ''}>
         {children}
       </div>
     </div>
@@ -1389,10 +1389,12 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   };
 
   return (
-    <div className={`space-y-4 ${isReordering ? 'bg-brand/5 p-4 rounded-3xl border border-brand/20 relative' : ''}`}>
+    <div className="space-y-4 relative mt-2">
       {isReordering && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-black text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full shadow-lg z-10 flex items-center gap-1.5">
-          <GripHorizontal className="w-3 h-3" /> Reorder Mode
+        <div className="flex items-center justify-center mb-6">
+          <div className="bg-brand/10 text-brand border border-brand/20 text-xs uppercase font-bold tracking-widest px-4 py-2 rounded-full shadow-sm flex items-center gap-2">
+            <GripHorizontal className="w-4 h-4" /> Reorder Mode Active
+          </div>
         </div>
       )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
