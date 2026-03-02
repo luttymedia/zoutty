@@ -178,6 +178,41 @@ export default function App() {
     }
   }, [sessions.length > 0]); // Run once when sessions are loaded
 
+  // Migration 2: Retroactively clean up old technical summaries from audio clips
+  // Now that consolidation handles all summaries, we want old individual clips to just show transcripts
+  useEffect(() => {
+    const cleanOldAudioEntries = async () => {
+      const keys = Object.keys(audioEntries);
+      if (keys.length === 0) return;
+
+      let changedCount = 0;
+      const updatedEntries = { ...audioEntries };
+
+      for (const id of keys) {
+        const entry: any = updatedEntries[id];
+        let needsSave = false;
+
+        // Remove old shape keys if present
+        if (entry.strictSummary) { delete entry.strictSummary; needsSave = true; }
+        if (entry.expandedInsights) { delete entry.expandedInsights; needsSave = true; }
+        if (entry.processedData) { delete entry.processedData; needsSave = true; }
+        if (entry.bulletPoints) { delete entry.bulletPoints; needsSave = true; }
+
+        if (needsSave) {
+          await db.saveAudioEntry(entry);
+          changedCount++;
+        }
+      }
+
+      if (changedCount > 0) {
+        console.log(`[Migration] Cleaned up legacy summary data from ${changedCount} audio entries`);
+        setAudioEntries(updatedEntries);
+      }
+    };
+
+    cleanOldAudioEntries();
+  }, [Object.keys(audioEntries).length > 0]); // Trigger once entries load
+
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
 
@@ -371,9 +406,15 @@ export default function App() {
         return;
       }
 
-      // Prepare base64 audios payload
+      // Prepare payload: send transcript if available, otherwise send base64 audio
       const audiosPayload = await Promise.all(
         sessionAudios.map(async (a) => {
+          if (a.transcript) {
+            return {
+              audioId: a.id,
+              transcript: a.transcript
+            };
+          }
           const b64 = await blobToBase64(a.audioBlob);
           return {
             audioId: a.id,
@@ -397,10 +438,23 @@ export default function App() {
         throw new Error(`Failed to process audio on backend. Status: ${response.status}`);
       }
 
-      const reportResult = await response.json();
-      console.log('[handleConsolidate] API response structure:', JSON.stringify(reportResult).slice(0, 400));
-      console.log('[handleConsolidate] Has strictSummary:', !!reportResult.strictSummary);
-      console.log('[handleConsolidate] Has expandedInsights:', !!reportResult.expandedInsights);
+      const { report: reportResult, newTranscripts } = await response.json();
+      console.log('[handleConsolidate] API response:', {
+        hasReport: !!reportResult,
+        newTranscriptsCount: newTranscripts ? Object.keys(newTranscripts).length : 0
+      });
+
+      // Update individual entries if new transcripts were generated
+      if (newTranscripts && Object.keys(newTranscripts).length > 0) {
+        for (const [audioId, text] of Object.entries(newTranscripts)) {
+          const entry = audioEntries[audioId];
+          if (entry) {
+            const updated = { ...entry, transcript: text as string };
+            await db.saveAudioEntry(updated);
+            setAudioEntries(prev => ({ ...prev, [audioId]: updated }));
+          }
+        }
+      }
 
       await db.saveFinalReport({
         id: crypto.randomUUID(),
@@ -1187,13 +1241,11 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
                   <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} />
                 </div>
                 {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} />}
-                {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} onChange={handleUpdateConsolidatedTranscripts} />}
               </>
             )}
             {legacyReportContent && (
               <>
                 <StructuredBullets contentObj={legacyReportContent} isReport={true} onChange={handleUpdateLegacyConsolidated} />
-                {consolidatedTranscripts && <TranscriptBlock text={consolidatedTranscripts} onChange={handleUpdateConsolidatedTranscripts} />}
               </>
             )}
           </div>
@@ -1462,10 +1514,12 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
 
           {hasNewShape ? (
             <>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
-                <StrictSummaryBlock data={audio.strictSummary as string[]} onChange={(s) => onUpdateContent({ strictSummary: s })} />
-              </div>
+              {audio.strictSummary && (audio.strictSummary as string[]).length > 0 && (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
+                  <StrictSummaryBlock data={audio.strictSummary as string[]} onChange={(s) => onUpdateContent({ strictSummary: s })} />
+                </div>
+              )}
               {audio.expandedInsights && <ExpandedInsightsBlock data={audio.expandedInsights} onChange={(ei) => onUpdateContent({ expandedInsights: ei })} />}
               <TranscriptBlock text={audio.transcript ?? ''} onChange={(t) => onUpdateContent({ transcript: t })} />
             </>
