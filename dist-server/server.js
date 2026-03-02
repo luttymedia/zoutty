@@ -49,7 +49,7 @@ Provide a clean transcription of the audio.
 
 ${glossaryContext}`;
     const result = await genAI.models.generateContent({
-        model: 'gemini-2.0-flash', // Fast and accurate for transcribing
+        model: 'gemini-2.5-flash', // Fast and accurate for transcribing
         config: {
             temperature: 0.1, // Very low temp for stable transcription
             maxOutputTokens: 2000,
@@ -119,7 +119,7 @@ Return ONLY valid JSON matching this schema:
   }
 }`;
     const result = await genAI.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         config: {
             temperature: 0.2,
             responseMimeType: 'application/json'
