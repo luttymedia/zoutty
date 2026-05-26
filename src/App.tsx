@@ -191,6 +191,55 @@ export default function App() {
   );
   const [importPreview, setImportPreview] = useState<any | null>(null);
 
+  // Browser History Navigation Sync
+  const navigateTo = (newView: 'list' | 'detail', newSessionId: string | null, newGroupId: string | null, historyAction: 'push' | 'replace' | 'none' = 'push') => {
+    setView(newView);
+    setSelectedSessionId(newSessionId);
+    setSelectedGroupId(newGroupId);
+
+    if (historyAction === 'push') {
+      window.history.pushState({
+        view: newView,
+        selectedSessionId: newSessionId,
+        selectedGroupId: newGroupId
+      }, '');
+    } else if (historyAction === 'replace') {
+      window.history.replaceState({
+        view: newView,
+        selectedSessionId: newSessionId,
+        selectedGroupId: newGroupId
+      }, '');
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const state = e.state;
+      if (state) {
+        setView(state.view || 'list');
+        setSelectedSessionId(state.selectedSessionId || null);
+        setSelectedGroupId(state.selectedGroupId || null);
+      } else {
+        setView('list');
+        setSelectedSessionId(null);
+        setSelectedGroupId(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Initialize root history state if we are launching on standard home view
+    window.history.replaceState({
+      view: 'list',
+      selectedSessionId: null,
+      selectedGroupId: null
+    }, '');
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   const getSessionLastActivity = (session: Session) => {
     const sessionAudios = Object.values(audioEntries).filter(e => e.sessionId === session.id);
     if (sessionAudios.length === 0) return session.date;
@@ -505,8 +554,7 @@ export default function App() {
     await db.saveSession(newSession);
 
     setSessions(prev => [newSession, ...prev]);
-    setSelectedSessionId(newSession.id);
-    setView('detail');
+    navigateTo('detail', newSession.id, selectedGroupId);
   };
 
   const updateSession = async (id: string, changes: Partial<Session>) => {
@@ -560,9 +608,7 @@ export default function App() {
       setAudioEntries(newEntries);
 
       if (selectedSessionId === id) {
-        setView('list');
-        setSelectedSessionId(null);
-        setSelectedGroupId(sessionToDelete.groupId || null);
+        navigateTo('list', null, sessionToDelete.groupId || null, 'replace');
       }
 
       const timeoutId = setTimeout(async () => {
@@ -659,7 +705,7 @@ export default function App() {
     }
     setSessions(updatedSessions);
     if (selectedGroupId === id) {
-      setSelectedGroupId(null);
+      navigateTo('list', null, null, 'replace');
     }
     showToast(deleteSessions ? t('toast.folderAndSessionsDeleted', { name }) : t('toast.folderDeletedSessionsPreserved', { name }));
   };
@@ -1629,11 +1675,7 @@ export default function App() {
           {(view === 'detail' || (view === 'list' && selectedGroupId !== null)) && (
             <button
               onClick={() => {
-                if (view === 'detail') {
-                  setView('list');
-                } else {
-                  setSelectedGroupId(null);
-                }
+                window.history.back();
               }}
               className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 transition-colors"
             >
@@ -1776,7 +1818,7 @@ export default function App() {
                   {sortFolders(groups.filter(g => g.id !== 'root')).map(group => (
                     <div
                       key={group.id}
-                      onClick={() => setSelectedGroupId(group.id)}
+                      onClick={() => navigateTo('list', null, group.id)}
                       className="glass p-4.5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer border border-blue-500/10 rounded-2xl"
                     >
                       <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
@@ -1858,8 +1900,7 @@ export default function App() {
                     <div
                       key={session.id}
                       onClick={() => {
-                        setSelectedSessionId(session.id);
-                        setView('detail');
+                        navigateTo('detail', session.id, selectedGroupId);
                       }}
                       className="glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer rounded-2xl border border-white/5 hover:border-brand/25"
                     >
