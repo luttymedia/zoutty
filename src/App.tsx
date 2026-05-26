@@ -2054,6 +2054,20 @@ function SessionDetail({
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [micLevel, setMicLevel] = useState(0); // 0..1 live mic energy
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const formatDuration = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
   const language = 'auto';
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(session.title);
@@ -2156,6 +2170,11 @@ function SessionDetail({
 
       mediaRecorder.current.start(250); // 250ms timeslice — guarantees chunks are written regularly
       setIsRecording(true);
+      setRecordingDuration(0);
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
     } catch (err) {
       console.error('Error accessing microphone:', err);
       onError(t('toast.micDenied'));
@@ -2168,6 +2187,10 @@ function SessionDetail({
     setMicLevel(0);
     mediaRecorder.current?.stop();
     setIsRecording(false);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   };
 
   const cancelRecording = () => {
@@ -2325,6 +2348,13 @@ function SessionDetail({
 
       {/* Controls - Floating at bottom */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 glass p-4 rounded-full flex items-center justify-center gap-4 sm:gap-6 shadow-2xl z-40 border border-white/10 bg-black/60 backdrop-blur-md">
+
+        {isRecording && (
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-600/90 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg border border-red-500/30 backdrop-blur-md animate-in slide-in-from-bottom-2 duration-300">
+            <span className="w-2 h-2 rounded-full bg-white animate-ping shrink-0" />
+            <span className="font-mono">{formatDuration(recordingDuration)}</span>
+          </div>
+        )}
 
         <label
           className="cursor-pointer flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-full transition-colors shadow-sm"
