@@ -62,7 +62,7 @@ ${text}`
         return text;
     }
 }
-async function processAudioWithGemini(base64Audio, mimeType, language, danceGlossary, danceStyle = 'Brazilian Zouk') {
+async function processAudioWithGemini(base64Audio, mimeType, language, danceGlossary, danceStyle = 'Auto') {
     let totalPromptTokens = 0;
     let totalResponseTokens = 0;
     const languageNames = {
@@ -83,8 +83,10 @@ async function processAudioWithGemini(base64Audio, mimeType, language, danceGlos
     const isTranslate = targetLanguage !== 'Auto-Detect';
     if (isAuto) {
         prompt = `You are an expert dance instructor processing a lesson audio.
+Dancers frequently mix languages (e.g. Portuguese terms in Zouk, Spanish in Salsa, French in Caribbean Zouk, English in Lindy Hop). If foreign dance terms are mixed into the spoken language, preserve their original spelling and meaning instead of phonetically translating them.
+
 Provide:
-1. A clean transcription of the audio in the language it is spoken. Remove speech disfluencies and false starts. Preserve exact technical meaning and terminology.
+1. A clean transcription of the audio in the language it is spoken. Remove speech disfluencies and false starts.
 2. The detected dance style of this lesson (e.g. Brazilian Zouk, Salsa, Bachata, Kizomba, West Coast Swing, or another style).
 
 Return ONLY valid JSON matching this schema:
@@ -153,7 +155,7 @@ ${glossaryContext}`;
             }
             return {
                 transcript: fallbackTranscript,
-                detectedStyle: 'Brazilian Zouk' // Fallback default
+                detectedStyle: undefined
             };
         }
     }
@@ -165,7 +167,7 @@ ${glossaryContext}`;
         transcript
     };
 }
-async function consolidateTranscriptsWithGemini(transcripts, danceGlossary, danceStyle = 'Brazilian Zouk', appLanguage = 'en') {
+async function consolidateTranscriptsWithGemini(transcripts, danceGlossary, danceStyle = 'Auto', appLanguage = 'en') {
     if (!transcripts || transcripts.length === 0)
         return null;
     // Flatten the glossary
@@ -173,23 +175,26 @@ async function consolidateTranscriptsWithGemini(transcripts, danceGlossary, danc
         const variants = item.variants && item.variants.length > 0 ? ` (${item.variants.join(', ')})` : '';
         return `${item.canonicalTerm || ''}${variants}`;
     }).filter(Boolean).join(', ') : '';
-    const glossaryContext = compressedGlossary ? `\n\n${danceStyle} Glossary for reference:\n${compressedGlossary}` : '';
+    const isAuto = danceStyle.toLowerCase() === 'auto';
+    const styleName = isAuto ? 'dance' : danceStyle;
+    const glossaryContext = compressedGlossary ? `\n\n${styleName} Glossary for reference:\n${compressedGlossary}` : '';
     const combinedTranscripts = transcripts.map((t, i) => `--- Clip ${i + 1} Transcription ---\n${t}`).join('\n\n');
     const targetLanguageName = appLanguage === 'es' ? 'Spanish' : 'English';
-    const prompt = `You are a world-class ${danceStyle} head instructor. 
-Below are multiple transcriptions from various moments of a single ${danceStyle} lesson.
+    const prompt = `You are a world-class ${styleName} head instructor. 
+Below are multiple transcriptions from various moments of a single ${styleName} lesson.
 Your task is to provide a single, cohesive, "Consolidated Session Report" that synthesizes ALL the technical information while ELIMINATING redundancies.
 
 CRITICAL: 
 - If multiple clips discuss the same concept (e.g. "Frame", "Lateral step"), do NOT mention it multiple times.
 - Summarize the repetitive information into the most complete and clear technical description possible.
 - The goal is to provide a unified summary of what was taught across the whole session.
-- Write the text content/values of all array elements in the JSON (i.e. all items inside strictSummary, drills, homework, technicalExpansion, and emotionalNotes) in ${targetLanguageName}. Do not translate the JSON keys (keep them exactly as "strictSummary", "expandedInsights", "drills", "homework", "technicalExpansion", "emotionalNotes").
+- Write the text content/values of all array elements in the JSON (i.e. all items inside strictSummary, drills, homework, technicalExpansion, and emotionalNotes) in ${targetLanguageName}. Do not translate the JSON keys (keep them exactly as "strictSummary", "expandedInsights", "drills", "homework", "technicalExpansion", "emotionalNotes"${isAuto ? ', "detectedStyle"' : ''}).
 
 Perform these tasks and return the result EXACTLY as a JSON object:
 
 1. strictSummary: Extract atomic technical notes. Each bullet must be self-contained (ONE complete technical idea). Use concise, dense technical phrasing. 
 2. expandedInsights: Infer drills, homework, technical expansions, and emotional notes based on the combined information.
+${isAuto ? '3. detectedStyle: Detect the specific dance style of this lesson (e.g., Brazilian Zouk, Salsa, Bachata, Kizomba, West Coast Swing, etc.) based on the transcription contents.' : ''}
 
 ${glossaryContext}
 
@@ -205,7 +210,7 @@ Return ONLY valid JSON matching this schema:
     "homework": [],
     "technicalExpansion": [],
     "emotionalNotes": []
-  }
+  }${isAuto ? ',\n  "detectedStyle": "detected dance style name"' : ''}
 }`;
     const result = await genAI.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -252,18 +257,7 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
             return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
         }
         let activeGlossary = glossary;
-        let activeStyle = danceStyle || 'Brazilian Zouk';
-        if (!activeGlossary) {
-            const glossaryPath = path.resolve(process.cwd(), 'zoukGlossary.json');
-            if (fs.existsSync(glossaryPath)) {
-                try {
-                    activeGlossary = JSON.parse(fs.readFileSync(glossaryPath, 'utf-8'));
-                }
-                catch (e) {
-                    console.warn('[/api/gemini/process-single-audio] Failed to parse zoukGlossary.json:', e);
-                }
-            }
-        }
+        let activeStyle = danceStyle || 'Auto';
         const resolvedMimeType = mimeType || 'audio/webm';
         console.log(`[/api/gemini/process-single-audio] Processing audio for session=${sessionId}, style=${activeStyle}`);
         let result;
@@ -328,7 +322,7 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             return res.status(429).json({ error: 'Too many audio requests. Maximum 10 per minute allowed.' });
         }
         audioRequestTimestamps.push(now);
-        const { sessionId, audios, glossary, danceStyle, appLanguage } = req.body;
+        const { sessionId, audios, glossary, danceStyle, availableGlossaries, appLanguage } = req.body;
         if (!sessionId || !audios || !Array.isArray(audios)) {
             console.error('[/api/gemini/process-audio] Invalid payload:', { sessionId, audiosType: typeof audios });
             return res.status(400).json({ error: 'Invalid payload: sessionId and audios array are required' });
@@ -338,20 +332,11 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
         }
         let activeGlossary = glossary;
-        let activeStyle = danceStyle || 'Brazilian Zouk';
-        if (!activeGlossary) {
-            const glossaryPath = path.resolve(process.cwd(), 'zoukGlossary.json');
-            if (fs.existsSync(glossaryPath)) {
-                try {
-                    activeGlossary = JSON.parse(fs.readFileSync(glossaryPath, 'utf-8'));
-                }
-                catch (e) {
-                    console.warn('[/api/gemini/process-audio] Failed to parse zoukGlossary.json:', e);
-                }
-            }
-        }
+        let activeStyle = danceStyle || 'Auto';
+        const isAutoStyle = activeStyle.toLowerCase() === 'auto';
         const allTranscripts = [];
         const newTranscriptsRecord = {};
+        let detectedStyleName = undefined;
         for (let i = 0; i < audios.length; i++) {
             const audio = audios[i];
             const audioId = audio.audioId || `audio-${i}`;
@@ -375,6 +360,16 @@ app.post('/api/gemini/process-audio', async (req, res) => {
                     allTranscripts.push(result.transcript);
                     newTranscriptsRecord[audioId] = result.transcript;
                 }
+                // If we are in Auto mode and haven't matched a glossary yet, check if this transcription detected a style
+                if (isAutoStyle && !detectedStyleName && result.detectedStyle && Array.isArray(availableGlossaries)) {
+                    const matched = availableGlossaries.find((g) => g.name.toLowerCase() === result.detectedStyle.toLowerCase());
+                    if (matched) {
+                        detectedStyleName = matched.name;
+                        activeStyle = matched.name;
+                        activeGlossary = matched.terms;
+                        console.log(`[/api/gemini/process-audio] Dynamically detected style: ${detectedStyleName}. Switched to its glossary.`);
+                    }
+                }
             }
             catch (err) {
                 console.error(`[/api/gemini/process-audio] Gemini SDK Error for audio id=${audioId}:`, err?.message);
@@ -383,10 +378,16 @@ app.post('/api/gemini/process-audio', async (req, res) => {
         }
         console.log(`[/api/gemini/process-audio] Total transcripts gathered: ${allTranscripts.length}. Synthesizing...`);
         // 3. Synthesize the final consolidated report
-        const report = await consolidateTranscriptsWithGemini(allTranscripts, activeGlossary, activeStyle, appLanguage);
+        const reportResult = await consolidateTranscriptsWithGemini(allTranscripts, activeGlossary, activeStyle, appLanguage);
+        let finalDetectedStyle = detectedStyleName;
+        if (reportResult && reportResult.detectedStyle) {
+            finalDetectedStyle = reportResult.detectedStyle;
+            delete reportResult.detectedStyle;
+        }
         return res.json({
-            report,
-            newTranscripts: newTranscriptsRecord
+            report: reportResult,
+            newTranscripts: newTranscriptsRecord,
+            detectedStyle: finalDetectedStyle
         });
     }
     catch (error) {

@@ -26,7 +26,8 @@ import {
   Share2,
   Copy,
   Settings,
-  BookOpen
+  BookOpen,
+  Music
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { db } from './lib/db';
@@ -83,8 +84,8 @@ function Toast({ message, isError, actionText, onAction, onClose }: { message: s
   }, [onClose]);
 
   return (
-    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-medium text-sm z-[60] shadow-lg flex items-center gap-3 transition-all animate-in slide-in-from-bottom-5 ${isError ? 'bg-red-600' : 'bg-green-600'}`}>
-      <span>{message}</span>
+    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] md:w-auto max-w-md md:max-w-lg px-5 py-3.5 rounded-2xl text-white font-medium text-sm z-[60] shadow-lg flex items-center gap-3 transition-all animate-in slide-in-from-bottom-5 ${isError ? 'bg-red-600' : 'bg-green-600'}`}>
+      <span className="flex-1">{message}</span>
       {actionText && onAction && (
         <button onClick={() => { onAction(); onClose(); }} className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shrink-0">
           {actionText}
@@ -974,7 +975,7 @@ export default function App() {
       const isOther = selectedSession.glossaryId === 'other';
       const activeGlossary = !isOther && (glossaries.find(g => g.id === selectedSession.glossaryId) || glossaries.find(g => g.id === 'zouk'));
       const danceStyle = selectedSession.glossaryId === 'auto'
-        ? 'Brazilian Zouk'
+        ? 'Auto'
         : (isOther ? (selectedSession.customGlossaryStyle || 'Other') : (activeGlossary ? activeGlossary.name : 'Brazilian Zouk'));
       const glossary = (selectedSession.glossaryId === 'auto' || isOther) ? undefined : (activeGlossary ? activeGlossary.terms : undefined);
 
@@ -986,6 +987,7 @@ export default function App() {
           audios: audiosPayload,
           glossary,
           danceStyle,
+          availableGlossaries: glossaries,
           appLanguage: uiLanguage
         })
       });
@@ -994,10 +996,11 @@ export default function App() {
         throw new Error(`Failed to process audio on backend. Status: ${response.status}`);
       }
 
-      const { report: reportResult, newTranscripts } = await response.json();
+      const { report: reportResult, newTranscripts, detectedStyle } = await response.json();
       console.log('[handleConsolidate] API response:', {
         hasReport: !!reportResult,
-        newTranscriptsCount: newTranscripts ? Object.keys(newTranscripts).length : 0
+        newTranscriptsCount: newTranscripts ? Object.keys(newTranscripts).length : 0,
+        detectedStyle
       });
 
       // Update individual entries if new transcripts were generated
@@ -1019,12 +1022,28 @@ export default function App() {
         timestamp: Date.now()
       });
 
-      // Update session summary
-      const updatedSession = { ...selectedSession, summary: reportResult };
-      await db.saveSession(updatedSession);
-      setSessions(prev => prev.map(s => s.id === selectedSession.id ? updatedSession : s));
+      // Update session summary and glossary if detectedStyle matches a registered glossary
+      const sessionChanges: Partial<Session> = { summary: reportResult };
+      let gotStyleMatch = false;
 
-      showToast(t('toast.consolidated'));
+      if (detectedStyle && selectedSession.glossaryId === 'auto') {
+        const matched = glossaries.find(g => g.name.toLowerCase() === detectedStyle.toLowerCase());
+        if (matched) {
+          sessionChanges.glossaryId = matched.id;
+          gotStyleMatch = true;
+        }
+      }
+
+      await updateSession(selectedSession.id, sessionChanges);
+
+      if (gotStyleMatch) {
+        const matched = glossaries.find(g => g.name.toLowerCase() === detectedStyle.toLowerCase());
+        showToast(t('toast.aiDetectedStyle', { style: detectedStyle, glossary: matched!.name }));
+      } else if (detectedStyle && selectedSession.glossaryId === 'auto') {
+        showToast(t('toast.aiDetectedStyleOnly', { style: detectedStyle }));
+      } else {
+        showToast(t('toast.consolidated'));
+      }
     } catch (error) {
       console.error('Consolidation failed:', error);
       showToast(t('toast.consolidationFailed'), true);
@@ -2174,13 +2193,37 @@ function SessionDetail({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Session Header: date (white) + optional editable subtitle */}
       <div>
-        {parentGroup && (
-          <div className="flex items-center gap-1.5 text-xs text-white/40 mb-2.5">
-            <Folder className="w-3.5 h-3.5 text-brand" />
-            <span className="font-semibold text-white/60">{parentGroup.name}</span>
-            <span className="text-white/20">/</span>
-          </div>
-        )}
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-2.5">
+          {parentGroup ? (
+            <div className="flex items-center gap-1.5 text-xs text-white/40">
+              <Folder className="w-3.5 h-3.5 text-brand" />
+              <span className="font-semibold text-white/60">{parentGroup.name}</span>
+              <span className="text-white/20">/</span>
+            </div>
+          ) : (
+            <div />
+          )}
+
+          {/* Active Dance Style / Glossary Badge */}
+          <button
+            onClick={() => {
+              setTempGroupId(session.groupId || '');
+              setTempGlossaryId(session.glossaryId || 'auto');
+              setTempCustomGlossaryStyle(session.customGlossaryStyle || '');
+              setIsSettingsOpen(true);
+            }}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-brand/10 border border-brand/20 hover:bg-brand/20 transition-all text-brand font-medium cursor-pointer"
+            title={t('session.sessionSettings')}
+          >
+            <Music className="w-3 h-3 shrink-0" />
+            <span>
+              {session.glossaryId === 'auto'
+                ? t('sessionSettings.glossaryAuto')
+                : (session.glossaryId === 'other' ? (session.customGlossaryStyle || t('sessionSettings.glossaryOther')) : (glossaries.find(g => g.id === session.glossaryId)?.name || 'Brazilian Zouk'))
+              }
+            </span>
+          </button>
+        </div>
         {/* Date line — always shown, white, bold */}
         {isEditingTitle ? (
           <input
