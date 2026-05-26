@@ -1,0 +1,245 @@
+// Spanish — Spain (ES) translations
+// This file must match the structure of en.ts exactly (TypeScript enforces this).
+
+import type { Translations } from './en';
+
+const es: Translations = {
+  // ─── App Header ─────────────────────────────────────────────────────────────
+  appName: 'Zoutty',
+  appSubtitle: 'Notas de Clase',
+  installApp: 'Instalar App',
+  showAppVersion: 'Mostrar versión',
+
+  // ─── Navigation ─────────────────────────────────────────────────────────────
+  back: 'Volver',
+
+  // ─── Home / List View ───────────────────────────────────────────────────────
+  home: {
+    newSession: 'Sesión',
+    newFolder: 'Carpeta',
+    folderBreadcrumb: 'Carpeta: {name}',
+    noSessionsInFolder: 'No hay sesiones en esta carpeta.',
+    sortBy: 'Ordenar por:',
+    sortRecent: 'Reciente',
+    sortName: 'Nombre',
+    sortCreated: 'Creación',
+    foldersHeading: 'Carpetas',
+    sessionsHeading: 'Sesiones',
+    sessionsInFolderHeading: 'Sesiones en la carpeta',
+    sessionCount: '{count} sesiones',
+    sessionDefaultSubtitle: 'Clase',
+    moveToFolder: 'Mover a carpeta',
+    deleteSession: 'Eliminar',
+  },
+
+  // ─── Zoutty Settings Drawer ─────────────────────────────────────────────────
+  appSettings: {
+    drawerTitle: 'Ajustes de Zoutty',
+    // Language section
+    languageSection: 'Idioma de la app',
+    languageSectionDesc: 'Elige el idioma de la interfaz de Zoutty.',
+    // Backup & Restore (collapsible)
+    backupRestoreSection: 'Copia de seguridad',
+    backupSection: 'Guardar base de datos',
+    backupDesc: 'Descarga una copia completa de todas tus sesiones, carpetas, glosarios y grabaciones de audio en tu dispositivo.',
+    exportBackupBtn: 'Exportar copia JSON',
+    restoreSection: 'Restaurar base de datos',
+    restoreDesc: 'Restaura la aplicación desde un archivo de copia de seguridad JSON descargado anteriormente.',
+    restoreWarning: 'Advertencia: Esto sobreescribirá y eliminará todas tus sesiones y datos actuales.',
+    importBackupBtn: 'Importar copia JSON',
+    // Reset
+    resetSection: 'Restablecer aplicación',
+    resetDesc: 'Elimina todas las carpetas, sesiones, ajustes y grabaciones de audio de este dispositivo.',
+    resetWarning: 'Advertencia: Esta acción es permanente y no se puede deshacer.',
+    resetBtn: 'Restablecer datos',
+  },
+
+  // ─── Session Settings Drawer ────────────────────────────────────────────────
+  sessionSettings: {
+    drawerTitle: 'Ajustes de sesión',
+    folderLabel: 'Carpeta',
+    folderNone: 'Ninguna (Raíz)',
+    glossaryLabel: 'Glosario de estilo de baile',
+    glossaryAuto: 'Detección automática (IA)',
+    glossaryOther: 'Otro (Especificar...)',
+    specifyDanceStyleLabel: 'Especificar estilo de baile',
+    specifyDanceStylePlaceholder: 'ej. Samba de Gafieira, West Coast Swing...',
+    transcriptionLanguageLabel: 'Idioma de transcripción',
+    transcriptionAuto: 'Detección automática (IA)',
+    transcriptionPtBr: 'Portugués (PT-BR)',
+    transcriptionEs: 'Español (ES)',
+    transcriptionEn: 'Inglés (EN)',
+    cancelBtn: 'Cancelar',
+    confirmBtn: 'Confirmar',
+    deleteSessionBtn: 'Eliminar sesión',
+  },
+
+  // ─── Modals ──────────────────────────────────────────────────────────────────
+  modals: {
+    // Delete
+    confirmDeletion: 'Confirmar eliminación',
+    deleteSessionMsg: '¿Seguro que quieres eliminar la sesión: {title}?',
+    deleteAudioMsg: '¿Seguro que quieres eliminar este audio: {title}?',
+    cancelBtn: 'Cancelar',
+    deleteBtn: 'Eliminar',
+    // Reprocess
+    confirmReprocess: 'Confirmar reprocesamiento',
+    reprocessMsg: '¿Seguro que quieres reprocesar este clip de audio? Esto sobreescribirá el procesamiento anterior.',
+    reprocessBtn: 'Reprocesar',
+    // Version modal
+    closeBtn: 'Cerrar',
+    // Restore backup
+    confirmRestore: 'Confirmar restauración',
+    restoreMsg: '¿Seguro que quieres restaurar el archivo de copia "{filename}"?',
+    restoreWarningMsg: 'Esto sobreescribirá y eliminará todas tus sesiones, carpetas, ajustes y grabaciones actuales. Esta acción no se puede deshacer.',
+    restoreBtn: 'Restaurar',
+    // Reset
+    confirmReset: 'Confirmar restablecimiento',
+    resetMsg: '¿Seguro que quieres restablecer la app?',
+    resetWarningMsg: 'Esto eliminará permanentemente todas las carpetas, sesiones, ajustes y clips de audio de este dispositivo. Esta acción no se puede deshacer.',
+    resetEverythingBtn: 'Restablecer todo',
+    // Folder Create/Rename
+    createFolder: 'Crear carpeta',
+    renameFolder: 'Renombrar carpeta',
+    folderNameLabel: 'Nombre de la carpeta',
+    folderNamePlaceholder: 'Escribe el nombre de la carpeta...',
+    saveBtn: 'Guardar',
+    // Delete Folder
+    deleteFolder: 'Eliminar carpeta',
+    deleteFolderMsg: '¿Seguro que quieres eliminar la carpeta "{name}"?',
+    deleteFolderAlsoSessions: 'Eliminar también todas las sesiones dentro de esta carpeta',
+    deleteFolderSessionsNote: '(Si no se marca, las sesiones se conservarán y moverán al nivel raíz)',
+    deleteFolderBtn: 'Eliminar carpeta',
+    // Move Session
+    moveSessionTitle: 'Mover sesión a carpeta',
+    moveSessionDesc: 'Elige una carpeta de destino para esta sesión:',
+    moveSessionRoot: 'Raíz (Sin carpeta)',
+    // Share Session
+    shareSession: 'Compartir sesión',
+    shareSelectInfo: 'Selecciona qué información quieres compartir con otros usuarios:',
+    shareConsolidatedReport: 'Informe consolidado de sesión',
+    shareReportLocked: '(Bloqueado/No consolidado)',
+    shareSelectAll: 'Seleccionar todo',
+    shareDeselectAll: 'Deseleccionar todo',
+    shareStrictSummary: 'Resumen estricto',
+    shareDrills: 'Ejercicios',
+    shareHomework: 'Deberes',
+    shareTechnical: 'Ampliación técnica',
+    shareEmotional: 'Notas emocionales',
+    shareNotAvailable: '(No disponible)',
+    shareNotes: 'Notas personales de sesión',
+    shareNoNotes: '(Sin notas escritas)',
+    shareTranscripts: 'Transcripciones de clips individuales',
+    shareNoTranscripts: '(Sin clips de audio transcritos)',
+    generateShareLink: 'Generar enlace para compartir',
+    shareLinkReady: '¡Tu enlace está listo! Envía esta URL a otro usuario para compartir la sesión:',
+    // Import session
+    sharedSession: 'Sesión compartida',
+    sharedSessionDesc: 'Alguien ha compartido una sesión de clase de baile contigo:',
+    sharedTitle: 'Título',
+    sharedSubtitle: 'Subtítulo',
+    sharedNotesShared: 'Notas compartidas',
+    sharedReportShared: 'Informe compartido',
+    sharedReportIncluded: '✓ Informe consolidado de sesión incluido',
+    sharedClipsShared: 'Clips compartidos',
+    sharedClipsIncluded: '✓ {count} transcripciones de clips de audio incluidas',
+    rejectBtn: 'Rechazar',
+    importSessionBtn: 'Importar sesión',
+  },
+
+  // ─── Session Detail ──────────────────────────────────────────────────────────
+  session: {
+    subtitlePlaceholder: 'Clase',
+    addSubtitle: 'Añadir un subtítulo…',
+    editTitleHint: 'Editar título',
+    shareSession: 'Compartir sesión',
+    disableReorder: 'Desactivar modo de reordenación',
+    enableReorder: 'Activar modo de reordenación',
+    sessionSettings: 'Ajustes de sesión',
+    exportToWord: 'Exportar a Word',
+    reorderModeActive: 'Modo de reordenación activo',
+    // Audio entries
+    audioEntryDefault: 'Entrada de audio {index}',
+    processing: 'PROCESANDO...',
+    processAudio: 'Procesar audio',
+    reprocessClip: 'Reprocesar clip',
+    liveType: 'En vivo',
+    clipType: 'Clip',
+    waitingForContent: 'Esperando generación de contenido...',
+    noDataYet: 'Aún no hay datos estructurados disponibles para esta sesión.',
+    // Notes card
+    notesHeading: 'Notas',
+    addNote: '+ Añadir nota',
+    notesPlaceholder: 'Añade tus notas de sesión aquí...',
+    // Consolidated report
+    consolidatedReport: 'Informe consolidado de sesión',
+    consolidatedOn: 'Consolidado: {date}',
+    strictSummary: 'Resumen estricto',
+    rawTranscript: 'Transcripción original',
+    viewTranscript: 'Ver transcripción',
+    expandedInsights: 'Perspectivas ampliadas (mejoradas con IA)',
+    drills: 'Ejercicios',
+    homework: 'Deberes',
+    technicalExpansion: 'Ampliación técnica',
+    emotionalNotes: 'Notas emocionales',
+    noStrictSummary: 'No se ha extraído contenido de resumen estricto.',
+    cancelRecording: 'Cancelar grabación',
+    stopRecording: 'Detener grabación y guardar',
+    startRecording: 'Iniciar grabación',
+    zouttySettings: 'Ajustes de Zoutty',
+  },
+
+  // ─── Toast Messages ──────────────────────────────────────────────────────────
+  toast: {
+    failedLoadData: 'Error al cargar los datos de la app',
+    failedRetrieveShared: 'Error al recuperar los detalles de la sesión compartida',
+    backupDownloaded: '¡Copia de seguridad descargada correctamente!',
+    failedBackup: 'Error al crear la copia de seguridad',
+    restoreSuccess: '¡Restauración correcta! Recargando la aplicación...',
+    failedRestore: 'Error al restaurar (formato de archivo inválido)',
+    resetSuccess: '¡App restablecida correctamente! Recargando...',
+    failedReset: 'Error al restablecer los datos de Zoutty',
+    sessionDeleted: 'Sesión eliminada',
+    audioDeleted: 'Audio eliminado',
+    undo: 'Deshacer',
+    actionUndone: 'Acción deshecha',
+    folderCreated: '¡Carpeta "{name}" creada!',
+    folderRenamed: 'Carpeta renombrada a "{name}"',
+    folderAndSessionsDeleted: 'Carpeta "{name}" y sus sesiones eliminadas',
+    folderDeletedSessionsPreserved: 'Carpeta "{name}" eliminada (sesiones conservadas)',
+    sessionMovedToRoot: 'Sesión movida a la raíz',
+    sessionMovedToFolder: 'Sesión movida a "{name}"',
+    shareLinkGenerated: '¡Enlace para compartir generado!',
+    failedShareLink: 'Error al generar el enlace para compartir',
+    importingSession: 'Importando sesión...',
+    sessionImported: '¡Sesión importada correctamente!',
+    failedImport: 'Error al importar la sesión',
+    audioAdded: '¡Audio añadido!',
+    fileAdded: '¡[{filename}] añadido!',
+    consolidating: 'Consolidando sesión...',
+    consolidated: '¡Sesión consolidada!',
+    consolidationFailed: 'Error al consolidar',
+    noAudioData: 'No se encontraron datos de audio para la sesión actual',
+    generatingDoc: 'Generando documento...',
+    docExported: '¡Documento exportado correctamente!',
+    failedExport: 'Error al exportar el documento',
+    micDenied: 'Acceso al micrófono denegado o no disponible.',
+    processing: 'Procesando {filename}...',
+    processed: '¡[{filename}] procesado!',
+    processingFailed: '[{filename}] no se pudo procesar',
+    audioProcessed: '¡Audio procesado!',
+    audioProcessingFailed: 'Error al procesar',
+    aiDetectedStyle: '[IA] Estilo detectado: "{style}". Glosario cambiado a "{glossary}".',
+    aiDetectedStyleOnly: '[IA] Estilo detectado: "{style}".',
+    linkCopied: '¡Enlace copiado al portapapeles!',
+    sessionImportedSuffix: ' (Importada)',
+  },
+
+  // ─── Language Names ──────────────────────────────────────────────────────────
+  languages: {
+    en: 'English',
+    es: 'Español',
+  },
+};
+
+export default es;

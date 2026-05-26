@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Plus,
   Mic,
@@ -37,6 +37,8 @@ import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
 import { ZouttyIcon } from './components/ZouttyIcon';
 import Markdown from 'react-markdown';
 import { exportDocx } from './lib/exportDocx';
+import { useTranslation } from './i18n/TranslationContext';
+import { UI_LANGUAGE_NAMES } from './i18n';
 import {
   DndContext,
   closestCenter,
@@ -101,7 +103,32 @@ function Spinner({ text }: { text: string }) {
   );
 }
 
+function AppSettingsCollapsible({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-white/10 rounded-2xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+      >
+        <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-white/40">
+          {icon}
+          {label}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 pt-2 space-y-4 border-t border-white/5 animate-in fade-in duration-150">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
+  const { t, uiLanguage, setUILanguage } = useTranslation();
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
@@ -296,7 +323,7 @@ export default function App() {
         setAudioEntries(audioRecord);
       } catch (err) {
         console.error("Failed to load IndexedDB", err);
-        showToast("Failed to load app data", true);
+        showToast(t('toast.failedLoadData'), true);
       }
     };
     loadData();
@@ -314,7 +341,7 @@ export default function App() {
           setImportPreview(data);
         } catch (e: any) {
           console.error(e);
-          showToast('Failed to retrieve shared session details', true);
+          showToast(t('toast.failedRetrieveShared'), true);
         } finally {
           hideSpinner();
         }
@@ -341,10 +368,10 @@ export default function App() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast('Backup downloaded successfully!');
+      showToast(t('toast.backupDownloaded'));
     } catch (e) {
       console.error("Backup failed", e);
-      showToast('Failed to create backup', true);
+      showToast(t('toast.failedBackup'), true);
     } finally {
       hideSpinner();
     }
@@ -364,13 +391,13 @@ export default function App() {
       const text = await file.text();
       const backup = JSON.parse(text);
       await db.importDatabase(backup);
-      showToast('Restore successful! Reloading application...');
+      showToast(t('toast.restoreSuccess'));
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (err) {
       console.error("Restore failed", err);
-      showToast('Failed to restore backup (invalid file format)', true);
+      showToast(t('toast.failedRestore'), true);
     } finally {
       hideSpinner();
     }
@@ -381,13 +408,13 @@ export default function App() {
     showSpinner('Resetting Zoutty data...');
     try {
       await db.clearDatabase();
-      showToast('App reset successfully! Reloading...');
+      showToast(t('toast.resetSuccess'));
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (err) {
       console.error("Reset failed", err);
-      showToast('Failed to reset Zoutty data', true);
+      showToast(t('toast.failedReset'), true);
     } finally {
       hideSpinner();
     }
@@ -513,7 +540,7 @@ export default function App() {
     } else {
       setAudioEntries(prev => ({ ...prev, [id]: data }));
     }
-    showToast('Action undone');
+    showToast(t('toast.actionUndone'));
   };
 
   const confirmDelete = async () => {
@@ -543,7 +570,7 @@ export default function App() {
         await db.deleteSession(id);
       }, 5000);
 
-      showToast('Session deleted', false, 'Undo', () => handleUndo(id, type, sessionToDelete, sessionAudios, timeoutId));
+      showToast(t('toast.sessionDeleted'), false, t('toast.undo'), () => handleUndo(id, type, sessionToDelete, sessionAudios, timeoutId));
 
     } else {
       const audioToDelete = audioEntries[id];
@@ -559,7 +586,7 @@ export default function App() {
         await db.deleteAudioEntry(id);
       }, 5000);
 
-      showToast('Audio deleted', false, 'Undo', () => handleUndo(id, type, audioToDelete, null, timeoutId));
+      showToast(t('toast.audioDeleted'), false, t('toast.undo'), () => handleUndo(id, type, audioToDelete, null, timeoutId));
     }
   };
 
@@ -586,14 +613,14 @@ export default function App() {
       };
       await db.saveGroup(newGroup);
       setGroups(prev => [...prev, newGroup]);
-      showToast(`Folder "${newGroup.name}" created!`);
+      showToast(t('toast.folderCreated', { name: newGroup.name }));
     } else if (folderModal.type === 'rename' && folderModal.id) {
       const group = groups.find(g => g.id === folderModal.id);
       if (group) {
         const updated = { ...group, name: folderModal.name.trim() };
         await db.saveGroup(updated);
         setGroups(prev => prev.map(g => g.id === folderModal.id ? updated : g));
-        showToast(`Folder renamed to "${updated.name}"`);
+        showToast(t('toast.folderRenamed', { name: updated.name }));
       }
     }
     setFolderModal(null);
@@ -634,13 +661,13 @@ export default function App() {
     if (selectedGroupId === id) {
       setSelectedGroupId(null);
     }
-    showToast(deleteSessions ? `Folder "${name}" and its sessions deleted` : `Folder "${name}" deleted (sessions preserved)`);
+    showToast(deleteSessions ? t('toast.folderAndSessionsDeleted', { name }) : t('toast.folderDeletedSessionsPreserved', { name }));
   };
 
 
   const handleGenerateShareLink = async () => {
     if (!shareModal || !selectedSession) return;
-    showSpinner('Generating share link...');
+    showSpinner(t('toast.generatingDoc'));
     try {
       const payload: any = {
         title: selectedSession.title,
@@ -701,10 +728,10 @@ export default function App() {
       
       const link = `${window.location.origin}/?import=${shareId}`;
       setShareModal(prev => prev ? { ...prev, generatedLink: link } : null);
-      showToast('Share link generated!');
+      showToast(t('toast.shareLinkGenerated'));
     } catch (e) {
       console.error(e);
-      showToast('Failed to generate share link', true);
+      showToast(t('toast.failedShareLink'), true);
     } finally {
       hideSpinner();
     }
@@ -712,12 +739,12 @@ export default function App() {
 
   const handleImportSession = async () => {
     if (!importPreview) return;
-    showSpinner('Importing session...');
+    showSpinner(t('toast.importingSession'));
     try {
       const newSessionId = crypto.randomUUID();
       const newSession: Session = {
         id: newSessionId,
-        title: importPreview.title + ' (Imported)',
+        title: importPreview.title + t('toast.sessionImportedSuffix'),
         subtitle: importPreview.subtitle || '',
         date: importPreview.date || Date.now(),
         notes: importPreview.notes || '',
@@ -768,10 +795,10 @@ export default function App() {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
       setImportPreview(null);
-      showToast('Session imported successfully!');
+      showToast(t('toast.sessionImported'));
     } catch (e) {
       console.error(e);
-      showToast('Failed to import session', true);
+      showToast(t('toast.failedImport'), true);
     } finally {
       hideSpinner();
     }
@@ -793,7 +820,7 @@ export default function App() {
     // Save to IndexedDB and update UI
     await db.saveAudioEntry(newEntry);
     setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
-    showToast(filename ? `[${filename}] added!` : 'Audio added!');
+    showToast(filename ? t('toast.fileAdded', { filename }) : t('toast.audioAdded'));
   };
 
   const handleProcessEntry = async (entryId: string) => {
@@ -802,7 +829,7 @@ export default function App() {
 
     try {
       setProcessingIds(prev => new Set(prev).add(entryId));
-      showSpinner(`Processing ${entry.filename || 'audio'}...`);
+      showSpinner(t('toast.processing', { filename: entry.filename || 'audio' }));
 
       const isOther = selectedSession?.glossaryId === 'other';
       const activeGlossary = !isOther && (glossaries.find(g => g.id === selectedSession?.glossaryId) || glossaries.find(g => g.id === 'zouk'));
@@ -835,16 +862,16 @@ export default function App() {
         const matched = glossaries.find(g => g.name.toLowerCase() === result.detectedStyle.toLowerCase());
         if (matched) {
           await updateSession(selectedSession.id, { glossaryId: matched.id });
-          showToast(`[AI] Detected style "${result.detectedStyle}". Switched glossary to "${matched.name}".`);
+          showToast(t('toast.aiDetectedStyle', { style: result.detectedStyle, glossary: matched.name }));
         } else {
-          showToast(`[AI] Detected style "${result.detectedStyle}".`);
+          showToast(t('toast.aiDetectedStyleOnly', { style: result.detectedStyle }));
         }
       } else {
-        showToast(entry.filename ? `[${entry.filename}] processed!` : 'Audio processed!');
+        showToast(entry.filename ? t('toast.processed', { filename: entry.filename }) : t('toast.audioProcessed'));
       }
     } catch (error) {
       console.error('Processing failed:', error);
-      showToast(entry.filename ? `[${entry.filename}] failed to process` : 'Processing failed', true);
+      showToast(entry.filename ? t('toast.processingFailed', { filename: entry.filename }) : t('toast.audioProcessingFailed'), true);
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
@@ -870,12 +897,12 @@ export default function App() {
 
   const handleConsolidate = async () => {
     if (!selectedSession) return;
-    showSpinner('Consolidating session...');
+    showSpinner(t('toast.consolidating'));
     try {
       const sessionAudios = await db.getSessionAudios(selectedSession.id);
 
       if (sessionAudios.length === 0) {
-        showToast('No audio data found for current session', true);
+        showToast(t('toast.noAudioData'), true);
         return;
       }
 
@@ -950,10 +977,10 @@ export default function App() {
       await db.saveSession(updatedSession);
       setSessions(prev => prev.map(s => s.id === selectedSession.id ? updatedSession : s));
 
-      showToast('Session consolidated!');
+      showToast(t('toast.consolidated'));
     } catch (error) {
       console.error('Consolidation failed:', error);
-      showToast('Consolidation failed', true);
+      showToast(t('toast.consolidationFailed'), true);
     } finally {
       hideSpinner();
     }
@@ -969,13 +996,13 @@ export default function App() {
       {deleteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
-            <h3 className="text-xl font-bold">Confirm Deletion</h3>
+            <h3 className="text-xl font-bold">{t('modals.confirmDeletion')}</h3>
             <p className="text-white/70">
-              Are you sure you want to delete {deleteModal.type === 'session' ? 'the session' : 'this audio'}: <strong className="text-white">{deleteModal.title}</strong>?
+              {deleteModal.type === 'session' ? t('modals.deleteSessionMsg', { title: deleteModal.title }) : t('modals.deleteAudioMsg', { title: deleteModal.title })}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setDeleteModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Cancel</button>
-              <button onClick={confirmDelete} className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]">Delete</button>
+              <button onClick={() => setDeleteModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
+              <button onClick={confirmDelete} className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]">{t('modals.deleteBtn')}</button>
             </div>
           </div>
         </div>
@@ -987,14 +1014,14 @@ export default function App() {
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
             <h3 className="text-xl font-bold flex items-center gap-2">
               <Zap className="w-6 h-6 text-brand" />
-              Confirm Reprocess
+              {t('modals.confirmReprocess')}
             </h3>
             <p className="text-white/70">
-              Are you sure you want to reprocess this audio clip? This will overwrite the previous processing.
+              {t('modals.reprocessMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setReprocessModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Cancel</button>
-              <button onClick={confirmReprocess} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px]">Reprocess</button>
+              <button onClick={() => setReprocessModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
+              <button onClick={confirmReprocess} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px]">{t('modals.reprocessBtn')}</button>
             </div>
           </div>
         </div>
@@ -1016,7 +1043,7 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Settings className="w-5 h-5 text-brand" />
-                Zoutty Settings
+                {t('appSettings.drawerTitle')}
               </h3>
               <button
                 onClick={() => setShowAppSettings(false)}
@@ -1028,60 +1055,87 @@ export default function App() {
 
             {/* Drawer Content */}
             <div className="flex-1 overflow-y-auto space-y-8 pr-1">
-              {/* Backup Section */}
+
+              {/* Language Section */}
               <div className="space-y-3">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Download className="w-4 h-4 text-brand" />
-                  Backup Database
+                  <Globe className="w-4 h-4 text-brand" />
+                  {t('appSettings.languageSection')}
                 </h4>
                 <p className="text-xs text-white/60 leading-relaxed">
-                  Download a full backup of all your sessions, folder structures, vocabulary glossaries, and recorded audio files to your local device.
+                  {t('appSettings.languageSectionDesc')}
                 </p>
-                <button
-                  onClick={handleExportBackup}
-                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-brand/40 transition-all text-xs font-bold shadow-sm"
+                <select
+                  value={uiLanguage}
+                  onChange={(e) => setUILanguage(e.target.value as any)}
+                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
                 >
-                  <Download className="w-4 h-4 text-brand" />
-                  Export JSON Backup
-                </button>
+                  {Object.entries(UI_LANGUAGE_NAMES).map(([code, name]) => (
+                    <option key={code} value={code} className="bg-[#2a2a2e]">{name}</option>
+                  ))}
+                </select>
               </div>
 
-              {/* Restore Section */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Upload className="w-4 h-4 text-brand" />
-                  Restore Database
-                </h4>
-                <p className="text-xs text-white/60 leading-relaxed text-red-300/80">
-                  Restore your application from a previously downloaded JSON backup file. <strong>Warning: This will overwrite and delete all your current local sessions and data.</strong>
-                </p>
-                <label className="cursor-pointer w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 text-white hover:border-brand/45 transition-all text-xs font-bold shadow-sm">
-                  <Upload className="w-4 h-4 text-brand" />
-                  <span>Import JSON Backup</span>
-                  <input
-                    type="file"
-                    accept=".json"
-                    className="hidden"
-                    onChange={handleImportBackup}
-                  />
-                </label>
-              </div>
+              {/* Backup & Restore — collapsible */}
+              <AppSettingsCollapsible
+                label={t('appSettings.backupRestoreSection')}
+                icon={<Download className="w-4 h-4 text-brand" />}
+              >
+                {/* Backup Section */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider flex items-center gap-2">
+                    <Download className="w-3.5 h-3.5 text-brand" />
+                    {t('appSettings.backupSection')}
+                  </h4>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    {t('appSettings.backupDesc')}
+                  </p>
+                  <button
+                    onClick={handleExportBackup}
+                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-brand/40 transition-all text-xs font-bold shadow-sm"
+                  >
+                    <Download className="w-4 h-4 text-brand" />
+                    {t('appSettings.exportBackupBtn')}
+                  </button>
+                </div>
+
+                {/* Restore Section */}
+                <div className="space-y-3 pt-4 border-t border-white/5 mt-4">
+                  <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider flex items-center gap-2">
+                    <Upload className="w-3.5 h-3.5 text-brand" />
+                    {t('appSettings.restoreSection')}
+                  </h4>
+                  <p className="text-xs text-white/60 leading-relaxed text-red-300/80">
+                    {t('appSettings.restoreDesc')} <strong>{t('appSettings.restoreWarning')}</strong>
+                  </p>
+                  <label className="cursor-pointer w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 text-white hover:border-brand/45 transition-all text-xs font-bold shadow-sm">
+                    <Upload className="w-4 h-4 text-brand" />
+                    <span>{t('appSettings.importBackupBtn')}</span>
+                    <input
+                      type="file"
+                      accept=".json"
+                      className="hidden"
+                      onChange={handleImportBackup}
+                    />
+                  </label>
+                </div>
+              </AppSettingsCollapsible>
 
               {/* Reset Section */}
               <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
                   <Trash2 className="w-4 h-4 text-red-400" />
-                  Reset Application
+                  {t('appSettings.resetSection')}
                 </h4>
                 <p className="text-xs text-white/60 leading-relaxed text-red-300/80">
-                  Wipe all folders, sessions, settings, and audio recordings from this device. <strong>Warning: This action is permanent and cannot be undone.</strong>
+                  {t('appSettings.resetDesc')} <strong>{t('appSettings.resetWarning')}</strong>
                 </p>
                 <button
                   onClick={() => setShowResetConfirm(true)}
                   className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Reset App Data
+                  {t('appSettings.resetBtn')}
                 </button>
               </div>
             </div>
@@ -1110,7 +1164,7 @@ export default function App() {
                 onClick={() => setShowVersionModal(false)}
                 className="px-8 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
               >
-                Close
+                {t('modals.closeBtn')}
               </button>
             </div>
           </div>
@@ -1123,16 +1177,16 @@ export default function App() {
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
             <h3 className="text-xl font-bold flex items-center gap-2 text-white">
               <Upload className="w-6 h-6 text-brand" />
-              Confirm Restore
+              {t('modals.confirmRestore')}
             </h3>
             <p className="text-white/70 text-sm leading-relaxed">
-              Are you sure you want to restore the backup file <strong className="text-white">"{restoreBackupFile.name}"</strong>? 
+              {t('modals.restoreMsg', { filename: restoreBackupFile.name })}
               <br /><br />
-              This will overwrite and delete all your current local sessions, folders, settings, and audio recordings. This action cannot be undone.
+              {t('modals.restoreWarningMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setRestoreBackupFile(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">Cancel</button>
-              <button onClick={() => executeImportBackup(restoreBackupFile)} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">Restore</button>
+              <button onClick={() => setRestoreBackupFile(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile)} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">{t('modals.restoreBtn')}</button>
             </div>
           </div>
         </div>
@@ -1144,16 +1198,16 @@ export default function App() {
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
             <h3 className="text-xl font-bold flex items-center gap-2 text-red-400">
               <Trash2 className="w-6 h-6 text-red-500" />
-              Confirm Reset
+              {t('modals.confirmReset')}
             </h3>
             <p className="text-white/70 text-sm leading-relaxed">
-              Are you sure you want to reset the app? 
+              {t('modals.resetMsg')}
               <br /><br />
-              This will permanently delete all folders, sessions, settings, and audio clips from this device. This action cannot be undone.
+              {t('modals.resetWarningMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setShowResetConfirm(false)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">Cancel</button>
-              <button onClick={handleResetApp} className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm">Reset Everything</button>
+              <button onClick={() => setShowResetConfirm(false)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
+              <button onClick={handleResetApp} className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm">{t('modals.resetEverythingBtn')}</button>
             </div>
           </div>
         </div>
@@ -1165,14 +1219,14 @@ export default function App() {
           <form onSubmit={handleCreateOrRenameFolder} className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
             <h3 className="text-xl font-bold flex items-center gap-2">
               <Folder className="w-6 h-6 text-brand" />
-              {folderModal.type === 'create' ? 'Create Folder' : 'Rename Folder'}
+              {folderModal.type === 'create' ? t('modals.createFolder') : t('modals.renameFolder')}
             </h3>
             <div className="space-y-2">
-              <label className="text-xs text-white/50 font-bold uppercase tracking-wider">Folder Name</label>
+              <label className="text-xs text-white/50 font-bold uppercase tracking-wider">{t('modals.folderNameLabel')}</label>
               <input
                 autoFocus
                 type="text"
-                placeholder="Enter folder name..."
+                placeholder={t('modals.folderNamePlaceholder')}
                 value={folderModal.name}
                 onChange={(e) => setFolderModal({ ...folderModal, name: e.target.value })}
                 className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-brand/50 transition-colors"
@@ -1180,8 +1234,8 @@ export default function App() {
               />
             </div>
             <div className="flex gap-3 justify-end items-center">
-              <button type="button" onClick={() => setFolderModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Cancel</button>
-              <button type="submit" className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]">Save</button>
+              <button type="button" onClick={() => setFolderModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
+              <button type="submit" className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]">{t('modals.saveBtn')}</button>
             </div>
           </form>
         </div>
@@ -1193,10 +1247,10 @@ export default function App() {
           <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95">
             <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
               <Trash2 className="w-6 h-6 shrink-0" />
-              Delete Folder
+              {t('modals.deleteFolder')}
             </h3>
             <p className="text-white/80">
-              Are you sure you want to delete the folder <strong className="text-white">"{deleteFolderModal.name}"</strong>?
+              {t('modals.deleteFolderMsg', { name: deleteFolderModal.name })}
             </p>
             
             {/* Custom confirm option checkbox */}
@@ -1207,15 +1261,15 @@ export default function App() {
                 className="mt-1.5 w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand shrink-0 cursor-pointer"
               />
               <label htmlFor="deleteSessionsCheckbox" className="text-sm text-red-300 font-semibold cursor-pointer select-none">
-                Also delete all sessions inside this folder
+                {t('modals.deleteFolderAlsoSessions')}
                 <span className="block text-xs font-normal text-white/50 mt-1 font-sans">
-                  (If left unchecked, these sessions will be preserved and moved to the root level)
+                  {t('modals.deleteFolderSessionsNote')}
                 </span>
               </label>
             </div>
 
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setDeleteFolderModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Cancel</button>
+              <button onClick={() => setDeleteFolderModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
               <button
                 onClick={() => {
                   const cb = document.getElementById('deleteSessionsCheckbox') as HTMLInputElement;
@@ -1223,7 +1277,7 @@ export default function App() {
                 }}
                 className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]"
               >
-                Delete Folder
+                {t('modals.deleteFolderBtn')}
               </button>
             </div>
           </div>
@@ -1237,7 +1291,7 @@ export default function App() {
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <FolderOpen className="w-5 h-5 text-brand" />
-                Move Session to Folder
+                {t('modals.moveSessionTitle')}
               </h3>
               <button
                 onClick={() => setMoveSessionModal(null)}
@@ -1248,7 +1302,7 @@ export default function App() {
             </div>
             
             <p className="text-xs text-white/60 font-sans">
-              Choose a folder destination for this session:
+              {t('modals.moveSessionDesc')}
             </p>
 
             <div className="space-y-2.5 max-h-[40vh] overflow-y-auto pr-1">
@@ -1256,7 +1310,7 @@ export default function App() {
               <button
                 onClick={async () => {
                   await updateSession(moveSessionModal.sessionId, { groupId: undefined });
-                  showToast('Session moved to Root');
+                  showToast(t('toast.sessionMovedToRoot'));
                   setMoveSessionModal(null);
                 }}
                 className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${
@@ -1266,7 +1320,7 @@ export default function App() {
                 }`}
               >
                 <Folder className="w-5 h-5 opacity-60 text-brand" />
-                <div className="flex-1 text-sm">Root (Ungrouped)</div>
+                <div className="flex-1 text-sm">{t('modals.moveSessionRoot')}</div>
                 {!moveSessionModal.currentGroupId && <CheckCircle2 className="w-4 h-4 text-brand" />}
               </button>
 
@@ -1276,7 +1330,7 @@ export default function App() {
                   key={group.id}
                   onClick={async () => {
                     await updateSession(moveSessionModal.sessionId, { groupId: group.id });
-                    showToast(`Session moved to "${group.name}"`);
+                    showToast(t('toast.sessionMovedToFolder', { name: group.name }));
                     setMoveSessionModal(null);
                   }}
                   className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${
@@ -1297,7 +1351,7 @@ export default function App() {
                 onClick={() => setMoveSessionModal(null)}
                 className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-sm min-h-[38px]"
               >
-                Cancel
+                {t('modals.cancelBtn')}
               </button>
             </div>
           </div>
@@ -1310,13 +1364,13 @@ export default function App() {
           <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95">
             <h3 className="text-xl font-bold flex items-center gap-2">
               <Share2 className="w-6 h-6 text-brand" />
-              Share Session
+              {t('modals.shareSession')}
             </h3>
             
             {!shareModal.generatedLink ? (
               <>
                 <p className="text-white/70 text-sm">
-                  Select what information you want to share with other users:
+                  {t('modals.shareSelectInfo')}
                 </p>
                 <div className="space-y-4 bg-black/20 p-4.5 rounded-2xl border border-white/5 max-h-[45vh] overflow-y-auto pr-1">
                   <div className="space-y-2">
@@ -1340,7 +1394,7 @@ export default function App() {
                         className="w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
                       />
                       <span className={`text-sm font-semibold ${!shareModal.availableReport ? 'text-white/40' : 'text-white'}`}>
-                        Consolidated Session Report {!shareModal.availableReport && "(Locked/Not Consolidated)"}
+                        {t('modals.shareConsolidatedReport')} {!shareModal.availableReport && t('modals.shareReportLocked')}
                       </span>
                     </label>
                     
@@ -1361,7 +1415,7 @@ export default function App() {
                             })}
                             className="text-[10px] bg-white/5 hover:bg-white/10 text-white/60 px-2 py-1 rounded transition-colors font-bold uppercase"
                           >
-                            Select All
+                            {t('modals.shareSelectAll')}
                           </button>
                           <button
                             type="button"
@@ -1375,7 +1429,7 @@ export default function App() {
                             })}
                             className="text-[10px] bg-white/5 hover:bg-white/10 text-white/60 px-2 py-1 rounded transition-colors font-bold uppercase"
                           >
-                            Deselect All
+                            {t('modals.shareDeselectAll')}
                           </button>
                         </div>
                       )}
@@ -1388,7 +1442,7 @@ export default function App() {
                           onChange={(e) => setShareModal({ ...shareModal, shareStrictSummary: e.target.checked })}
                           className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
                         />
-                        <span className="text-xs text-white/80">Strict Summary {!shareModal.availableStrictSummary && shareModal.availableReport && "(Not available)"}</span>
+                        <span className="text-xs text-white/80">{t('modals.shareStrictSummary')} {!shareModal.availableStrictSummary && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
                       </label>
                       <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableDrills) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                         <input
@@ -1398,7 +1452,7 @@ export default function App() {
                           onChange={(e) => setShareModal({ ...shareModal, shareDrills: e.target.checked })}
                           className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
                         />
-                        <span className="text-xs text-white/80">Drills {!shareModal.availableDrills && shareModal.availableReport && "(Not available)"}</span>
+                        <span className="text-xs text-white/80">{t('modals.shareDrills')} {!shareModal.availableDrills && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
                       </label>
                       <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableHomework) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                         <input
@@ -1408,7 +1462,7 @@ export default function App() {
                           onChange={(e) => setShareModal({ ...shareModal, shareHomework: e.target.checked })}
                           className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
                         />
-                        <span className="text-xs text-white/80">Homework {!shareModal.availableHomework && shareModal.availableReport && "(Not available)"}</span>
+                        <span className="text-xs text-white/80">{t('modals.shareHomework')} {!shareModal.availableHomework && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
                       </label>
                       <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableTechnical) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                         <input
@@ -1418,7 +1472,7 @@ export default function App() {
                           onChange={(e) => setShareModal({ ...shareModal, shareTechnical: e.target.checked })}
                           className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
                         />
-                        <span className="text-xs text-white/80">Technical Expansion {!shareModal.availableTechnical && shareModal.availableReport && "(Not available)"}</span>
+                        <span className="text-xs text-white/80">{t('modals.shareTechnical')} {!shareModal.availableTechnical && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
                       </label>
                       <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableEmotional) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                         <input
@@ -1428,7 +1482,7 @@ export default function App() {
                           onChange={(e) => setShareModal({ ...shareModal, shareEmotional: e.target.checked })}
                           className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
                         />
-                        <span className="text-xs text-white/80">Emotional Notes {!shareModal.availableEmotional && shareModal.availableReport && "(Not available)"}</span>
+                        <span className="text-xs text-white/80">{t('modals.shareEmotional')} {!shareModal.availableEmotional && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
                       </label>
                     </div>
                   </div>
@@ -1442,7 +1496,7 @@ export default function App() {
                       className="w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
                     />
                     <span className={`text-sm font-semibold ${!shareModal.availableNotes ? 'text-white/40' : 'text-white'}`}>
-                      Custom Session Notes {!shareModal.availableNotes && "(No notes written)"}
+                      {t('modals.shareNotes')} {!shareModal.availableNotes && t('modals.shareNoNotes')}
                     </span>
                   </label>
                   <label className={`flex items-center gap-3 ${!shareModal.availableTranscripts ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
@@ -1454,28 +1508,26 @@ export default function App() {
                       className="w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
                     />
                     <span className={`text-sm font-semibold ${!shareModal.availableTranscripts ? 'text-white/40' : 'text-white'}`}>
-                      Individual Clip Transcripts {!shareModal.availableTranscripts && "(No audio clips transcribed)"}
+                      {t('modals.shareTranscripts')} {!shareModal.availableTranscripts && t('modals.shareNoTranscripts')}
                     </span>
                   </label>
                 </div>
                 
                 <div className="flex gap-3 justify-end items-center">
-                  <button onClick={() => setShareModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Cancel</button>
+                  <button onClick={() => setShareModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
                   <button
                     onClick={handleGenerateShareLink}
                     disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts}
                     className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]"
                   >
-                    Generate Share Link
+                    {t('modals.generateShareLink')}
                   </button>
                 </div>
               </>
             ) : (
               <>
                 <div className="space-y-4">
-                  <p className="text-white/80 text-sm">
-                    Your shareable link is ready! Send this URL to another user to share this session:
-                  </p>
+                  <p className="text-white/80 text-sm">{t('modals.shareLinkReady')}</p>
                   <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl p-3">
                     <input
                       type="text"
@@ -1487,7 +1539,7 @@ export default function App() {
                       onClick={() => {
                         if (shareModal.generatedLink) {
                           navigator.clipboard.writeText(shareModal.generatedLink);
-                          showToast('Link copied to clipboard!');
+                          showToast(t('toast.linkCopied'));
                         }
                       }}
                       className="p-2 bg-brand/20 hover:bg-brand/35 text-brand rounded-lg transition-colors flex items-center justify-center shrink-0"
@@ -1498,7 +1550,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <button onClick={() => setShareModal(null)} className="px-6 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Close</button>
+                  <button onClick={() => setShareModal(null)} className="px-6 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.closeBtn')}</button>
                 </div>
               </>
             )}
@@ -1514,39 +1566,37 @@ export default function App() {
           <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95 max-h-[85vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-brand flex items-center gap-2">
               <Share2 className="w-6 h-6 shrink-0" />
-              Shared Session
+              {t('modals.sharedSession')}
             </h3>
-            <p className="text-white/80 text-sm font-sans">
-              Someone shared a dance lesson session with you:
-            </p>
+            <p className="text-white/80 text-sm font-sans">{t('modals.sharedSessionDesc')}</p>
             
             <div className="bg-black/30 p-5 rounded-2xl border border-white/10 space-y-3.5">
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-brand block">Title</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedTitle')}</span>
                 <span className="text-sm font-semibold text-white">{importPreview.title}</span>
               </div>
               {importPreview.subtitle && (
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">Subtitle</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedSubtitle')}</span>
                   <span className="text-sm text-white/80">{importPreview.subtitle}</span>
                 </div>
               )}
               {importPreview.notes && (
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">Notes Shared</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedNotesShared')}</span>
                   <p className="text-xs text-white/60 line-clamp-3 mt-1 italic font-sans">"{importPreview.notes}"</p>
                 </div>
               )}
               {importPreview.report && (
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">Report Shared</span>
-                  <span className="text-xs text-green-400 font-semibold block mt-1 font-sans">✓ Consolidated Session Report Included</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedReportShared')}</span>
+                  <span className="text-xs text-green-400 font-semibold block mt-1 font-sans">{t('modals.sharedReportIncluded')}</span>
                 </div>
               )}
               {importPreview.transcripts && (
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">Clips Shared</span>
-                  <span className="text-xs text-blue-400 font-semibold block mt-1 font-sans">✓ {importPreview.transcripts.length} Audio Clip Transcripts Included</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedClipsShared')}</span>
+                  <span className="text-xs text-blue-400 font-semibold block mt-1 font-sans">{t('modals.sharedClipsIncluded', { count: importPreview.transcripts.length })}</span>
                 </div>
               )}
             </div>
@@ -1559,13 +1609,13 @@ export default function App() {
                 }}
                 className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
               >
-                Reject
+                {t('modals.rejectBtn')}
               </button>
               <button
                 onClick={handleImportSession}
                 className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
               >
-                Import Session
+                {t('modals.importSessionBtn')}
               </button>
             </div>
           </div>
@@ -1597,9 +1647,9 @@ export default function App() {
             <ZouttyIcon className="w-10 h-10 text-brand shrink-0" />
           </button>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-brand font-bold">Zoutty</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-brand font-bold">{t('appName')}</p>
             <h1 className="text-lg font-bold tracking-tight">
-              Session Notes
+              {t('appSubtitle')}
             </h1>
           </div>
         </div>
@@ -1617,21 +1667,21 @@ export default function App() {
           {view === 'detail' && selectedSession && (
             <button
               onClick={async () => {
-                showSpinner('Generating document...');
+                showSpinner(t('toast.generatingDoc'));
                 try {
                   const report = await db.getSessionFinalReport(selectedSession.id);
                   const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp);
                   await exportDocx(selectedSession, sessionEntries, report);
-                  showToast('Document exported successfully!');
+                  showToast(t('toast.docExported'));
                 } catch (err) {
                   console.error(err);
-                  showToast('Failed to export document', true);
+                  showToast(t('toast.failedExport'), true);
                 } finally {
                   hideSpinner();
                 }
               }}
               className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
-              title="Export to Word"
+              title={t('session.exportToWord')}
             >
               <Download className="w-5 h-5" />
             </button>
@@ -1650,7 +1700,7 @@ export default function App() {
               className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded-xl border border-brand/20 transition-all font-sans text-sm shadow-sm"
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Install App</span>
+              <span className="hidden sm:inline">{t('installApp')}</span>
             </button>
           )}
         </div>
@@ -1662,7 +1712,7 @@ export default function App() {
             {selectedGroupId && (
               <div className="flex items-center gap-2 text-sm font-bold text-white/40 uppercase tracking-widest">
                 <FolderOpen className="w-4 h-4 text-blue-400" />
-                <span>Folder: {groups.find(g => g.id === selectedGroupId)?.name}</span>
+                <span>{t('home.folderBreadcrumb', { name: groups.find(g => g.id === selectedGroupId)?.name || '' })}</span>
               </div>
             )}
 
@@ -1673,7 +1723,7 @@ export default function App() {
                 className={`py-3.5 glass bg-brand/10 border-brand/20 text-brand font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand ${selectedGroupId ? 'w-full py-4 text-base' : ''}`}
               >
                 <Plus className="w-4 h-4" />
-                Session
+                {t('home.newSession')}
               </button>
               {!selectedGroupId && (
                 <button
@@ -1681,7 +1731,7 @@ export default function App() {
                   className="py-3.5 glass bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500/20 transition-all rounded-2xl shadow-lg shadow-blue-500/10"
                 >
                   <FolderPlus className="w-4 h-4" />
-                  Folder
+                  {t('home.newFolder')}
                 </button>
               )}
             </div>
@@ -1690,31 +1740,31 @@ export default function App() {
             {!selectedGroupId && groups.filter(g => g.id !== 'root').length > 0 && (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">Folders</h2>
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('home.foldersHeading')}</h2>
                   
                   {/* Folder Sorting controls bar */}
                   <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
-                    <span className="hidden sm:inline">Sort by:</span>
+                    <span className="hidden sm:inline">{t('home.sortBy')}</span>
                     <div className="flex gap-3.5">
                       <button
                         onClick={() => handleFolderSortClick('date')}
                         className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'date' ? 'text-brand font-bold' : ''}`}
                       >
-                        Recent
+                        {t('home.sortRecent')}
                         {folderSortBy === 'date' && (folderSortOrder === 'asc' ? ' ↑' : ' ↓')}
                       </button>
                       <button
                         onClick={() => handleFolderSortClick('name')}
                         className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'name' ? 'text-brand font-bold' : ''}`}
                       >
-                        Name
+                        {t('home.sortName')}
                         {folderSortBy === 'name' && (folderSortOrder === 'asc' ? ' ↑' : ' ↓')}
                       </button>
                       <button
                         onClick={() => handleFolderSortClick('created')}
                         className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'created' ? 'text-brand font-bold' : ''}`}
                       >
-                        Created
+                        {t('home.sortCreated')}
                         {folderSortBy === 'created' && (folderSortOrder === 'asc' ? ' ↑' : ' ↓')}
                       </button>
                     </div>
@@ -1734,7 +1784,7 @@ export default function App() {
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-semibold truncate text-white">{group.name}</h3>
                         <p className="text-xs text-white/40 mt-0.5 font-medium font-sans">
-                          {sessions.filter(s => s.groupId === group.id).length} sessions
+                          {t('home.sessionCount', { count: sessions.filter(s => s.groupId === group.id).length })}
                         </p>
                       </div>
                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
@@ -1762,32 +1812,32 @@ export default function App() {
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
                 <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">
-                  {selectedGroupId ? 'Sessions in Folder' : 'Sessions'}
+                  {selectedGroupId ? t('home.sessionsInFolderHeading') : t('home.sessionsHeading')}
                 </h2>
                 
                 {/* Sorting controls bar */}
                 <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
-                  <span className="hidden sm:inline">Sort by:</span>
+                  <span className="hidden sm:inline">{t('home.sortBy')}</span>
                   <div className="flex gap-3.5">
                     <button
                       onClick={() => handleSessionSortClick('date')}
                       className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'date' ? 'text-brand font-bold' : ''}`}
                     >
-                      Recent
+                      {t('home.sortRecent')}
                       {sessionSortBy === 'date' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
                     </button>
                     <button
                       onClick={() => handleSessionSortClick('name')}
                       className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'name' ? 'text-brand font-bold' : ''}`}
                     >
-                      Name
+                      {t('home.sortName')}
                       {sessionSortBy === 'name' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
                     </button>
                     <button
                       onClick={() => handleSessionSortClick('created')}
                       className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'created' ? 'text-brand font-bold' : ''}`}
                     >
-                      Created
+                      {t('home.sortCreated')}
                       {sessionSortBy === 'created' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
                     </button>
                   </div>
@@ -1797,7 +1847,7 @@ export default function App() {
               {sessions.filter(s => selectedGroupId ? s.groupId === selectedGroupId : !s.groupId).length === 0 ? (
                 <div className="glass p-12 text-center text-white/20">
                   <FileAudio className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>No sessions in this folder.</p>
+                  <p>{t('home.noSessionsInFolder')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
@@ -1817,7 +1867,7 @@ export default function App() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-semibold truncate text-white">{session.title}</h3>
-                        <p className="text-xs text-white/40 mt-1 truncate">{session.subtitle || 'Lesson'}</p>
+                        <p className="text-xs text-white/40 mt-1 truncate">{session.subtitle || t('home.sessionDefaultSubtitle')}</p>
                       </div>
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
@@ -1826,7 +1876,7 @@ export default function App() {
                             setMoveSessionModal({ sessionId: session.id, currentGroupId: session.groupId });
                           }}
                           className="p-3 bg-white/5 text-white/60 hover:text-brand hover:bg-white/10 rounded-xl transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                          title="Move to folder"
+                          title={t('home.moveToFolder')}
                         >
                           <Folder className="w-5 h-5 shrink-0" />
                         </button>
@@ -1836,10 +1886,9 @@ export default function App() {
                             requestDeleteSession(session.id, session.title);
                           }}
                           className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                          title="Delete session"
+                          title={t('home.deleteSession')}
                         >
                           <Trash2 className="w-5 h-5 shrink-0" />
-                          <span className="text-sm font-bold hidden sm:inline">Delete</span>
                         </button>
                       </div>
                     </div>
@@ -1941,6 +1990,7 @@ function SessionDetail({
   onShare: () => void;
   onDeleteSession: () => void;
 }) {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [micLevel, setMicLevel] = useState(0); // 0..1 live mic energy
   const [language, setLanguage] = useState<Language>('auto');
@@ -2049,7 +2099,7 @@ function SessionDetail({
       setIsRecording(true);
     } catch (err) {
       console.error('Error accessing microphone:', err);
-      onError('Microphone access denied or not available.');
+      onError(t('toast.micDenied'));
     }
   };
 
@@ -2105,7 +2155,7 @@ function SessionDetail({
           <p
             className="text-xl font-bold text-white cursor-text hover:text-white/80 transition-colors flex items-center gap-2 group w-max"
             onClick={() => { setTempTitle(session.title); setIsEditingTitle(true); }}
-            title="Edit title"
+            title={t('session.editTitleHint')}
           >
             {session.title}
             <Edit2 className="w-4 h-4 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0 cursor-pointer" />
@@ -2117,7 +2167,7 @@ function SessionDetail({
           <div className="flex items-center gap-2 mt-2">
             <input
               autoFocus
-              placeholder="Add a subtitle…"
+              placeholder={t('session.addSubtitle')}
               value={tempSubtitle}
               onChange={(e) => setTempSubtitle(e.target.value)}
               onBlur={handleSubtitleSubmit}
@@ -2134,7 +2184,7 @@ function SessionDetail({
               {session.subtitle ? (
                 <span>{session.subtitle}</span>
               ) : (
-                <span className="italic text-white/20 group-hover:text-white/40">Lesson</span>
+                <span className="italic text-white/20 group-hover:text-white/40">{t('session.subtitlePlaceholder')}</span>
               )}
               <Edit2 className="w-3.5 h-3.5 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0" />
             </button>
@@ -2142,14 +2192,14 @@ function SessionDetail({
               <button
                 onClick={onShare}
                 className="p-2 rounded-xl border bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80 transition-colors flex items-center justify-center min-h-[38px] min-w-[38px]"
-                title="Share session"
+                title={t('session.shareSession')}
               >
                 <Share2 className="w-4 h-4 text-brand" />
               </button>
               <button
                 onClick={() => setIsReordering(!isReordering)}
                 className={`p-2 rounded-xl border transition-colors flex items-center justify-center ${isReordering ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'} min-h-[38px] min-w-[38px]`}
-                title={isReordering ? "Disable reorder mode" : "Enable reorder mode"}
+                title={isReordering ? t('session.disableReorder') : t('session.enableReorder')}
               >
                 <GripHorizontal className="w-4 h-4" />
               </button>
@@ -2162,7 +2212,7 @@ function SessionDetail({
                   setIsSettingsOpen(true);
                 }}
                 className="p-2 rounded-xl border bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80 transition-colors flex items-center justify-center min-h-[38px] min-w-[38px]"
-                title="Session Settings"
+                title={t('session.sessionSettings')}
               >
                 <Settings className="w-4 h-4 text-brand" />
               </button>
@@ -2205,7 +2255,7 @@ function SessionDetail({
           <button
             onClick={cancelRecording}
             className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-full transition-colors shadow-sm animate-in fade-in zoom-in duration-200"
-            title="Cancel recording"
+            title={t('session.cancelRecording')}
           >
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
@@ -2221,7 +2271,7 @@ function SessionDetail({
             ? 'bg-red-500 text-white hover:bg-red-600 scale-95 animate-pulse'
             : 'bg-brand text-black hover:bg-brand-light hover:scale-105'
             } min-h-[64px] min-w-[64px]`}
-          title={isRecording ? "Stop recording and save" : "Start recording"}
+          title={isRecording ? t('session.stopRecording') : t('session.startRecording')}
         >
           {isRecording ? <Square className="w-6 h-6 sm:w-8 sm:h-8" /> : <Mic className="w-6 h-6 sm:w-8 sm:h-8" />}
         </button>
@@ -2252,7 +2302,7 @@ function SessionDetail({
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Settings className="w-5 h-5 text-brand" />
-                Session Settings
+                {t('sessionSettings.drawerTitle')}
               </h3>
               <button
                 onClick={handleCancelSettings}
@@ -2268,14 +2318,14 @@ function SessionDetail({
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
                   <Folder className="w-3.5 h-3.5 text-brand" />
-                  Folder
+                  {t('sessionSettings.folderLabel')}
                 </label>
                 <select
                   value={tempGroupId}
                   onChange={(e) => setTempGroupId(e.target.value)}
                   className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
                 >
-                  <option value="" className="bg-[#2a2a2e]">None (Root)</option>
+                  <option value="" className="bg-[#2a2a2e]">{t('sessionSettings.folderNone')}</option>
                   {groups.map(g => (
                     <option key={g.id} value={g.id} className="bg-[#2a2a2e]">{g.name}</option>
                   ))}
@@ -2286,28 +2336,28 @@ function SessionDetail({
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5 text-brand" />
-                  Dance Style Glossary
+                  {t('sessionSettings.glossaryLabel')}
                 </label>
                 <select
                   value={tempGlossaryId}
                   onChange={(e) => setTempGlossaryId(e.target.value)}
                   className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
                 >
-                  <option value="auto" className="bg-[#2a2a2e]">Auto-Detect (AI)</option>
+                  <option value="auto" className="bg-[#2a2a2e]">{t('sessionSettings.glossaryAuto')}</option>
                   {glossaries.map(g => (
                     <option key={g.id} value={g.id} className="bg-[#2a2a2e]">{g.name}</option>
                   ))}
-                  <option value="other" className="bg-[#2a2a2e]">Other (Specify...)</option>
+                  <option value="other" className="bg-[#2a2a2e]">{t('sessionSettings.glossaryOther')}</option>
                 </select>
               </div>
 
               {/* Specify Custom Dance Style */}
               {tempGlossaryId === 'other' && (
                 <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-1 duration-200">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-brand font-semibold">Specify Dance Style</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-brand font-semibold">{t('sessionSettings.specifyDanceStyleLabel')}</label>
                   <input
                     type="text"
-                    placeholder="e.g. Samba de Gafieira, West Coast Swing..."
+                    placeholder={t('sessionSettings.specifyDanceStylePlaceholder')}
                     value={tempCustomGlossaryStyle}
                     onChange={(e) => setTempCustomGlossaryStyle(e.target.value)}
                     className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-brand/50 transition-colors w-full placeholder:text-white/20"
@@ -2319,17 +2369,17 @@ function SessionDetail({
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-brand" />
-                  Transcription Language
+                  {t('sessionSettings.transcriptionLanguageLabel')}
                 </label>
                 <select
                   value={tempLanguage}
                   onChange={(e) => setTempLanguage(e.target.value as Language)}
                   className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
                 >
-                  <option value="auto" className="bg-[#2a2a2e]">Auto-Detect (AI)</option>
-                  <option value="pt-BR" className="bg-[#2a2a2e]">Portuguese (PT-BR)</option>
-                  <option value="es" className="bg-[#2a2a2e]">Spanish (ES)</option>
-                  <option value="en" className="bg-[#2a2a2e]">English (EN)</option>
+                  <option value="auto" className="bg-[#2a2a2e]">{t('sessionSettings.transcriptionAuto')}</option>
+                  <option value="pt-BR" className="bg-[#2a2a2e]">{t('sessionSettings.transcriptionPtBr')}</option>
+                  <option value="es" className="bg-[#2a2a2e]">{t('sessionSettings.transcriptionEs')}</option>
+                  <option value="en" className="bg-[#2a2a2e]">{t('sessionSettings.transcriptionEn')}</option>
                 </select>
               </div>
             </div>
@@ -2341,13 +2391,13 @@ function SessionDetail({
                   onClick={handleCancelSettings}
                   className="flex-1 px-4 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-white text-xs min-h-[40px]"
                 >
-                  Cancel
+                  {t('sessionSettings.cancelBtn')}
                 </button>
                 <button
                   onClick={handleConfirmSettings}
                   className="flex-1 px-4 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors text-xs min-h-[40px]"
                 >
-                  Confirm
+                  {t('sessionSettings.confirmBtn')}
                 </button>
               </div>
               <button
@@ -2357,7 +2407,7 @@ function SessionDetail({
                 className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-[11px] font-bold shadow-sm"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                Delete Session
+                {t('sessionSettings.deleteSessionBtn')}
               </button>
             </div>
           </div>
@@ -2577,6 +2627,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     return `${day}-${month}-${year} ${hours}:${minutes}`;
   };
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
+  const { t } = useTranslation();
   const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(false);
   const [isNoteVisible, setIsNoteVisible] = useState(false);
 
@@ -2676,11 +2727,11 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
         >
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-brand" />
-            <span className="font-bold text-base">Consolidated Session Report</span>
+            <span className="font-bold text-base">{t('session.consolidatedReport')}</span>
           </div>
           {report?.timestamp && (
             <span className="text-[10px] font-sans text-white/40 font-semibold sm:self-center">
-              Consolidated: {formatClipDate(report.timestamp)}
+              {t('session.consolidatedOn', { date: formatClipDate(report.timestamp) })}
             </span>
           )}
         </div>
@@ -2757,20 +2808,20 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     availableItems.set(notesId, (
       <div className="glass p-6 rounded-2xl border border-white/10 shadow-sm relative w-full box-border">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">Notes</h3>
+          <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('session.notesHeading')}</h3>
           {!isNoteVisible && !sessionNotes && (
             <button
               onClick={() => setIsNoteVisible(true)}
               className="text-brand hover:text-brand/80 font-bold text-sm transition-colors"
             >
-              + Add note
+              {t('session.addNote')}
             </button>
           )}
         </div>
         {(isNoteVisible || !!sessionNotes) && (
           <textarea
             autoFocus={isNoteVisible && !sessionNotes}
-            placeholder="Add your session notes here..."
+            placeholder={t('session.notesPlaceholder')}
             value={sessionNotes || ''}
             onChange={(e) => {
               onUpdateNotes(e.target.value);
@@ -2846,9 +2897,9 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
           <button
             onClick={() => onToggleReordering?.()}
             className="bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 text-xs uppercase font-bold tracking-widest px-4 py-2 rounded-full shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
-            title="Click to deactivate reorder mode"
+            title={t('session.disableReorder')}
           >
-            <GripHorizontal className="w-4 h-4" /> Reorder Mode Active
+            <GripHorizontal className="w-4 h-4" /> {t('session.reorderModeActive')}
           </button>
         </div>
       )}
@@ -2864,7 +2915,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
 
       {!hasConsolidated && entries.length === 0 && (
         <div className="p-8 text-center text-white/40 text-sm border border-white/10 border-dashed rounded-xl glass">
-          No structured data available for this session yet.
+          <p>{t('session.noDataYet')}</p>
         </div>
       )}
     </div>
@@ -2886,6 +2937,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
   onRequestReprocess: () => void;
   onUpdateContent: (changes: Partial<AudioEntry>) => void;
 }) {
+  const { t } = useTranslation();
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(displayTitle);
@@ -2945,10 +2997,10 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                 )}
               </span>
             )}
-            <span className="text-xs text-white/40">{time} - {audio.type === 'recording' ? 'Live' : 'Clip'}</span>
+            <span className="text-xs text-white/40">{time} - {audio.type === 'recording' ? t('session.liveType') : t('session.clipType')}</span>
           </div>
           {isProcessing && (
-            <span className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand animate-pulse bg-brand/10 px-3 py-1.5 rounded-lg border border-brand/20">PROCESSING...</span>
+            <span className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand animate-pulse bg-brand/10 px-3 py-1.5 rounded-lg border border-brand/20">{t('session.processing')}</span>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -2956,7 +3008,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
             <button
               onClick={(e) => { e.stopPropagation(); onProcess(); }}
               className="p-3 bg-brand/20 hover:bg-brand/30 text-brand rounded-xl border border-brand/30 transition-all shadow-lg shadow-brand/10 flex items-center justify-center min-h-[44px] min-w-[44px]"
-              title="Process audio"
+              title={t('session.processAudio')}
             >
               <Zap className="w-5 h-5" />
             </button>
@@ -3003,11 +3055,11 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                   }
                 }} />
               ) : isProcessing ? (
-                <p className="text-white/40 italic text-sm">Waiting for content generation...</p>
+                <p className="text-white/40 italic text-sm">{t('session.waitingForContent')}</p>
               ) : null}
               {audio.transcript && !hasNewShape && (
                 <div className="mt-4 pt-4 border-t border-white/5 text-sm">
-                  <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">Raw Transcript</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">{t('session.rawTranscript')}</span>
                   <EditableText value={audio.transcript} onChange={(t) => onUpdateContent({ transcript: t })} multiline className="text-white/60 italic leading-relaxed whitespace-pre-wrap block" />
                 </div>
               )}
@@ -3024,7 +3076,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                 className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm font-bold shadow-sm"
               >
                 <Zap className="w-4 h-4" />
-                Reprocess Clip
+                {t('session.reprocessClip')}
               </button>
             </div>
           )}

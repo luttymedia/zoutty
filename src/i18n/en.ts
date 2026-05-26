@@ -1,0 +1,244 @@
+// English (EN) — source of truth for all UI translations
+// All other language files must match this structure exactly (enforced by TypeScript).
+
+const en = {
+  // ─── App Header ─────────────────────────────────────────────────────────────
+  appName: 'Zoutty',
+  appSubtitle: 'Session Notes',
+  installApp: 'Install App',
+  showAppVersion: 'Show App Version',
+
+  // ─── Navigation ─────────────────────────────────────────────────────────────
+  back: 'Back',
+
+  // ─── Home / List View ───────────────────────────────────────────────────────
+  home: {
+    newSession: 'Session',
+    newFolder: 'Folder',
+    folderBreadcrumb: 'Folder: {name}',
+    noSessionsInFolder: 'No sessions in this folder.',
+    sortBy: 'Sort by:',
+    sortRecent: 'Recent',
+    sortName: 'Name',
+    sortCreated: 'Created',
+    foldersHeading: 'Folders',
+    sessionsHeading: 'Sessions',
+    sessionsInFolderHeading: 'Sessions in Folder',
+    sessionCount: '{count} sessions',
+    sessionDefaultSubtitle: 'Lesson',
+    moveToFolder: 'Move to folder',
+    deleteSession: 'Delete',
+  },
+
+  // ─── Zoutty Settings Drawer ─────────────────────────────────────────────────
+  appSettings: {
+    drawerTitle: 'Zoutty Settings',
+    // Language section
+    languageSection: 'App Language',
+    languageSectionDesc: 'Choose the language for the Zoutty interface.',
+    // Backup & Restore (collapsible)
+    backupRestoreSection: 'Backup & Restore',
+    backupSection: 'Backup Database',
+    backupDesc: 'Download a full backup of all your sessions, folder structures, vocabulary glossaries, and recorded audio files to your local device.',
+    exportBackupBtn: 'Export JSON Backup',
+    restoreSection: 'Restore Database',
+    restoreDesc: 'Restore your application from a previously downloaded JSON backup file.',
+    restoreWarning: 'Warning: This will overwrite and delete all your current local sessions and data.',
+    importBackupBtn: 'Import JSON Backup',
+    // Reset
+    resetSection: 'Reset Application',
+    resetDesc: 'Wipe all folders, sessions, settings, and audio recordings from this device.',
+    resetWarning: 'Warning: This action is permanent and cannot be undone.',
+    resetBtn: 'Reset App Data',
+  },
+
+  // ─── Session Settings Drawer ────────────────────────────────────────────────
+  sessionSettings: {
+    drawerTitle: 'Session Settings',
+    folderLabel: 'Folder',
+    folderNone: 'None (Root)',
+    glossaryLabel: 'Dance Style Glossary',
+    glossaryAuto: 'Auto-Detect (AI)',
+    glossaryOther: 'Other (Specify...)',
+    specifyDanceStyleLabel: 'Specify Dance Style',
+    specifyDanceStylePlaceholder: 'e.g. Samba de Gafieira, West Coast Swing...',
+    transcriptionLanguageLabel: 'Transcription Language',
+    transcriptionAuto: 'Auto-Detect (AI)',
+    transcriptionPtBr: 'Portuguese (PT-BR)',
+    transcriptionEs: 'Spanish (ES)',
+    transcriptionEn: 'English (EN)',
+    cancelBtn: 'Cancel',
+    confirmBtn: 'Confirm',
+    deleteSessionBtn: 'Delete Session',
+  },
+
+  // ─── Modals ──────────────────────────────────────────────────────────────────
+  modals: {
+    // Delete (session or audio)
+    confirmDeletion: 'Confirm Deletion',
+    deleteSessionMsg: 'Are you sure you want to delete the session: {title}?',
+    deleteAudioMsg: 'Are you sure you want to delete this audio: {title}?',
+    cancelBtn: 'Cancel',
+    deleteBtn: 'Delete',
+    // Reprocess
+    confirmReprocess: 'Confirm Reprocess',
+    reprocessMsg: 'Are you sure you want to reprocess this audio clip? This will overwrite the previous processing.',
+    reprocessBtn: 'Reprocess',
+    // Version modal
+    closeBtn: 'Close',
+    // Restore backup
+    confirmRestore: 'Confirm Restore',
+    restoreMsg: 'Are you sure you want to restore the backup file "{filename}"?',
+    restoreWarningMsg: 'This will overwrite and delete all your current local sessions, folders, settings, and audio recordings. This action cannot be undone.',
+    restoreBtn: 'Restore',
+    // Reset
+    confirmReset: 'Confirm Reset',
+    resetMsg: 'Are you sure you want to reset the app?',
+    resetWarningMsg: 'This will permanently delete all folders, sessions, settings, and audio clips from this device. This action cannot be undone.',
+    resetEverythingBtn: 'Reset Everything',
+    // Folder Create/Rename
+    createFolder: 'Create Folder',
+    renameFolder: 'Rename Folder',
+    folderNameLabel: 'Folder Name',
+    folderNamePlaceholder: 'Enter folder name...',
+    saveBtn: 'Save',
+    // Delete Folder
+    deleteFolder: 'Delete Folder',
+    deleteFolderMsg: 'Are you sure you want to delete the folder "{name}"?',
+    deleteFolderAlsoSessions: 'Also delete all sessions inside this folder',
+    deleteFolderSessionsNote: '(If left unchecked, these sessions will be preserved and moved to the root level)',
+    deleteFolderBtn: 'Delete Folder',
+    // Move Session
+    moveSessionTitle: 'Move Session to Folder',
+    moveSessionDesc: 'Choose a folder destination for this session:',
+    moveSessionRoot: 'Root (Ungrouped)',
+    // Share Session
+    shareSession: 'Share Session',
+    shareSelectInfo: 'Select what information you want to share with other users:',
+    shareConsolidatedReport: 'Consolidated Session Report',
+    shareReportLocked: '(Locked/Not Consolidated)',
+    shareSelectAll: 'Select All',
+    shareDeselectAll: 'Deselect All',
+    shareStrictSummary: 'Strict Summary',
+    shareDrills: 'Drills',
+    shareHomework: 'Homework',
+    shareTechnical: 'Technical Expansion',
+    shareEmotional: 'Emotional Notes',
+    shareNotAvailable: '(Not available)',
+    shareNotes: 'Custom Session Notes',
+    shareNoNotes: '(No notes written)',
+    shareTranscripts: 'Individual Clip Transcripts',
+    shareNoTranscripts: '(No audio clips transcribed)',
+    generateShareLink: 'Generate Share Link',
+    shareLinkReady: 'Your shareable link is ready! Send this URL to another user to share this session:',
+    // Import session
+    sharedSession: 'Shared Session',
+    sharedSessionDesc: 'Someone shared a dance lesson session with you:',
+    sharedTitle: 'Title',
+    sharedSubtitle: 'Subtitle',
+    sharedNotesShared: 'Notes Shared',
+    sharedReportShared: 'Report Shared',
+    sharedReportIncluded: '✓ Consolidated Session Report Included',
+    sharedClipsShared: 'Clips Shared',
+    sharedClipsIncluded: '✓ {count} Audio Clip Transcripts Included',
+    rejectBtn: 'Reject',
+    importSessionBtn: 'Import Session',
+  },
+
+  // ─── Session Detail ──────────────────────────────────────────────────────────
+  session: {
+    subtitlePlaceholder: 'Lesson',
+    addSubtitle: 'Add a subtitle…',
+    editTitleHint: 'Edit title',
+    shareSession: 'Share session',
+    disableReorder: 'Disable reorder mode',
+    enableReorder: 'Enable reorder mode',
+    sessionSettings: 'Session Settings',
+    exportToWord: 'Export to Word',
+    reorderModeActive: 'Reorder Mode Active',
+    // Audio entries
+    audioEntryDefault: 'Audio Entry {index}',
+    processing: 'PROCESSING...',
+    processAudio: 'Process audio',
+    reprocessClip: 'Reprocess Clip',
+    liveType: 'Live',
+    clipType: 'Clip',
+    waitingForContent: 'Waiting for content generation...',
+    noDataYet: 'No structured data available for this session yet.',
+    // Notes card
+    notesHeading: 'Notes',
+    addNote: '+ Add note',
+    notesPlaceholder: 'Add your session notes here...',
+    // Consolidated report
+    consolidatedReport: 'Consolidated Session Report',
+    consolidatedOn: 'Consolidated: {date}',
+    strictSummary: 'Strict Summary',
+    rawTranscript: 'Raw Transcript',
+    viewTranscript: 'View Transcript',
+    expandedInsights: 'Expanded Insights (AI Enhanced)',
+    drills: 'Drills',
+    homework: 'Homework',
+    technicalExpansion: 'Technical Expansion',
+    emotionalNotes: 'Emotional Notes',
+    noStrictSummary: 'No strict summary content extracted.',
+    cancelRecording: 'Cancel recording',
+    stopRecording: 'Stop recording and save',
+    startRecording: 'Start recording',
+    zouttySettings: 'Zoutty Settings',
+  },
+
+  // ─── Toast Messages ──────────────────────────────────────────────────────────
+  toast: {
+    failedLoadData: 'Failed to load app data',
+    failedRetrieveShared: 'Failed to retrieve shared session details',
+    backupDownloaded: 'Backup downloaded successfully!',
+    failedBackup: 'Failed to create backup',
+    restoreSuccess: 'Restore successful! Reloading application...',
+    failedRestore: 'Failed to restore backup (invalid file format)',
+    resetSuccess: 'App reset successfully! Reloading...',
+    failedReset: 'Failed to reset Zoutty data',
+    sessionDeleted: 'Session deleted',
+    audioDeleted: 'Audio deleted',
+    undo: 'Undo',
+    actionUndone: 'Action undone',
+    folderCreated: 'Folder "{name}" created!',
+    folderRenamed: 'Folder renamed to "{name}"',
+    folderAndSessionsDeleted: 'Folder "{name}" and its sessions deleted',
+    folderDeletedSessionsPreserved: 'Folder "{name}" deleted (sessions preserved)',
+    sessionMovedToRoot: 'Session moved to Root',
+    sessionMovedToFolder: 'Session moved to "{name}"',
+    shareLinkGenerated: 'Share link generated!',
+    failedShareLink: 'Failed to generate share link',
+    importingSession: 'Importing session...',
+    sessionImported: 'Session imported successfully!',
+    failedImport: 'Failed to import session',
+    audioAdded: 'Audio added!',
+    fileAdded: '[{filename}] added!',
+    consolidating: 'Consolidating session...',
+    consolidated: 'Session consolidated!',
+    consolidationFailed: 'Consolidation failed',
+    noAudioData: 'No audio data found for current session',
+    generatingDoc: 'Generating document...',
+    docExported: 'Document exported successfully!',
+    failedExport: 'Failed to export document',
+    micDenied: 'Microphone access denied or not available.',
+    processing: 'Processing {filename}...',
+    processed: '[{filename}] processed!',
+    processingFailed: '[{filename}] failed to process',
+    audioProcessed: 'Audio processed!',
+    audioProcessingFailed: 'Processing failed',
+    aiDetectedStyle: '[AI] Detected style "{style}". Switched glossary to "{glossary}".',
+    aiDetectedStyleOnly: '[AI] Detected style "{style}".',
+    linkCopied: 'Link copied to clipboard!',
+    sessionImportedSuffix: ' (Imported)',
+  },
+
+  // ─── Language Names ──────────────────────────────────────────────────────────
+  languages: {
+    en: 'English',
+    es: 'Español',
+  },
+} as const;
+
+export default en;
+export type Translations = typeof en;
