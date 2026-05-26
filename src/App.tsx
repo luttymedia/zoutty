@@ -1994,7 +1994,7 @@ function SessionDetail({
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [micLevel, setMicLevel] = useState(0); // 0..1 live mic energy
-  const [language, setLanguage] = useState<Language>('auto');
+  const language = 'auto';
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(session.title);
   const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
@@ -2009,7 +2009,6 @@ function SessionDetail({
   const [tempGroupId, setTempGroupId] = useState('');
   const [tempGlossaryId, setTempGlossaryId] = useState('auto');
   const [tempCustomGlossaryStyle, setTempCustomGlossaryStyle] = useState('');
-  const [tempLanguage, setTempLanguage] = useState<Language>('auto');
 
   const handleConfirmSettings = () => {
     onUpdateSession({
@@ -2017,7 +2016,6 @@ function SessionDetail({
       glossaryId: tempGlossaryId,
       customGlossaryStyle: tempCustomGlossaryStyle || undefined
     });
-    setLanguage(tempLanguage);
     setIsSettingsOpen(false);
   };
 
@@ -2209,7 +2207,6 @@ function SessionDetail({
                   setTempGroupId(session.groupId || '');
                   setTempGlossaryId(session.glossaryId || 'auto');
                   setTempCustomGlossaryStyle(session.customGlossaryStyle || '');
-                  setTempLanguage(language);
                   setIsSettingsOpen(true);
                 }}
                 className="p-2 rounded-xl border bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80 transition-colors flex items-center justify-center min-h-[38px] min-w-[38px]"
@@ -2366,23 +2363,7 @@ function SessionDetail({
                 </div>
               )}
 
-              {/* Transcription Language */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-brand" />
-                  {t('sessionSettings.transcriptionLanguageLabel')}
-                </label>
-                <select
-                  value={tempLanguage}
-                  onChange={(e) => setTempLanguage(e.target.value as Language)}
-                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
-                >
-                  <option value="auto" className="bg-[#2a2a2e]">{t('sessionSettings.transcriptionAuto')}</option>
-                  <option value="pt-BR" className="bg-[#2a2a2e]">{t('sessionSettings.transcriptionPtBr')}</option>
-                  <option value="es" className="bg-[#2a2a2e]">{t('sessionSettings.transcriptionEs')}</option>
-                  <option value="en" className="bg-[#2a2a2e]">{t('sessionSettings.transcriptionEn')}</option>
-                </select>
-              </div>
+
             </div>
 
             {/* Drawer Footer / Confirm, Cancel, and Delete Actions */}

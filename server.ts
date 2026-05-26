@@ -43,9 +43,46 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+async function translateText(text: string, targetLanguage: string): Promise<string> {
+    if (!text || !targetLanguage || targetLanguage === 'Auto-Detect') return text;
+    try {
+        console.log(`[translateText] Translating transcript into ${targetLanguage}...`);
+        const result = await genAI.models.generateContent({
+            model: 'gemini-2.5-flash',
+            config: {
+                temperature: 0.1,
+                maxOutputTokens: 2000,
+            },
+            contents: [{
+                parts: [{
+                    text: `Translate the following dance lesson transcript into ${targetLanguage}.
+Preserve all specific dance terms, formatting, and meaning.
+If the text is already in ${targetLanguage}, output it exactly as is without changes.
+Output ONLY the clean translated text. Do not add any notes, introductions, explanations, or quotes.
+
+Transcript:
+${text}`
+                }]
+            }]
+        });
+        return (result.text || text).trim();
+    } catch (e) {
+        console.error('[translateText] Failed to translate transcript:', e);
+        return text;
+    }
+}
+
 async function processAudioWithGemini(base64Audio: string, mimeType: string, language: string, danceGlossary: any, danceStyle = 'Brazilian Zouk') {
     let totalPromptTokens = 0;
     let totalResponseTokens = 0;
+
+    const languageNames: Record<string, string> = {
+        'pt-br': 'Portuguese',
+        'es': 'Spanish',
+        'en': 'English',
+        'auto': 'Auto-Detect'
+    };
+    const targetLanguage = languageNames[language.toLowerCase()] || 'Auto-Detect';
 
     // Flatten the glossary JSON into a dense, comma-separated string to save tokens
     const compressedGlossary = Array.isArray(danceGlossary) ? danceGlossary.map((item: any) => {
@@ -57,25 +94,27 @@ async function processAudioWithGemini(base64Audio: string, mimeType: string, lan
     const glossaryContext = compressedGlossary ? `\n\nKnown ${isAuto ? 'dance' : danceStyle} terminology to listen for:\n${compressedGlossary}` : '';
 
     let prompt = '';
+    const isTranslate = targetLanguage !== 'Auto-Detect';
+
     if (isAuto) {
-        prompt = `You are an expert dance instructor processing a lesson audio (Language: ${language || 'Auto'}).
+        prompt = `You are an expert dance instructor processing a lesson audio.
 Provide:
-1. A clean transcription of the audio. Remove speech disfluencies and false starts. Preserve exact technical meaning and terminology.
+1. A clean transcription of the audio in the language it is spoken. Remove speech disfluencies and false starts. Preserve exact technical meaning and terminology.
 2. The detected dance style of this lesson (e.g. Brazilian Zouk, Salsa, Bachata, Kizomba, West Coast Swing, or another style).
 
 Return ONLY valid JSON matching this schema:
 {
-  "transcript": "raw transcription text",
+  "transcript": "raw transcription text in the spoken language",
   "detectedStyle": "detected dance style name"
 }
 
 ${glossaryContext}`;
     } else {
-        prompt = `You are an expert ${danceStyle} instructor processing a lesson audio (Language: ${language || 'Auto'}).
-Provide a clean transcription of the audio.
+        prompt = `You are an expert ${danceStyle} instructor processing a lesson audio.
+Provide a clean transcription of the audio in the language it is spoken.
 - Remove speech disfluencies and false starts.
 - Preserve exact technical meaning and terminology.
-- Output ONLY the raw transcription text. No JSON, no markdown.
+- Output ONLY the raw transcription text in the spoken language. No JSON, no markdown.
 
 ${glossaryContext}`;
     }
@@ -114,21 +153,37 @@ ${glossaryContext}`;
         try {
             const cleanText = (result.text || '').replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
             const parsed = JSON.parse(cleanText || '{}');
+            let transcript = (parsed.transcript || '').trim();
+            const detectedStyle = (parsed.detectedStyle || '').trim();
+
+            if (isTranslate && transcript) {
+                transcript = await translateText(transcript, targetLanguage);
+            }
+
             return {
-                transcript: (parsed.transcript || '').trim(),
-                detectedStyle: (parsed.detectedStyle || '').trim()
+                transcript,
+                detectedStyle
             };
         } catch (e) {
             console.error('Failed to parse detected JSON from Gemini, fallback to raw text:', e);
+            let fallbackTranscript = (result.text || '').trim();
+            if (isTranslate && fallbackTranscript) {
+                fallbackTranscript = await translateText(fallbackTranscript, targetLanguage);
+            }
             return {
-                transcript: (result.text || '').trim(),
+                transcript: fallbackTranscript,
                 detectedStyle: 'Brazilian Zouk' // Fallback default
             };
         }
     }
 
+    let transcript = (result.text || '').trim();
+    if (isTranslate && transcript) {
+        transcript = await translateText(transcript, targetLanguage);
+    }
+
     return {
-        transcript: (result.text || '').trim()
+        transcript
     };
 }
 
