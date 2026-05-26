@@ -8,7 +8,7 @@ const es: Translations = {
   appName: 'Zoutty',
   appSubtitle: 'Notas de Clase',
   installApp: 'Instalar App',
-  showAppVersion: 'Mostrar versión',
+  goToHome: 'Ir a Inicio',
 
   // ─── Navigation ─────────────────────────────────────────────────────────────
   back: 'Volver',
@@ -132,6 +132,8 @@ const es: Translations = {
     shareTranscripts: 'Transcripciones de clips individuales',
     shareNoTranscripts: '(Sin clips de audio transcritos)',
     generateShareLink: 'Generar enlace para compartir',
+    updateShareLink: 'Actualizar Copia',
+    shareResyncBtn: 'Actualizar',
     shareLinkReady: '¡Tu enlace está listo! Envía esta URL a otro usuario para compartir la sesión:',
     // Import session
     sharedSession: 'Sesión compartida',
@@ -210,6 +212,7 @@ const es: Translations = {
     sessionMovedToRoot: 'Sesión movida a la raíz',
     sessionMovedToFolder: 'Sesión movida a "{name}"',
     shareLinkGenerated: '¡Enlace para compartir generado!',
+    shareLinkUpdated: '¡Copia compartida actualizada con éxito!',
     failedShareLink: 'Error al generar el enlace para compartir',
     importingSession: 'Importando sesión...',
     sessionImported: '¡Sesión importada correctamente!',

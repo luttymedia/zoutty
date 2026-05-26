@@ -510,16 +510,26 @@ if (!fs.existsSync(SHARE_DIR)) {
 
 app.post('/api/share', (req, res) => {
     try {
-        const sessionData = req.body;
+        const body = req.body;
+        const sessionData = body.sessionData || body;
+        let shareId = body.shareId;
+
         if (!sessionData || !sessionData.title) {
             return res.status(400).json({ error: 'Invalid shared session data' });
         }
 
-        // Generate a random 6-character alphanumeric short code
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let shareId = '';
-        for (let i = 0; i < 6; i++) {
-            shareId += characters.charAt(Math.floor(Math.random() * characters.length));
+        // Validate or generate shareId
+        if (shareId) {
+            if (typeof shareId !== 'string' || !/^[a-zA-Z0-9]{6}$/.test(shareId)) {
+                return res.status(400).json({ error: 'Invalid share ID format' });
+            }
+        } else {
+            // Generate a random 6-character alphanumeric short code
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            shareId = '';
+            for (let i = 0; i < 6; i++) {
+                shareId += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
         }
 
         const filePath = path.join(SHARE_DIR, `${shareId}.json`);

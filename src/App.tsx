@@ -765,17 +765,26 @@ export default function App() {
         }));
       }
 
+      const isUpdating = !!selectedSession.shareId;
+
       const res = await fetch('/api/share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          shareId: selectedSession.shareId,
+          sessionData: payload
+        })
       });
       if (!res.ok) throw new Error('Share request failed');
       const { shareId } = await res.json();
       
+      if (shareId !== selectedSession.shareId) {
+        await updateSession(selectedSession.id, { shareId });
+      }
+
       const link = `${window.location.origin}/?import=${shareId}`;
       setShareModal(prev => prev ? { ...prev, generatedLink: link } : null);
-      showToast(t('toast.shareLinkGenerated'));
+      showToast(isUpdating ? t('toast.shareLinkUpdated') : t('toast.shareLinkGenerated'));
     } catch (e) {
       console.error(e);
       showToast(t('toast.failedShareLink'), true);
@@ -1586,7 +1595,7 @@ export default function App() {
                     disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts}
                     className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]"
                   >
-                    {t('modals.generateShareLink')}
+                    {selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink')}
                   </button>
                 </div>
               </>
@@ -1615,7 +1624,13 @@ export default function App() {
                     </button>
                   </div>
                 </div>
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-3 items-center">
+                  <button
+                    onClick={() => setShareModal({ ...shareModal, generatedLink: undefined })}
+                    className="px-5 py-2.5 rounded-xl font-bold border border-white/10 text-white/60 hover:bg-white/5 hover:text-white/80 transition-colors min-h-[44px]"
+                  >
+                    {t('modals.shareResyncBtn')}
+                  </button>
                   <button onClick={() => setShareModal(null)} className="px-6 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.closeBtn')}</button>
                 </div>
               </>
@@ -1702,9 +1717,9 @@ export default function App() {
             </button>
           )}
           <button
-            onClick={() => setShowVersionModal(true)}
+            onClick={() => navigateTo('list', null, null)}
             className="hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-xl"
-            title="Show App Version"
+            title={t('goToHome')}
           >
             <ZouttyIcon className="w-10 h-10 text-brand shrink-0" />
           </button>
@@ -2004,6 +2019,7 @@ export default function App() {
                 availableHomework: hasHomework,
                 availableTechnical: hasTechnical,
                 availableEmotional: hasEmotional,
+                generatedLink: selectedSession.shareId ? `${window.location.origin}/?import=${selectedSession.shareId}` : undefined
               });
             }}
             onDeleteSession={() => requestDeleteSession(selectedSession.id, selectedSession.title)}
@@ -2297,10 +2313,14 @@ function SessionDetail({
             <div className="flex items-center gap-2">
               <button
                 onClick={onShare}
-                className="p-2 rounded-xl border bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80 transition-colors flex items-center justify-center min-h-[38px] min-w-[38px]"
+                className={`p-2 rounded-xl border transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] ${
+                  session.shareId
+                    ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20'
+                    : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'
+                }`}
                 title={t('session.shareSession')}
               >
-                <Share2 className="w-4 h-4 text-brand" />
+                <Share2 className={`w-4 h-4 ${session.shareId ? '' : 'text-brand'}`} />
               </button>
               <button
                 onClick={() => setIsReordering(!isReordering)}

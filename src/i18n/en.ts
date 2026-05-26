@@ -6,7 +6,7 @@ const en = {
   appName: 'Zoutty',
   appSubtitle: 'Session Notes',
   installApp: 'Install App',
-  showAppVersion: 'Show App Version',
+  goToHome: 'Go to Home',
 
   // ─── Navigation ─────────────────────────────────────────────────────────────
   back: 'Back',
@@ -130,6 +130,8 @@ const en = {
     shareTranscripts: 'Individual Clip Transcripts',
     shareNoTranscripts: '(No audio clips transcribed)',
     generateShareLink: 'Generate Share Link',
+    updateShareLink: 'Update Copy',
+    shareResyncBtn: 'Update',
     shareLinkReady: 'Your shareable link is ready! Send this URL to another user to share this session:',
     // Import session
     sharedSession: 'Shared Session',
@@ -208,6 +210,7 @@ const en = {
     sessionMovedToRoot: 'Session moved to Root',
     sessionMovedToFolder: 'Session moved to "{name}"',
     shareLinkGenerated: 'Share link generated!',
+    shareLinkUpdated: 'Shared copy updated successfully!',
     failedShareLink: 'Failed to generate share link',
     importingSession: 'Importing session...',
     sessionImported: 'Session imported successfully!',
