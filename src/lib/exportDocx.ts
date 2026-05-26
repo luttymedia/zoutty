@@ -1,15 +1,23 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
-import { Session, AudioEntry, ExpandedInsights } from '../types';
+import { Session, AudioEntry } from '../types';
 
-export const exportDocx = async (session: Session, entries: AudioEntry[], reportDetails: any) => {
+export const exportDocx = async (session: Session, entries: AudioEntry[], reportDetails: any, t?: (key: string, vars?: any) => string) => {
     const children: any[] = [];
+
+    const translate = (key: string, fallback: string, vars?: any) => {
+        if (t) {
+            const val = t(key, vars);
+            if (val && val !== key) return val;
+        }
+        return fallback;
+    };
 
     // --- Session Header ---
     children.push(
         new Paragraph({
-            text: session.title || 'Session Notes',
+            text: session.title || translate('appSubtitle', 'Session Notes'),
             heading: HeadingLevel.TITLE,
             alignment: AlignmentType.CENTER,
             spacing: { after: 200 }
@@ -31,7 +39,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
     if (session.notes) {
         children.push(
             new Paragraph({
-                text: "Session Notes",
+                text: translate('session.notesHeading', 'Notes'),
                 heading: HeadingLevel.HEADING_1,
                 spacing: { before: 400, after: 200 }
             })
@@ -55,7 +63,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
     if (hasReport) {
         children.push(
             new Paragraph({
-                text: "Consolidated Session Report",
+                text: translate('session.consolidatedReport', 'Consolidated Session Report'),
                 heading: HeadingLevel.HEADING_1,
                 spacing: { before: 400, after: 200 }
             })
@@ -67,7 +75,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
         if (r.strictSummary && Array.isArray(r.strictSummary)) {
             children.push(
                 new Paragraph({
-                    text: "Strict Summary",
+                    text: translate('session.strictSummary', 'Strict Summary'),
                     heading: HeadingLevel.HEADING_2,
                     spacing: { before: 200, after: 100 }
                 })
@@ -87,17 +95,17 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
         if (r.expandedInsights) {
             children.push(
                 new Paragraph({
-                    text: "Expanded Insights",
+                    text: translate('session.expandedInsights', 'Expanded Insights'),
                     heading: HeadingLevel.HEADING_2,
                     spacing: { before: 300, after: 200 }
                 })
             );
 
             const sections = [
-                { title: 'Drills', data: r.expandedInsights.drills },
-                { title: 'Homework', data: r.expandedInsights.homework },
-                { title: 'Technical Expansion', data: r.expandedInsights.technicalExpansion },
-                { title: 'Emotional Notes', data: r.expandedInsights.emotionalNotes }
+                { title: translate('session.drills', 'Drills'), data: r.expandedInsights.drills },
+                { title: translate('session.homework', 'Homework'), data: r.expandedInsights.homework },
+                { title: translate('session.technicalExpansion', 'Technical Expansion'), data: r.expandedInsights.technicalExpansion },
+                { title: translate('session.emotionalNotes', 'Emotional Notes'), data: r.expandedInsights.emotionalNotes }
             ];
 
             for (const section of sections) {
@@ -191,7 +199,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
         if (consolidatedTranscripts) {
             children.push(
                 new Paragraph({
-                    text: "Raw Transcript",
+                    text: translate('session.rawTranscript', 'Raw Transcript'),
                     heading: HeadingLevel.HEADING_2,
                     spacing: { before: 300, after: 200 }
                 })
@@ -213,21 +221,22 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
     if (entries.length > 0) {
         children.push(
             new Paragraph({
-                text: "Audio Entries",
+                text: translate('home.sessionsHeading', 'Audio Entries'),
                 heading: HeadingLevel.HEADING_1,
                 spacing: { before: 600, after: 200 }
             })
         );
 
-        for (const audio of entries) {
+        entries.forEach((audio, idx) => {
             const time = format(new Date(audio.timestamp), "HH:mm");
-            const displayTitle = audio.filename || `Audio Entry`;
+            const displayTitle = audio.filename || translate('session.audioEntryDefault', 'Audio Entry', { index: entries.length - idx });
+            const typeLabel = audio.type === 'recording' ? translate('session.liveType', 'Live') : translate('session.clipType', 'Clip');
 
             children.push(
                 new Paragraph({
                     children: [
                         new TextRun({ text: displayTitle, bold: true, size: 28 }),
-                        new TextRun({ text: `  |  ${time}h - ${audio.type === 'recording' ? 'Live' : 'Clip'}`, color: "888888", size: 24 })
+                        new TextRun({ text: `  |  ${time}h - ${typeLabel}`, color: "888888", size: 24 })
                     ],
                     spacing: { before: 400, after: 200 }
                 })
@@ -236,7 +245,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
             if (audio.strictSummary && Array.isArray(audio.strictSummary)) {
                 children.push(
                     new Paragraph({
-                        text: "Strict Summary",
+                        text: translate('session.strictSummary', 'Strict Summary'),
                         heading: HeadingLevel.HEADING_3,
                         spacing: { after: 100 }
                     })
@@ -250,10 +259,10 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
 
             if (audio.expandedInsights) {
                 const sections = [
-                    { title: 'Drills', data: audio.expandedInsights.drills },
-                    { title: 'Homework', data: audio.expandedInsights.homework },
-                    { title: 'Technical Expansion', data: audio.expandedInsights.technicalExpansion },
-                    { title: 'Emotional Notes', data: audio.expandedInsights.emotionalNotes }
+                    { title: translate('session.drills', 'Drills'), data: audio.expandedInsights.drills },
+                    { title: translate('session.homework', 'Homework'), data: audio.expandedInsights.homework },
+                    { title: translate('session.technicalExpansion', 'Technical Expansion'), data: audio.expandedInsights.technicalExpansion },
+                    { title: translate('session.emotionalNotes', 'Emotional Notes'), data: audio.expandedInsights.emotionalNotes }
                 ];
 
                 for (const section of sections) {
@@ -281,7 +290,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
             if (audio.transcript) {
                 children.push(
                     new Paragraph({
-                        text: "Raw Transcript",
+                        text: translate('session.rawTranscript', 'Raw Transcript'),
                         heading: HeadingLevel.HEADING_3,
                         spacing: { before: 200, after: 100 }
                     })
@@ -299,7 +308,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
                     }
                 }
             }
-        }
+        });
     }
 
     const doc = new Document({

@@ -132,7 +132,7 @@ ${glossaryContext}`;
     };
 }
 
-async function consolidateTranscriptsWithGemini(transcripts: string[], danceGlossary: any, danceStyle = 'Brazilian Zouk') {
+async function consolidateTranscriptsWithGemini(transcripts: string[], danceGlossary: any, danceStyle = 'Brazilian Zouk', appLanguage = 'en') {
     if (!transcripts || transcripts.length === 0) return null;
 
     // Flatten the glossary
@@ -145,6 +145,8 @@ async function consolidateTranscriptsWithGemini(transcripts: string[], danceGlos
 
     const combinedTranscripts = transcripts.map((t, i) => `--- Clip ${i + 1} Transcription ---\n${t}`).join('\n\n');
 
+    const targetLanguageName = appLanguage === 'es' ? 'Spanish' : 'English';
+
     const prompt = `You are a world-class ${danceStyle} head instructor. 
 Below are multiple transcriptions from various moments of a single ${danceStyle} lesson.
 Your task is to provide a single, cohesive, "Consolidated Session Report" that synthesizes ALL the technical information while ELIMINATING redundancies.
@@ -153,6 +155,7 @@ CRITICAL:
 - If multiple clips discuss the same concept (e.g. "Frame", "Lateral step"), do NOT mention it multiple times.
 - Summarize the repetitive information into the most complete and clear technical description possible.
 - The goal is to provide a unified summary of what was taught across the whole session.
+- Write the text content/values of all array elements in the JSON (i.e. all items inside strictSummary, drills, homework, technicalExpansion, and emotionalNotes) in ${targetLanguageName}. Do not translate the JSON keys (keep them exactly as "strictSummary", "expandedInsights", "drills", "homework", "technicalExpansion", "emotionalNotes").
 
 Perform these tasks and return the result EXACTLY as a JSON object:
 
@@ -311,7 +314,7 @@ app.post('/api/gemini/process-audio', async (req, res) => {
         }
         audioRequestTimestamps.push(now);
 
-        const { sessionId, audios, glossary, danceStyle } = req.body;
+        const { sessionId, audios, glossary, danceStyle, appLanguage } = req.body;
         if (!sessionId || !audios || !Array.isArray(audios)) {
             console.error('[/api/gemini/process-audio] Invalid payload:', { sessionId, audiosType: typeof audios });
             return res.status(400).json({ error: 'Invalid payload: sessionId and audios array are required' });
@@ -376,7 +379,7 @@ app.post('/api/gemini/process-audio', async (req, res) => {
         console.log(`[/api/gemini/process-audio] Total transcripts gathered: ${allTranscripts.length}. Synthesizing...`);
 
         // 3. Synthesize the final consolidated report
-        const report = await consolidateTranscriptsWithGemini(allTranscripts, activeGlossary, activeStyle);
+        const report = await consolidateTranscriptsWithGemini(allTranscripts, activeGlossary, activeStyle, appLanguage);
 
         return res.json({
             report,

@@ -939,7 +939,8 @@ export default function App() {
           sessionId: selectedSession.id,
           audios: audiosPayload,
           glossary,
-          danceStyle
+          danceStyle,
+          appLanguage: uiLanguage
         })
       });
 
@@ -1671,7 +1672,7 @@ export default function App() {
                 try {
                   const report = await db.getSessionFinalReport(selectedSession.id);
                   const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp);
-                  await exportDocx(selectedSession, sessionEntries, report);
+                  await exportDocx(selectedSession, sessionEntries, report, t);
                   showToast(t('toast.docExported'));
                 } catch (err) {
                   console.error(err);
@@ -2525,6 +2526,7 @@ function StrictSummaryBlock({ data, onChange }: { data: string[], onChange?: (ne
 }
 
 function ExpandedInsightsBlock({ data, onChange }: { data: ExpandedInsights, onChange?: (newData: ExpandedInsights) => void }) {
+  const { t } = useTranslation();
   const allEmpty =
     (data.drills?.length ?? 0) === 0 &&
     (data.homework?.length ?? 0) === 0 &&
@@ -2541,14 +2543,14 @@ function ExpandedInsightsBlock({ data, onChange }: { data: ExpandedInsights, onC
       <details>
         <summary className="px-5 py-3 cursor-pointer flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/15 transition-colors list-none">
           <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-          <span className="font-bold text-purple-300 text-sm">Expanded Insights (AI Enhanced)</span>
+          <span className="font-bold text-purple-300 text-sm">{t('session.expandedInsights')}</span>
           <ChevronDown className="w-4 h-4 text-purple-400/50 ml-auto" />
         </summary>
         <div className="p-4 space-y-3 bg-black/20">
-          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title="Drills" defaultOpen={false}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} /></CollapsiblePanel>}
-          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title="Homework" defaultOpen={false}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} /></CollapsiblePanel>}
-          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title="Technical Expansion" defaultOpen={false}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} /></CollapsiblePanel>}
-          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title="Emotional Notes" defaultOpen={false}><BulletList items={data.emotionalNotes} onChange={onChange ? (arr) => handleChange('emotionalNotes', arr) : undefined} /></CollapsiblePanel>}
+          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.drills')} defaultOpen={false}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} /></CollapsiblePanel>}
+          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.homework')} defaultOpen={false}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} /></CollapsiblePanel>}
+          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.technicalExpansion')} defaultOpen={false}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} /></CollapsiblePanel>}
+          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.emotionalNotes')} defaultOpen={false}><BulletList items={data.emotionalNotes} onChange={onChange ? (arr) => handleChange('emotionalNotes', arr) : undefined} /></CollapsiblePanel>}
         </div>
       </details>
     </div>
@@ -2556,13 +2558,14 @@ function ExpandedInsightsBlock({ data, onChange }: { data: ExpandedInsights, onC
 }
 
 function TranscriptBlock({ text, onChange }: { text: string, onChange?: (newText: string) => void }) {
+  const { t } = useTranslation();
   if (!text) return null;
   return (
     <div className="border border-white/10 rounded-2xl overflow-hidden">
       <details>
         <summary className="px-5 py-3 cursor-pointer flex items-center gap-3 bg-white/5 hover:bg-white/8 transition-colors list-none">
           <FileAudio className="w-4 h-4 text-white/40 shrink-0" />
-          <span className="font-bold text-white/50 text-sm">View Transcript</span>
+          <span className="font-bold text-white/50 text-sm">{t('session.viewTranscript')}</span>
           <ChevronDown className="w-4 h-4 text-white/20 ml-auto" />
         </summary>
         <div className="p-4 bg-black/20 text-white/50 text-sm italic leading-relaxed">
@@ -2740,7 +2743,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
             {consolidatedStrictSummary && (
               <>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
                   <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} />
                 </div>
                 {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} />}
@@ -3033,7 +3036,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
             <>
               {audio.strictSummary && (audio.strictSummary as string[]).length > 0 && (
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">Strict Summary</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
                   <StrictSummaryBlock data={audio.strictSummary as string[]} onChange={(s) => onUpdateContent({ strictSummary: s })} />
                 </div>
               )}
