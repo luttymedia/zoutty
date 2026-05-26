@@ -18,12 +18,22 @@ import {
   Globe,
   Download,
   Zap,
-  GripHorizontal
+  GripHorizontal,
+  X,
+  Folder,
+  FolderPlus,
+  FolderOpen,
+  Share2,
+  Copy,
+  Settings,
+  BookOpen
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { db } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
-import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights } from './types';
+import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary } from './types';
+import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
+
 import { ZouttyIcon } from './components/ZouttyIcon';
 import Markdown from 'react-markdown';
 import { exportDocx } from './lib/exportDocx';
@@ -71,7 +81,7 @@ function Toast({ message, isError, actionText, onAction, onClose }: { message: s
   }, [onClose]);
 
   return (
-    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-medium text-sm z-50 shadow-lg flex items-center gap-3 transition-all animate-in slide-in-from-bottom-5 ${isError ? 'bg-red-600' : 'bg-green-600'}`}>
+    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-medium text-sm z-[60] shadow-lg flex items-center gap-3 transition-all animate-in slide-in-from-bottom-5 ${isError ? 'bg-red-600' : 'bg-green-600'}`}>
       <span>{message}</span>
       {actionText && onAction && (
         <button onClick={() => { onAction(); onClose(); }} className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shrink-0">
@@ -84,7 +94,7 @@ function Toast({ message, isError, actionText, onAction, onClose }: { message: s
 
 function Spinner({ text }: { text: string }) {
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 text-white font-sans">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] text-white font-sans">
       <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
       <span className="mt-4 font-medium">{text}</span>
     </div>
@@ -104,9 +114,136 @@ export default function App() {
   const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
   const [reprocessModal, setReprocessModal] = useState<string | null>(null);
   const [showVersionModal, setShowVersionModal] = useState(false);
+  const [showAppSettings, setShowAppSettings] = useState(false);
+  const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  // New features state
+  const [groups, setGroups] = useState<SessionGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [glossaries, setGlossaries] = useState<DanceGlossary[]>([]);
+  
+  const [folderModal, setFolderModal] = useState<{ type: 'create' | 'rename', id?: string, name: string } | null>(null);
+  const [deleteFolderModal, setDeleteFolderModal] = useState<{ id: string, name: string } | null>(null);
+  
+  const [shareModal, setShareModal] = useState<{
+    sessionId: string;
+    shareReport: boolean;
+    shareNotes: boolean;
+    shareTranscripts: boolean;
+    shareStrictSummary: boolean;
+    shareDrills: boolean;
+    shareHomework: boolean;
+    shareTechnical: boolean;
+    shareEmotional: boolean;
+    generatedLink?: string;
+    availableReport: boolean;
+    availableNotes: boolean;
+    availableTranscripts: boolean;
+    availableStrictSummary: boolean;
+    availableDrills: boolean;
+    availableHomework: boolean;
+    availableTechnical: boolean;
+    availableEmotional: boolean;
+  } | null>(null);
+  const [moveSessionModal, setMoveSessionModal] = useState<{ sessionId: string, currentGroupId?: string } | null>(null);
+  const [sessionSortBy, setSessionSortBy] = useState<'date' | 'name' | 'created'>(
+    (localStorage.getItem('zoutty_session_sort_by') as any) || 'date'
+  );
+  const [sessionSortOrder, setSessionSortOrder] = useState<'asc' | 'desc'>(
+    (localStorage.getItem('zoutty_session_sort_order') as any) || 'desc'
+  );
+  const [folderSortBy, setFolderSortBy] = useState<'date' | 'name' | 'created'>(
+    (localStorage.getItem('zoutty_folder_sort_by') as any) || 'date'
+  );
+  const [folderSortOrder, setFolderSortOrder] = useState<'asc' | 'desc'>(
+    (localStorage.getItem('zoutty_folder_sort_order') as any) || 'desc'
+  );
+  const [importPreview, setImportPreview] = useState<any | null>(null);
+
+  const getSessionLastActivity = (session: Session) => {
+    const sessionAudios = Object.values(audioEntries).filter(e => e.sessionId === session.id);
+    if (sessionAudios.length === 0) return session.date;
+    return Math.max(...sessionAudios.map(a => a.timestamp));
+  };
+
+  const getFolderLastActivity = (group: SessionGroup) => {
+    const folderSessions = sessions.filter(s => s.groupId === group.id);
+    if (folderSessions.length === 0) return group.dateCreated;
+    return Math.max(...folderSessions.map(s => getSessionLastActivity(s)));
+  };
+
+  const sortFolders = (foldersList: SessionGroup[]) => {
+    return [...foldersList].sort((a, b) => {
+      let valA: any;
+      let valB: any;
+      if (folderSortBy === 'name') {
+        valA = a.name.toLowerCase();
+        valB = b.name.toLowerCase();
+        return folderSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      } else if (folderSortBy === 'created') {
+        valA = a.dateCreated;
+        valB = b.dateCreated;
+      } else {
+        valA = getFolderLastActivity(a);
+        valB = getFolderLastActivity(b);
+      }
+      return folderSortOrder === 'asc' ? valA - valB : valB - valA;
+    });
+  };
+
+  const sortSessions = (sessionsList: Session[]) => {
+    return [...sessionsList].sort((a, b) => {
+      let valA: any;
+      let valB: any;
+      if (sessionSortBy === 'name') {
+        valA = a.title.toLowerCase();
+        valB = b.title.toLowerCase();
+        return sessionSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      } else if (sessionSortBy === 'created') {
+        valA = a.date;
+        valB = b.date;
+      } else {
+        valA = getSessionLastActivity(a);
+        valB = getSessionLastActivity(b);
+      }
+      return sessionSortOrder === 'asc' ? valA - valB : valB - valA;
+    });
+  };
+
+  const handleSessionSortClick = (field: 'date' | 'name' | 'created') => {
+    let nextOrder: 'asc' | 'desc';
+    let nextField = sessionSortBy;
+    if (sessionSortBy === field) {
+      nextOrder = sessionSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      nextField = field;
+      nextOrder = field === 'name' ? 'asc' : 'desc';
+    }
+    setSessionSortBy(nextField);
+    setSessionSortOrder(nextOrder);
+    localStorage.setItem('zoutty_session_sort_by', nextField);
+    localStorage.setItem('zoutty_session_sort_order', nextOrder);
+  };
+
+  const handleFolderSortClick = (field: 'date' | 'name' | 'created') => {
+    let nextOrder: 'asc' | 'desc';
+    let nextField = folderSortBy;
+    if (folderSortBy === field) {
+      nextOrder = folderSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      nextField = field;
+      nextOrder = field === 'name' ? 'asc' : 'desc';
+    }
+    setFolderSortBy(nextField);
+    setFolderSortOrder(nextOrder);
+    localStorage.setItem('zoutty_folder_sort_by', nextField);
+    localStorage.setItem('zoutty_folder_sort_order', nextOrder);
+  };
+
 
   // Listen for beforeinstallprompt for PWA install button
   useEffect(() => {
@@ -123,12 +260,35 @@ export default function App() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Seed default/system glossaries if needed
+        const existingGlossaries = await db.getGlossaries();
+        const defaultIds = DEFAULT_GLOSSARIES.map(g => g.id);
+        
+        // Clean up system glossaries that are no longer supported
+        for (const existing of existingGlossaries) {
+          if (existing.isSystem && !defaultIds.includes(existing.id)) {
+            await db.deleteGlossary(existing.id);
+          }
+        }
+
+        // Add or update current system glossaries
+        for (const defaultGlossary of DEFAULT_GLOSSARIES) {
+          const existing = existingGlossaries.find(g => g.id === defaultGlossary.id);
+          if (!existing || existing.isSystem) {
+            await db.saveGlossary(defaultGlossary);
+          }
+        }
+
         const loadedSessions = await db.getSessions();
         const loadedAudios = await db.getAudioEntries();
+        const loadedGroups = await db.getGroups();
+        const loadedGlossaries = await db.getGlossaries();
 
         // Sort sessions by date descending
         loadedSessions.sort((a, b) => b.date - a.date);
         setSessions(loadedSessions);
+        setGroups(loadedGroups);
+        setGlossaries(loadedGlossaries);
 
         // Convert audio entries array to record for easy lookup
         const audioRecord: Record<string, AudioEntry> = {};
@@ -140,11 +300,98 @@ export default function App() {
       }
     };
     loadData();
+
+    // Check if URL has ?import=
+    const checkImport = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const importId = params.get('import');
+      if (importId) {
+        showSpinner('Retrieving shared session...');
+        try {
+          const res = await fetch(`/api/share/${importId}`);
+          if (!res.ok) throw new Error('Shared session not found');
+          const data = await res.json();
+          setImportPreview(data);
+        } catch (e: any) {
+          console.error(e);
+          showToast('Failed to retrieve shared session details', true);
+        } finally {
+          hideSpinner();
+        }
+      }
+    };
+    checkImport();
   }, []);
 
   const showToast = (text: string, isError = false, actionText?: string, onAction?: () => void) => setToastMessage({ text, isError, actionText, onAction });
   const showSpinner = (text: string) => setSpinnerText(text);
   const hideSpinner = () => setSpinnerText(null);
+
+  const handleExportBackup = async () => {
+    showSpinner('Creating backup...');
+    try {
+      const backup = await db.exportDatabase();
+      const json = JSON.stringify(backup);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `zoutty-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Backup downloaded successfully!');
+    } catch (e) {
+      console.error("Backup failed", e);
+      showToast('Failed to create backup', true);
+    } finally {
+      hideSpinner();
+    }
+  };
+
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRestoreBackupFile(file);
+    e.target.value = '';
+  };
+
+  const executeImportBackup = async (file: File) => {
+    setRestoreBackupFile(null);
+    showSpinner('Restoring database...');
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      await db.importDatabase(backup);
+      showToast('Restore successful! Reloading application...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error("Restore failed", err);
+      showToast('Failed to restore backup (invalid file format)', true);
+    } finally {
+      hideSpinner();
+    }
+  };
+
+  const handleResetApp = async () => {
+    setShowResetConfirm(false);
+    showSpinner('Resetting Zoutty data...');
+    try {
+      await db.clearDatabase();
+      showToast('App reset successfully! Reloading...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error("Reset failed", err);
+      showToast('Failed to reset Zoutty data', true);
+    } finally {
+      hideSpinner();
+    }
+  };
 
   // Migration: Update old session titles to new format
   useEffect(() => {
@@ -224,6 +471,8 @@ export default function App() {
       title: format(new Date(), "EEE dd/MM/yy"),
       subtitle: '',
       date: Date.now(),
+      groupId: selectedGroupId || undefined,
+      glossaryId: 'auto' // default to auto-detect
     };
 
     await db.saveSession(newSession);
@@ -233,7 +482,7 @@ export default function App() {
     setView('detail');
   };
 
-  const updateSession = async (id: string, changes: Partial<Pick<Session, 'title' | 'subtitle' | 'notes'>>) => {
+  const updateSession = async (id: string, changes: Partial<Session>) => {
     const session = sessions.find(s => s.id === id);
     if (!session) return;
     const updated = { ...session, ...changes };
@@ -286,6 +535,7 @@ export default function App() {
       if (selectedSessionId === id) {
         setView('list');
         setSelectedSessionId(null);
+        setSelectedGroupId(sessionToDelete.groupId || null);
       }
 
       const timeoutId = setTimeout(async () => {
@@ -323,6 +573,210 @@ export default function App() {
     handleProcessEntry(idToProcess);
   };
 
+  // Folder Actions
+  const handleCreateOrRenameFolder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!folderModal || !folderModal.name.trim()) return;
+
+    if (folderModal.type === 'create') {
+      const newGroup: SessionGroup = {
+        id: crypto.randomUUID(),
+        name: folderModal.name.trim(),
+        dateCreated: Date.now()
+      };
+      await db.saveGroup(newGroup);
+      setGroups(prev => [...prev, newGroup]);
+      showToast(`Folder "${newGroup.name}" created!`);
+    } else if (folderModal.type === 'rename' && folderModal.id) {
+      const group = groups.find(g => g.id === folderModal.id);
+      if (group) {
+        const updated = { ...group, name: folderModal.name.trim() };
+        await db.saveGroup(updated);
+        setGroups(prev => prev.map(g => g.id === folderModal.id ? updated : g));
+        showToast(`Folder renamed to "${updated.name}"`);
+      }
+    }
+    setFolderModal(null);
+  };
+
+  const confirmDeleteFolder = async (deleteSessions: boolean) => {
+    if (!deleteFolderModal) return;
+    const { id, name } = deleteFolderModal;
+    setDeleteFolderModal(null);
+
+    await db.deleteGroup(id);
+    setGroups(prev => prev.filter(g => g.id !== id));
+
+    const allSessions = await db.getSessions();
+    const updatedSessions = [...sessions];
+
+    for (const session of allSessions) {
+      if (session.groupId === id) {
+        if (deleteSessions) {
+          await db.deleteSession(session.id);
+          const audios = await db.getSessionAudios(session.id);
+          for (const a of audios) {
+            await db.deleteAudioEntry(a.id);
+          }
+          // Remove from local sessions state
+          const idx = updatedSessions.findIndex(s => s.id === session.id);
+          if (idx !== -1) updatedSessions.splice(idx, 1);
+        } else {
+          // Ungroup session
+          const updated = { ...session, groupId: undefined };
+          await db.saveSession(updated);
+          const idx = updatedSessions.findIndex(s => s.id === session.id);
+          if (idx !== -1) updatedSessions[idx] = updated;
+        }
+      }
+    }
+    setSessions(updatedSessions);
+    if (selectedGroupId === id) {
+      setSelectedGroupId(null);
+    }
+    showToast(deleteSessions ? `Folder "${name}" and its sessions deleted` : `Folder "${name}" deleted (sessions preserved)`);
+  };
+
+
+  const handleGenerateShareLink = async () => {
+    if (!shareModal || !selectedSession) return;
+    showSpinner('Generating share link...');
+    try {
+      const payload: any = {
+        title: selectedSession.title,
+        subtitle: selectedSession.subtitle,
+        date: selectedSession.date,
+      };
+      if (shareModal.shareReport) {
+        const report = await db.getSessionFinalReport(selectedSession.id);
+        if (report && report.report) {
+          const reportData: any = {};
+          if (shareModal.shareStrictSummary && report.report.strictSummary) {
+            reportData.strictSummary = report.report.strictSummary;
+          }
+          if (report.report.expandedInsights) {
+            const insights: any = {};
+            if (shareModal.shareDrills && report.report.expandedInsights.drills) {
+              insights.drills = report.report.expandedInsights.drills;
+            }
+            if (shareModal.shareHomework && report.report.expandedInsights.homework) {
+              insights.homework = report.report.expandedInsights.homework;
+            }
+            if (shareModal.shareTechnical && report.report.expandedInsights.technicalExpansion) {
+              insights.technicalExpansion = report.report.expandedInsights.technicalExpansion;
+            }
+            if (shareModal.shareEmotional && report.report.expandedInsights.emotionalNotes) {
+              insights.emotionalNotes = report.report.expandedInsights.emotionalNotes;
+            }
+            if (Object.keys(insights).length > 0) {
+              reportData.expandedInsights = insights;
+            }
+          }
+          if (Object.keys(reportData).length > 0) {
+            payload.report = reportData;
+          }
+        }
+      }
+      if (shareModal.shareNotes) {
+        payload.notes = selectedSession.notes;
+      }
+      if (shareModal.shareTranscripts) {
+        const audios = await db.getSessionAudios(selectedSession.id);
+        payload.transcripts = audios.map(a => ({
+          filename: a.filename,
+          timestamp: a.timestamp,
+          transcript: a.transcript,
+          strictSummary: a.strictSummary,
+          expandedInsights: a.expandedInsights
+        }));
+      }
+
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Share request failed');
+      const { shareId } = await res.json();
+      
+      const link = `${window.location.origin}/?import=${shareId}`;
+      setShareModal(prev => prev ? { ...prev, generatedLink: link } : null);
+      showToast('Share link generated!');
+    } catch (e) {
+      console.error(e);
+      showToast('Failed to generate share link', true);
+    } finally {
+      hideSpinner();
+    }
+  };
+
+  const handleImportSession = async () => {
+    if (!importPreview) return;
+    showSpinner('Importing session...');
+    try {
+      const newSessionId = crypto.randomUUID();
+      const newSession: Session = {
+        id: newSessionId,
+        title: importPreview.title + ' (Imported)',
+        subtitle: importPreview.subtitle || '',
+        date: importPreview.date || Date.now(),
+        notes: importPreview.notes || '',
+        groupId: selectedGroupId || undefined,
+        glossaryId: 'auto'
+      };
+
+      await db.saveSession(newSession);
+
+      if (importPreview.report) {
+        await db.saveFinalReport({
+          id: crypto.randomUUID(),
+          sessionId: newSessionId,
+          report: importPreview.report,
+          timestamp: Date.now()
+        });
+      }
+
+      if (importPreview.transcripts && Array.isArray(importPreview.transcripts)) {
+        for (const t of importPreview.transcripts) {
+          const emptyBlob = new Blob([], { type: 'audio/webm' });
+          const newAudio: AudioEntry = {
+            id: crypto.randomUUID(),
+            sessionId: newSessionId,
+            timestamp: t.timestamp || Date.now(),
+            language: 'auto',
+            transcript: t.transcript,
+            strictSummary: t.strictSummary,
+            expandedInsights: t.expandedInsights,
+            type: 'recording',
+            filename: t.filename || 'Imported clip',
+            audioBlob: emptyBlob
+          };
+          await db.saveAudioEntry(newAudio);
+        }
+      }
+
+      // Refresh state
+      const loadedSessions = await db.getSessions();
+      loadedSessions.sort((a, b) => b.date - a.date);
+      setSessions(loadedSessions);
+
+      const loadedAudios = await db.getAudioEntries();
+      const audioRecord: Record<string, AudioEntry> = {};
+      loadedAudios.forEach(a => audioRecord[a.id] = a);
+      setAudioEntries(audioRecord);
+
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setImportPreview(null);
+      showToast('Session imported successfully!');
+    } catch (e) {
+      console.error(e);
+      showToast('Failed to import session', true);
+    } finally {
+      hideSpinner();
+    }
+  };
+
   const addAudioEntry = async (sessionId: string, blob: Blob, language: Language, type: 'recording' | 'upload', filename?: string) => {
     const entryId = crypto.randomUUID();
 
@@ -350,12 +804,21 @@ export default function App() {
       setProcessingIds(prev => new Set(prev).add(entryId));
       showSpinner(`Processing ${entry.filename || 'audio'}...`);
 
+      const isOther = selectedSession?.glossaryId === 'other';
+      const activeGlossary = !isOther && (glossaries.find(g => g.id === selectedSession?.glossaryId) || glossaries.find(g => g.id === 'zouk'));
+      const danceStyle = selectedSession?.glossaryId === 'auto'
+        ? 'Auto'
+        : (isOther ? (selectedSession?.customGlossaryStyle || 'Other') : (activeGlossary ? activeGlossary.name : 'Brazilian Zouk'));
+      const glossary = (selectedSession?.glossaryId === 'auto' || isOther) ? undefined : (activeGlossary ? activeGlossary.terms : undefined);
+
       // Call MCP Skill
       const result: any = await callZoukAudioProcessor({
         audio: entry.audioBlob,
         language: entry.language,
         sessionId: entry.sessionId,
-        filename: entry.filename
+        filename: entry.filename,
+        glossary,
+        danceStyle
       });
 
       // Update entry with result
@@ -368,7 +831,17 @@ export default function App() {
       await db.saveAudioEntry(finalizedEntry);
       setAudioEntries(prev => ({ ...prev, [entryId]: finalizedEntry }));
 
-      showToast(entry.filename ? `[${entry.filename}] processed!` : 'Audio processed!');
+      if (result.detectedStyle && selectedSession && selectedSession.glossaryId === 'auto') {
+        const matched = glossaries.find(g => g.name.toLowerCase() === result.detectedStyle.toLowerCase());
+        if (matched) {
+          await updateSession(selectedSession.id, { glossaryId: matched.id });
+          showToast(`[AI] Detected style "${result.detectedStyle}". Switched glossary to "${matched.name}".`);
+        } else {
+          showToast(`[AI] Detected style "${result.detectedStyle}".`);
+        }
+      } else {
+        showToast(entry.filename ? `[${entry.filename}] processed!` : 'Audio processed!');
+      }
     } catch (error) {
       console.error('Processing failed:', error);
       showToast(entry.filename ? `[${entry.filename}] failed to process` : 'Processing failed', true);
@@ -425,12 +898,21 @@ export default function App() {
         })
       );
 
+      const isOther = selectedSession.glossaryId === 'other';
+      const activeGlossary = !isOther && (glossaries.find(g => g.id === selectedSession.glossaryId) || glossaries.find(g => g.id === 'zouk'));
+      const danceStyle = selectedSession.glossaryId === 'auto'
+        ? 'Brazilian Zouk'
+        : (isOther ? (selectedSession.customGlossaryStyle || 'Other') : (activeGlossary ? activeGlossary.name : 'Brazilian Zouk'));
+      const glossary = (selectedSession.glossaryId === 'auto' || isOther) ? undefined : (activeGlossary ? activeGlossary.terms : undefined);
+
       const response = await fetch('/api/gemini/process-audio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: selectedSession.id,
-          audios: audiosPayload
+          audios: audiosPayload,
+          glossary,
+          danceStyle
         })
       });
 
@@ -485,7 +967,7 @@ export default function App() {
 
       {/* Delete Modal */}
       {deleteModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
             <h3 className="text-xl font-bold">Confirm Deletion</h3>
             <p className="text-white/70">
@@ -518,6 +1000,102 @@ export default function App() {
         </div>
       )}
 
+      {/* App Settings Drawer */}
+      {showAppSettings && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 animate-in fade-in duration-200"
+            onClick={() => setShowAppSettings(false)}
+          />
+          {/* Drawer Panel */}
+          <div
+            className="fixed top-0 bottom-0 right-0 w-full sm:w-96 bg-[#1e1e22]/95 border-l border-white/10 backdrop-blur-md p-6 z-50 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-right duration-300"
+          >
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-brand" />
+                Zoutty Settings
+              </h3>
+              <button
+                onClick={() => setShowAppSettings(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Content */}
+            <div className="flex-1 overflow-y-auto space-y-8 pr-1">
+              {/* Backup Section */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <Download className="w-4 h-4 text-brand" />
+                  Backup Database
+                </h4>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  Download a full backup of all your sessions, folder structures, vocabulary glossaries, and recorded audio files to your local device.
+                </p>
+                <button
+                  onClick={handleExportBackup}
+                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-brand/40 transition-all text-xs font-bold shadow-sm"
+                >
+                  <Download className="w-4 h-4 text-brand" />
+                  Export JSON Backup
+                </button>
+              </div>
+
+              {/* Restore Section */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <Upload className="w-4 h-4 text-brand" />
+                  Restore Database
+                </h4>
+                <p className="text-xs text-white/60 leading-relaxed text-red-300/80">
+                  Restore your application from a previously downloaded JSON backup file. <strong>Warning: This will overwrite and delete all your current local sessions and data.</strong>
+                </p>
+                <label className="cursor-pointer w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 text-white hover:border-brand/45 transition-all text-xs font-bold shadow-sm">
+                  <Upload className="w-4 h-4 text-brand" />
+                  <span>Import JSON Backup</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={handleImportBackup}
+                  />
+                </label>
+              </div>
+
+              {/* Reset Section */}
+              <div className="space-y-3 border-t border-white/5 pt-6">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <Trash2 className="w-4 h-4 text-red-400" />
+                  Reset Application
+                </h4>
+                <p className="text-xs text-white/60 leading-relaxed text-red-300/80">
+                  Wipe all folders, sessions, settings, and audio recordings from this device. <strong>Warning: This action is permanent and cannot be undone.</strong>
+                </p>
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Reset App Data
+                </button>
+              </div>
+            </div>
+
+            {/* Drawer Footer / Version Info */}
+            <div className="border-t border-white/5 pt-4 text-center mt-auto">
+              <p className="text-[10px] text-white/30 tracking-widest font-mono">
+                ZOUTTY v{version}
+              </p>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Version Modal */}
       {showVersionModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
@@ -539,12 +1117,473 @@ export default function App() {
         </div>
       )}
 
+      {/* Confirm Restore Modal */}
+      {restoreBackupFile && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+            <h3 className="text-xl font-bold flex items-center gap-2 text-white">
+              <Upload className="w-6 h-6 text-brand" />
+              Confirm Restore
+            </h3>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Are you sure you want to restore the backup file <strong className="text-white">"{restoreBackupFile.name}"</strong>? 
+              <br /><br />
+              This will overwrite and delete all your current local sessions, folders, settings, and audio recordings. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button onClick={() => setRestoreBackupFile(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">Cancel</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile)} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">Restore</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Reset Modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+            <h3 className="text-xl font-bold flex items-center gap-2 text-red-400">
+              <Trash2 className="w-6 h-6 text-red-500" />
+              Confirm Reset
+            </h3>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Are you sure you want to reset the app? 
+              <br /><br />
+              This will permanently delete all folders, sessions, settings, and audio clips from this device. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button onClick={() => setShowResetConfirm(false)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">Cancel</button>
+              <button onClick={handleResetApp} className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm">Reset Everything</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Folder Create/Rename Modal */}
+      {folderModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+          <form onSubmit={handleCreateOrRenameFolder} className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <Folder className="w-6 h-6 text-brand" />
+              {folderModal.type === 'create' ? 'Create Folder' : 'Rename Folder'}
+            </h3>
+            <div className="space-y-2">
+              <label className="text-xs text-white/50 font-bold uppercase tracking-wider">Folder Name</label>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Enter folder name..."
+                value={folderModal.name}
+                onChange={(e) => setFolderModal({ ...folderModal, name: e.target.value })}
+                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-brand/50 transition-colors"
+                required
+              />
+            </div>
+            <div className="flex gap-3 justify-end items-center">
+              <button type="button" onClick={() => setFolderModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Cancel</button>
+              <button type="submit" className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]">Save</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Delete Folder Modal */}
+      {deleteFolderModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+          <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95">
+            <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
+              <Trash2 className="w-6 h-6 shrink-0" />
+              Delete Folder
+            </h3>
+            <p className="text-white/80">
+              Are you sure you want to delete the folder <strong className="text-white">"{deleteFolderModal.name}"</strong>?
+            </p>
+            
+            {/* Custom confirm option checkbox */}
+            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="deleteSessionsCheckbox"
+                className="mt-1.5 w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand shrink-0 cursor-pointer"
+              />
+              <label htmlFor="deleteSessionsCheckbox" className="text-sm text-red-300 font-semibold cursor-pointer select-none">
+                Also delete all sessions inside this folder
+                <span className="block text-xs font-normal text-white/50 mt-1 font-sans">
+                  (If left unchecked, these sessions will be preserved and moved to the root level)
+                </span>
+              </label>
+            </div>
+
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button onClick={() => setDeleteFolderModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Cancel</button>
+              <button
+                onClick={() => {
+                  const cb = document.getElementById('deleteSessionsCheckbox') as HTMLInputElement;
+                  confirmDeleteFolder(cb?.checked || false);
+                }}
+                className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]"
+              >
+                Delete Folder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move Session Modal */}
+      {moveSessionModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+          <div className="glass p-6 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <FolderOpen className="w-5 h-5 text-brand" />
+                Move Session to Folder
+              </h3>
+              <button
+                onClick={() => setMoveSessionModal(null)}
+                className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors text-white/60"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <p className="text-xs text-white/60 font-sans">
+              Choose a folder destination for this session:
+            </p>
+
+            <div className="space-y-2.5 max-h-[40vh] overflow-y-auto pr-1">
+              {/* Root (Ungrouped) Option */}
+              <button
+                onClick={async () => {
+                  await updateSession(moveSessionModal.sessionId, { groupId: undefined });
+                  showToast('Session moved to Root');
+                  setMoveSessionModal(null);
+                }}
+                className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${
+                  !moveSessionModal.currentGroupId
+                    ? 'bg-brand/20 border-brand text-brand font-semibold'
+                    : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
+                }`}
+              >
+                <Folder className="w-5 h-5 opacity-60 text-brand" />
+                <div className="flex-1 text-sm">Root (Ungrouped)</div>
+                {!moveSessionModal.currentGroupId && <CheckCircle2 className="w-4 h-4 text-brand" />}
+              </button>
+
+              {/* Folders List */}
+              {groups.filter(g => g.id !== 'root').map(group => (
+                <button
+                  key={group.id}
+                  onClick={async () => {
+                    await updateSession(moveSessionModal.sessionId, { groupId: group.id });
+                    showToast(`Session moved to "${group.name}"`);
+                    setMoveSessionModal(null);
+                  }}
+                  className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${
+                    moveSessionModal.currentGroupId === group.id
+                      ? 'bg-blue-500/20 border-blue-500 text-blue-400 font-semibold'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
+                  }`}
+                >
+                  <Folder className="w-5 h-5 opacity-60 text-blue-400" />
+                  <div className="flex-1 text-sm truncate">{group.name}</div>
+                  {moveSessionModal.currentGroupId === group.id && <CheckCircle2 className="w-4 h-4 text-blue-400" />}
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setMoveSessionModal(null)}
+                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-sm min-h-[38px]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Session Modal */}
+      {shareModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+          <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <Share2 className="w-6 h-6 text-brand" />
+              Share Session
+            </h3>
+            
+            {!shareModal.generatedLink ? (
+              <>
+                <p className="text-white/70 text-sm">
+                  Select what information you want to share with other users:
+                </p>
+                <div className="space-y-4 bg-black/20 p-4.5 rounded-2xl border border-white/5 max-h-[45vh] overflow-y-auto pr-1">
+                  <div className="space-y-2">
+                    <label className={`flex items-center gap-3 ${!shareModal.availableReport ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
+                      <input
+                        type="checkbox"
+                        disabled={!shareModal.availableReport}
+                        checked={shareModal.shareReport}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setShareModal({
+                            ...shareModal,
+                            shareReport: checked,
+                            shareStrictSummary: checked ? shareModal.availableStrictSummary : false,
+                            shareDrills: checked ? shareModal.availableDrills : false,
+                            shareHomework: checked ? shareModal.availableHomework : false,
+                            shareTechnical: checked ? shareModal.availableTechnical : false,
+                            shareEmotional: checked ? shareModal.availableEmotional : false,
+                          });
+                        }}
+                        className="w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                      />
+                      <span className={`text-sm font-semibold ${!shareModal.availableReport ? 'text-white/40' : 'text-white'}`}>
+                        Consolidated Session Report {!shareModal.availableReport && "(Locked/Not Consolidated)"}
+                      </span>
+                    </label>
+                    
+                    {/* Hierarchical sub-options */}
+                    <div className={`pl-7 space-y-2 border-l border-white/10 ml-2 mt-1 transition-all ${(!shareModal.availableReport || !shareModal.shareReport) ? 'opacity-40' : ''}`}>
+                      {/* Select all / Deselect all toggle */}
+                      {shareModal.availableReport && shareModal.shareReport && (
+                        <div className="flex gap-2 mb-1.5 animate-in fade-in duration-200">
+                          <button
+                            type="button"
+                            onClick={() => setShareModal({
+                              ...shareModal,
+                              shareStrictSummary: shareModal.availableStrictSummary,
+                              shareDrills: shareModal.availableDrills,
+                              shareHomework: shareModal.availableHomework,
+                              shareTechnical: shareModal.availableTechnical,
+                              shareEmotional: shareModal.availableEmotional
+                            })}
+                            className="text-[10px] bg-white/5 hover:bg-white/10 text-white/60 px-2 py-1 rounded transition-colors font-bold uppercase"
+                          >
+                            Select All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShareModal({
+                              ...shareModal,
+                              shareStrictSummary: false,
+                              shareDrills: false,
+                              shareHomework: false,
+                              shareTechnical: false,
+                              shareEmotional: false
+                            })}
+                            className="text-[10px] bg-white/5 hover:bg-white/10 text-white/60 px-2 py-1 rounded transition-colors font-bold uppercase"
+                          >
+                            Deselect All
+                          </button>
+                        </div>
+                      )}
+                      
+                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableStrictSummary) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                        <input
+                          type="checkbox"
+                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableStrictSummary}
+                          checked={shareModal.shareStrictSummary}
+                          onChange={(e) => setShareModal({ ...shareModal, shareStrictSummary: e.target.checked })}
+                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                        />
+                        <span className="text-xs text-white/80">Strict Summary {!shareModal.availableStrictSummary && shareModal.availableReport && "(Not available)"}</span>
+                      </label>
+                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableDrills) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                        <input
+                          type="checkbox"
+                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableDrills}
+                          checked={shareModal.shareDrills}
+                          onChange={(e) => setShareModal({ ...shareModal, shareDrills: e.target.checked })}
+                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                        />
+                        <span className="text-xs text-white/80">Drills {!shareModal.availableDrills && shareModal.availableReport && "(Not available)"}</span>
+                      </label>
+                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableHomework) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                        <input
+                          type="checkbox"
+                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableHomework}
+                          checked={shareModal.shareHomework}
+                          onChange={(e) => setShareModal({ ...shareModal, shareHomework: e.target.checked })}
+                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                        />
+                        <span className="text-xs text-white/80">Homework {!shareModal.availableHomework && shareModal.availableReport && "(Not available)"}</span>
+                      </label>
+                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableTechnical) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                        <input
+                          type="checkbox"
+                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableTechnical}
+                          checked={shareModal.shareTechnical}
+                          onChange={(e) => setShareModal({ ...shareModal, shareTechnical: e.target.checked })}
+                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                        />
+                        <span className="text-xs text-white/80">Technical Expansion {!shareModal.availableTechnical && shareModal.availableReport && "(Not available)"}</span>
+                      </label>
+                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableEmotional) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                        <input
+                          type="checkbox"
+                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableEmotional}
+                          checked={shareModal.shareEmotional}
+                          onChange={(e) => setShareModal({ ...shareModal, shareEmotional: e.target.checked })}
+                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                        />
+                        <span className="text-xs text-white/80">Emotional Notes {!shareModal.availableEmotional && shareModal.availableReport && "(Not available)"}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <label className={`flex items-center gap-3 ${!shareModal.availableNotes ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <input
+                      type="checkbox"
+                      disabled={!shareModal.availableNotes}
+                      checked={shareModal.shareNotes}
+                      onChange={(e) => setShareModal({ ...shareModal, shareNotes: e.target.checked })}
+                      className="w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                    />
+                    <span className={`text-sm font-semibold ${!shareModal.availableNotes ? 'text-white/40' : 'text-white'}`}>
+                      Custom Session Notes {!shareModal.availableNotes && "(No notes written)"}
+                    </span>
+                  </label>
+                  <label className={`flex items-center gap-3 ${!shareModal.availableTranscripts ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <input
+                      type="checkbox"
+                      disabled={!shareModal.availableTranscripts}
+                      checked={shareModal.shareTranscripts}
+                      onChange={(e) => setShareModal({ ...shareModal, shareTranscripts: e.target.checked })}
+                      className="w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                    />
+                    <span className={`text-sm font-semibold ${!shareModal.availableTranscripts ? 'text-white/40' : 'text-white'}`}>
+                      Individual Clip Transcripts {!shareModal.availableTranscripts && "(No audio clips transcribed)"}
+                    </span>
+                  </label>
+                </div>
+                
+                <div className="flex gap-3 justify-end items-center">
+                  <button onClick={() => setShareModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Cancel</button>
+                  <button
+                    onClick={handleGenerateShareLink}
+                    disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts}
+                    className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]"
+                  >
+                    Generate Share Link
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  <p className="text-white/80 text-sm">
+                    Your shareable link is ready! Send this URL to another user to share this session:
+                  </p>
+                  <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl p-3">
+                    <input
+                      type="text"
+                      readOnly
+                      value={shareModal.generatedLink}
+                      className="bg-transparent text-xs text-white/80 outline-none flex-1 font-mono select-all"
+                    />
+                    <button
+                      onClick={() => {
+                        if (shareModal.generatedLink) {
+                          navigator.clipboard.writeText(shareModal.generatedLink);
+                          showToast('Link copied to clipboard!');
+                        }
+                      }}
+                      className="p-2 bg-brand/20 hover:bg-brand/35 text-brand rounded-lg transition-colors flex items-center justify-center shrink-0"
+                      title="Copy link"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button onClick={() => setShareModal(null)} className="px-6 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">Close</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+
+
+      {/* Import Preview Modal */}
+      {importPreview && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+          <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95 max-h-[85vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-brand flex items-center gap-2">
+              <Share2 className="w-6 h-6 shrink-0" />
+              Shared Session
+            </h3>
+            <p className="text-white/80 text-sm font-sans">
+              Someone shared a dance lesson session with you:
+            </p>
+            
+            <div className="bg-black/30 p-5 rounded-2xl border border-white/10 space-y-3.5">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-brand block">Title</span>
+                <span className="text-sm font-semibold text-white">{importPreview.title}</span>
+              </div>
+              {importPreview.subtitle && (
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">Subtitle</span>
+                  <span className="text-sm text-white/80">{importPreview.subtitle}</span>
+                </div>
+              )}
+              {importPreview.notes && (
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">Notes Shared</span>
+                  <p className="text-xs text-white/60 line-clamp-3 mt-1 italic font-sans">"{importPreview.notes}"</p>
+                </div>
+              )}
+              {importPreview.report && (
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">Report Shared</span>
+                  <span className="text-xs text-green-400 font-semibold block mt-1 font-sans">✓ Consolidated Session Report Included</span>
+                </div>
+              )}
+              {importPreview.transcripts && (
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">Clips Shared</span>
+                  <span className="text-xs text-blue-400 font-semibold block mt-1 font-sans">✓ {importPreview.transcripts.length} Audio Clip Transcripts Included</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 justify-end items-center">
+              <button
+                onClick={() => {
+                  window.history.replaceState({}, document.title, window.location.pathname);
+                  setImportPreview(null);
+                }}
+                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+              >
+                Reject
+              </button>
+              <button
+                onClick={handleImportSession}
+                className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
+              >
+                Import Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Bar */}
       <header className="px-6 py-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {view === 'detail' && (
+          {(view === 'detail' || (view === 'list' && selectedGroupId !== null)) && (
             <button
-              onClick={() => setView('list')}
+              onClick={() => {
+                if (view === 'detail') {
+                  setView('list');
+                } else {
+                  setSelectedGroupId(null);
+                }
+              }}
               className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 transition-colors"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -566,6 +1605,15 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-3">
+          {view === 'list' && (
+            <button
+              onClick={() => setShowAppSettings(true)}
+              className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 text-white/40 hover:text-brand transition-colors"
+              title="Zoutty Settings"
+            >
+              <Settings className="w-5 h-5 text-brand" />
+            </button>
+          )}
           {view === 'detail' && selectedSession && (
             <button
               onClick={async () => {
@@ -611,49 +1659,189 @@ export default function App() {
       <main className="max-w-2xl mx-auto px-6 pb-32">
         {view === 'list' ? (
           <div className="space-y-8">
-            <button
-              onClick={createSession}
-              className="w-full py-6 glass bg-brand/10 border-brand/20 text-brand font-bold text-lg flex items-center justify-center gap-3 hover:bg-brand/20 transition-all shadow-lg glow-brand"
-            >
-              <Plus className="w-6 h-6" />
-              New Session
-            </button>
+            {selectedGroupId && (
+              <div className="flex items-center gap-2 text-sm font-bold text-white/40 uppercase tracking-widest">
+                <FolderOpen className="w-4 h-4 text-blue-400" />
+                <span>Folder: {groups.find(g => g.id === selectedGroupId)?.name}</span>
+              </div>
+            )}
+
+            {/* Action buttons - Compact same-line layout */}
+            <div className={selectedGroupId ? "" : "grid grid-cols-2 gap-4"}>
+              <button
+                onClick={createSession}
+                className={`py-3.5 glass bg-brand/10 border-brand/20 text-brand font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand ${selectedGroupId ? 'w-full py-4 text-base' : ''}`}
+              >
+                <Plus className="w-4 h-4" />
+                Session
+              </button>
+              {!selectedGroupId && (
+                <button
+                  onClick={() => setFolderModal({ type: 'create', name: '' })}
+                  className="py-3.5 glass bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500/20 transition-all rounded-2xl shadow-lg shadow-blue-500/10"
+                >
+                  <FolderPlus className="w-4 h-4" />
+                  Folder
+                </button>
+              )}
+            </div>
+
+            {/* Folders List - Shown in Root */}
+            {!selectedGroupId && groups.filter(g => g.id !== 'root').length > 0 && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">Folders</h2>
+                  
+                  {/* Folder Sorting controls bar */}
+                  <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
+                    <span className="hidden sm:inline">Sort by:</span>
+                    <div className="flex gap-3.5">
+                      <button
+                        onClick={() => handleFolderSortClick('date')}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'date' ? 'text-brand font-bold' : ''}`}
+                      >
+                        Recent
+                        {folderSortBy === 'date' && (folderSortOrder === 'asc' ? ' ↑' : ' ↓')}
+                      </button>
+                      <button
+                        onClick={() => handleFolderSortClick('name')}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'name' ? 'text-brand font-bold' : ''}`}
+                      >
+                        Name
+                        {folderSortBy === 'name' && (folderSortOrder === 'asc' ? ' ↑' : ' ↓')}
+                      </button>
+                      <button
+                        onClick={() => handleFolderSortClick('created')}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'created' ? 'text-brand font-bold' : ''}`}
+                      >
+                        Created
+                        {folderSortBy === 'created' && (folderSortOrder === 'asc' ? ' ↑' : ' ↓')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {sortFolders(groups.filter(g => g.id !== 'root')).map(group => (
+                    <div
+                      key={group.id}
+                      onClick={() => setSelectedGroupId(group.id)}
+                      className="glass p-4.5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer border border-blue-500/10 rounded-2xl"
+                    >
+                      <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                        <Folder className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold truncate text-white">{group.name}</h3>
+                        <p className="text-xs text-white/40 mt-0.5 font-medium font-sans">
+                          {sessions.filter(s => s.groupId === group.id).length} sessions
+                        </p>
+                      </div>
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setFolderModal({ type: 'rename', id: group.id, name: group.name })}
+                          className="p-2 bg-white/5 hover:bg-white/10 text-white/60 rounded-xl transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+                          title="Rename folder"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteFolderModal({ id: group.id, name: group.name })}
+                          className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+                          title="Delete folder"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">Recent Sessions</h2>
-              {sessions.length === 0 ? (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">
+                  {selectedGroupId ? 'Sessions in Folder' : 'Sessions'}
+                </h2>
+                
+                {/* Sorting controls bar */}
+                <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
+                  <span className="hidden sm:inline">Sort by:</span>
+                  <div className="flex gap-3.5">
+                    <button
+                      onClick={() => handleSessionSortClick('date')}
+                      className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'date' ? 'text-brand font-bold' : ''}`}
+                    >
+                      Recent
+                      {sessionSortBy === 'date' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
+                    </button>
+                    <button
+                      onClick={() => handleSessionSortClick('name')}
+                      className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'name' ? 'text-brand font-bold' : ''}`}
+                    >
+                      Name
+                      {sessionSortBy === 'name' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
+                    </button>
+                    <button
+                      onClick={() => handleSessionSortClick('created')}
+                      className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'created' ? 'text-brand font-bold' : ''}`}
+                    >
+                      Created
+                      {sessionSortBy === 'created' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {sessions.filter(s => selectedGroupId ? s.groupId === selectedGroupId : !s.groupId).length === 0 ? (
                 <div className="glass p-12 text-center text-white/20">
                   <FileAudio className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>No sessions yet.</p>
+                  <p>No sessions in this folder.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
-                  {sessions.map(session => (
+                  {sortSessions(
+                    sessions.filter(s => selectedGroupId ? s.groupId === selectedGroupId : !s.groupId)
+                  ).map(session => (
                     <div
                       key={session.id}
                       onClick={() => {
                         setSelectedSessionId(session.id);
                         setView('detail');
                       }}
-                      className="glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer"
+                      className="glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer rounded-2xl border border-white/5 hover:border-brand/25"
                     >
-                      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
                         <FileAudio className="w-6 h-6 text-brand" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-semibold truncate text-white">{session.title}</h3>
-                        <p className="text-xs text-white/40 mt-1 truncate">{session.subtitle || 'Zouk Lesson'}</p>
+                        <p className="text-xs text-white/40 mt-1 truncate">{session.subtitle || 'Lesson'}</p>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          requestDeleteSession(session.id, session.title);
-                        }}
-                        className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-2 min-h-[44px] min-w-[44px]"
-                      >
-                        <Trash2 className="w-5 h-5 shrink-0" />
-                        <span className="text-sm font-bold hidden sm:inline">Delete</span>
-                      </button>
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMoveSessionModal({ sessionId: session.id, currentGroupId: session.groupId });
+                          }}
+                          className="p-3 bg-white/5 text-white/60 hover:text-brand hover:bg-white/10 rounded-xl transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
+                          title="Move to folder"
+                        >
+                          <Folder className="w-5 h-5 shrink-0" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            requestDeleteSession(session.id, session.title);
+                          }}
+                          className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
+                          title="Delete session"
+                        >
+                          <Trash2 className="w-5 h-5 shrink-0" />
+                          <span className="text-sm font-bold hidden sm:inline">Delete</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -674,6 +1862,41 @@ export default function App() {
             onProcessEntry={handleProcessEntry}
             onRequestReprocess={(id) => setReprocessModal(id)}
             onError={(msg) => showToast(msg, true)}
+            groups={groups}
+            glossaries={glossaries}
+            onShare={async () => {
+              const report = await db.getSessionFinalReport(selectedSession.id);
+              const hasReport = !!selectedSession.summary && !!report;
+              const hasNotes = !!selectedSession.notes;
+              const hasTranscripts = Object.values(audioEntries).some(e => e.sessionId === selectedSession.id && !!e.transcript);
+              
+              const hasStrictSummary = hasReport && !!report.report?.strictSummary && report.report.strictSummary.length > 0;
+              const hasDrills = hasReport && !!report.report?.expandedInsights?.drills && report.report.expandedInsights.drills.length > 0;
+              const hasHomework = hasReport && !!report.report?.expandedInsights?.homework && report.report.expandedInsights.homework.length > 0;
+              const hasTechnical = hasReport && !!report.report?.expandedInsights?.technicalExpansion && report.report.expandedInsights.technicalExpansion.length > 0;
+              const hasEmotional = hasReport && !!report.report?.expandedInsights?.emotionalNotes && report.report.expandedInsights.emotionalNotes.length > 0;
+
+              setShareModal({
+                sessionId: selectedSession.id,
+                shareReport: hasReport,
+                shareNotes: hasNotes,
+                shareTranscripts: hasTranscripts,
+                shareStrictSummary: hasStrictSummary,
+                shareDrills: hasDrills,
+                shareHomework: hasHomework,
+                shareTechnical: hasTechnical,
+                shareEmotional: hasEmotional,
+                availableReport: hasReport,
+                availableNotes: hasNotes,
+                availableTranscripts: hasTranscripts,
+                availableStrictSummary: hasStrictSummary,
+                availableDrills: hasDrills,
+                availableHomework: hasHomework,
+                availableTechnical: hasTechnical,
+                availableEmotional: hasEmotional,
+              });
+            }}
+            onDeleteSession={() => requestDeleteSession(selectedSession.id, selectedSession.title)}
           />
         )}
       </main>
@@ -695,7 +1918,11 @@ function SessionDetail({
   onDeleteEntry,
   onProcessEntry,
   onRequestReprocess,
-  onError
+  onError,
+  groups,
+  glossaries,
+  onShare,
+  onDeleteSession
 }: {
   session: Session;
   entries: AudioEntry[];
@@ -703,12 +1930,16 @@ function SessionDetail({
   onRecording: (blob: Blob, lang: Language) => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>, lang: Language) => void;
   onConsolidate: () => void;
-  onUpdateSession: (changes: Partial<Pick<Session, 'title' | 'subtitle' | 'notes' | 'cardOrder'>>) => void;
+  onUpdateSession: (changes: Partial<Session>) => void;
   onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void;
   onDeleteEntry: (entryId: string) => void;
   onProcessEntry: (entryId: string) => Promise<void>;
   onRequestReprocess: (id: string) => void;
   onError: (msg: string) => void;
+  groups: SessionGroup[];
+  glossaries: DanceGlossary[];
+  onShare: () => void;
+  onDeleteSession: () => void;
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [micLevel, setMicLevel] = useState(0); // 0..1 live mic energy
@@ -719,13 +1950,39 @@ function SessionDetail({
   const [tempSubtitle, setTempSubtitle] = useState(session.subtitle ?? '');
   const [isReordering, setIsReordering] = useState(false);
   const [isNoteVisible, setIsNoteVisible] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const parentGroup = groups.find(g => g.id === session.groupId);
+
+  // Buffered settings states
+  const [tempGroupId, setTempGroupId] = useState('');
+  const [tempGlossaryId, setTempGlossaryId] = useState('auto');
+  const [tempCustomGlossaryStyle, setTempCustomGlossaryStyle] = useState('');
+  const [tempLanguage, setTempLanguage] = useState<Language>('auto');
+
+  const handleConfirmSettings = () => {
+    onUpdateSession({
+      groupId: tempGroupId || undefined,
+      glossaryId: tempGlossaryId,
+      customGlossaryStyle: tempCustomGlossaryStyle || undefined
+    });
+    setLanguage(tempLanguage);
+    setIsSettingsOpen(false);
+  };
+
+  const handleCancelSettings = () => {
+    setIsSettingsOpen(false);
+  };
+
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const isCancelledRef = useRef(false);
 
   const startRecording = async () => {
     try {
+      isCancelledRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 48000 }
       });
@@ -778,7 +2035,13 @@ function SessionDetail({
         console.log('[MediaRecorder] Total chunks:', audioChunks.current.length);
         const audioBlob = new Blob(audioChunks.current, { type: blobType });
         console.log('[MediaRecorder] Blob size:', audioBlob.size, 'type:', audioBlob.type);
-        onRecording(audioBlob, language);
+        
+        if (isCancelledRef.current) {
+          console.log('[MediaRecorder] Recording cancelled, discarding chunks.');
+        } else {
+          onRecording(audioBlob, language);
+        }
+        
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -796,6 +2059,11 @@ function SessionDetail({
     setMicLevel(0);
     mediaRecorder.current?.stop();
     setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    isCancelledRef.current = true;
+    stopRecording();
   };
 
   const handleSubtitleSubmit = () => {
@@ -816,6 +2084,13 @@ function SessionDetail({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Session Header: date (white) + optional editable subtitle */}
       <div>
+        {parentGroup && (
+          <div className="flex items-center gap-1.5 text-xs text-white/40 mb-2.5">
+            <Folder className="w-3.5 h-3.5 text-brand" />
+            <span className="font-semibold text-white/60">{parentGroup.name}</span>
+            <span className="text-white/20">/</span>
+          </div>
+        )}
         {/* Date line — always shown, white, bold */}
         {isEditingTitle ? (
           <input
@@ -859,19 +2134,43 @@ function SessionDetail({
               {session.subtitle ? (
                 <span>{session.subtitle}</span>
               ) : (
-                <span className="italic text-white/20 group-hover:text-white/40">Zouk Lesson</span>
+                <span className="italic text-white/20 group-hover:text-white/40">Lesson</span>
               )}
               <Edit2 className="w-3.5 h-3.5 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0" />
             </button>
-            <button
-              onClick={() => setIsReordering(!isReordering)}
-              className={`p-2 rounded-xl border transition-colors flex items-center justify-center ${isReordering ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'}`}
-              title={isReordering ? "Disable reorder mode" : "Enable reorder mode"}
-            >
-              <GripHorizontal className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onShare}
+                className="p-2 rounded-xl border bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80 transition-colors flex items-center justify-center min-h-[38px] min-w-[38px]"
+                title="Share session"
+              >
+                <Share2 className="w-4 h-4 text-brand" />
+              </button>
+              <button
+                onClick={() => setIsReordering(!isReordering)}
+                className={`p-2 rounded-xl border transition-colors flex items-center justify-center ${isReordering ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'} min-h-[38px] min-w-[38px]`}
+                title={isReordering ? "Disable reorder mode" : "Enable reorder mode"}
+              >
+                <GripHorizontal className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => {
+                  setTempGroupId(session.groupId || '');
+                  setTempGlossaryId(session.glossaryId || 'auto');
+                  setTempCustomGlossaryStyle(session.customGlossaryStyle || '');
+                  setTempLanguage(language);
+                  setIsSettingsOpen(true);
+                }}
+                className="p-2 rounded-xl border bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80 transition-colors flex items-center justify-center min-h-[38px] min-w-[38px]"
+                title="Session Settings"
+              >
+                <Settings className="w-4 h-4 text-brand" />
+              </button>
+            </div>
           </div>
         )}
+
+
       </div>
 
       <div id="sessionDetailContent" className="mt-8">
@@ -880,6 +2179,7 @@ function SessionDetail({
           entries={entries}
           processingIds={processingIds}
           isReordering={isReordering}
+          onToggleReordering={() => setIsReordering(false)}
           onUpdateEntry={onUpdateEntry}
           onDeleteEntry={onDeleteEntry}
           onProcessEntry={onProcessEntry}
@@ -891,12 +2191,8 @@ function SessionDetail({
         />
       </div>
 
-      {/* Notes Section moved into SessionStructuredData for reorderability */}
-
       {/* Controls - Floating at bottom */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 glass p-4 rounded-full flex items-center justify-center gap-4 sm:gap-6 shadow-2xl z-40 border border-white/10 bg-black/60 backdrop-blur-md">
-
-        <CustomLanguagePicker language={language} setLanguage={setLanguage} />
 
         <label
           className="cursor-pointer flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-full transition-colors shadow-sm"
@@ -905,6 +2201,16 @@ function SessionDetail({
           <input id="uploadBtn" type="file" accept="audio/*" multiple className="hidden" onChange={(e) => onUpload(e, language)} />
         </label>
 
+        {isRecording && (
+          <button
+            onClick={cancelRecording}
+            className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-full transition-colors shadow-sm animate-in fade-in zoom-in duration-200"
+            title="Cancel recording"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+        )}
+
         <button
           id="recordBtn"
           onClick={isRecording ? stopRecording : startRecording}
@@ -912,12 +2218,12 @@ function SessionDetail({
             boxShadow: `0 0 0 ${4 + micLevel * 16}px rgba(239,68,68,${0.3 + micLevel * 0.6})`
           } : {}}
           className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full font-bold transition-all shadow-lg ${isRecording
-            ? 'bg-red-500 text-white'
-            : 'bg-brand text-bg-dark hover:bg-brand/90 glow-brand scale-110'
-            }`}
-          title={isRecording ? `Mic level: ${Math.round(micLevel * 100)}%` : 'Start recording'}
+            ? 'bg-red-500 text-white hover:bg-red-600 scale-95 animate-pulse'
+            : 'bg-brand text-black hover:bg-brand-light hover:scale-105'
+            } min-h-[64px] min-w-[64px]`}
+          title={isRecording ? "Stop recording and save" : "Start recording"}
         >
-          {isRecording ? <Square className="w-6 h-6 sm:w-8 sm:h-8 fill-current" /> : <Mic className="w-7 h-7 sm:w-10 sm:h-10" />}
+          {isRecording ? <Square className="w-6 h-6 sm:w-8 sm:h-8" /> : <Mic className="w-6 h-6 sm:w-8 sm:h-8" />}
         </button>
 
         <button
@@ -929,6 +2235,134 @@ function SessionDetail({
           <Wand2 className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
       </div>
+
+      {/* Settings Drawer */}
+      {isSettingsOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 animate-in fade-in duration-200"
+            onClick={handleCancelSettings}
+          />
+          {/* Drawer Panel */}
+          <div
+            className="fixed bottom-0 left-0 right-0 rounded-t-3xl border-t border-white/10 p-6 pb-8 bg-[#1e1e22]/95 backdrop-blur-md z-50 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto sm:w-96 sm:rounded-l-3xl sm:rounded-tr-none sm:border-l sm:border-t-0 sm:slide-in-from-right"
+          >
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-brand" />
+                Session Settings
+              </h3>
+              <button
+                onClick={handleCancelSettings}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Content */}
+            <div className="flex-1 overflow-y-auto space-y-6 pr-1">
+              {/* Folder Selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+                  <Folder className="w-3.5 h-3.5 text-brand" />
+                  Folder
+                </label>
+                <select
+                  value={tempGroupId}
+                  onChange={(e) => setTempGroupId(e.target.value)}
+                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
+                >
+                  <option value="" className="bg-[#2a2a2e]">None (Root)</option>
+                  {groups.map(g => (
+                    <option key={g.id} value={g.id} className="bg-[#2a2a2e]">{g.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Glossary Selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-brand" />
+                  Dance Style Glossary
+                </label>
+                <select
+                  value={tempGlossaryId}
+                  onChange={(e) => setTempGlossaryId(e.target.value)}
+                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
+                >
+                  <option value="auto" className="bg-[#2a2a2e]">Auto-Detect (AI)</option>
+                  {glossaries.map(g => (
+                    <option key={g.id} value={g.id} className="bg-[#2a2a2e]">{g.name}</option>
+                  ))}
+                  <option value="other" className="bg-[#2a2a2e]">Other (Specify...)</option>
+                </select>
+              </div>
+
+              {/* Specify Custom Dance Style */}
+              {tempGlossaryId === 'other' && (
+                <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-1 duration-200">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-brand font-semibold">Specify Dance Style</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Samba de Gafieira, West Coast Swing..."
+                    value={tempCustomGlossaryStyle}
+                    onChange={(e) => setTempCustomGlossaryStyle(e.target.value)}
+                    className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-brand/50 transition-colors w-full placeholder:text-white/20"
+                  />
+                </div>
+              )}
+
+              {/* Transcription Language */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-brand" />
+                  Transcription Language
+                </label>
+                <select
+                  value={tempLanguage}
+                  onChange={(e) => setTempLanguage(e.target.value as Language)}
+                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
+                >
+                  <option value="auto" className="bg-[#2a2a2e]">Auto-Detect (AI)</option>
+                  <option value="pt-BR" className="bg-[#2a2a2e]">Portuguese (PT-BR)</option>
+                  <option value="es" className="bg-[#2a2a2e]">Spanish (ES)</option>
+                  <option value="en" className="bg-[#2a2a2e]">English (EN)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Drawer Footer / Confirm, Cancel, and Delete Actions */}
+            <div className="border-t border-white/5 pt-4 mt-auto flex flex-col gap-3">
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelSettings}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-white text-xs min-h-[40px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSettings}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors text-xs min-h-[40px]"
+                >
+                  Confirm
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  onDeleteSession();
+                }}
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-[11px] font-bold shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Session
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1129,8 +2563,19 @@ function SortableCard({ id, children, isDraggable = true, isReordering = false }
 
 // ─── Session Structured Data ────────────────────────────────────────────────
 
-function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void }) {
+function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onToggleReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onToggleReordering?: () => void; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void }) {
   const [report, setReport] = useState<any | null>(null);
+
+  const formatClipDate = (timestamp: number) => {
+    const d = new Date(timestamp);
+    const day = String(d.getDate()).padStart(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[d.getMonth()];
+    const year = String(d.getFullYear()).slice(-2);
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+  };
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
   const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(false);
   const [isNoteVisible, setIsNoteVisible] = useState(false);
@@ -1226,11 +2671,18 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     availableItems.set(reportId, (
       <div className={`border rounded-2xl overflow-hidden shadow-sm ${consolidatedStrictSummary ? 'border-brand/40 bg-brand/5' : 'border-white/10 glass'}`}>
         <div
-          className="px-5 py-3 flex items-center gap-3 bg-brand/10 cursor-pointer select-none transition-colors hover:bg-brand/20"
+          className="px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 bg-brand/10 cursor-pointer select-none transition-colors hover:bg-brand/20"
           onClick={() => setIsConsolidatedOpen(o => !o)}
         >
-          <Sparkles className="w-5 h-5 text-brand" />
-          <span className="font-bold text-base">Consolidated Session Report</span>
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-brand" />
+            <span className="font-bold text-base">Consolidated Session Report</span>
+          </div>
+          {report?.timestamp && (
+            <span className="text-[10px] font-sans text-white/40 font-semibold sm:self-center">
+              Consolidated: {formatClipDate(report.timestamp)}
+            </span>
+          )}
         </div>
         {isConsolidatedOpen && (
           <div className="p-4 space-y-4 bg-black/20 border-t border-brand/20">
@@ -1256,7 +2708,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
 
   // Build audio card maps
   entries.forEach((audio, index) => {
-    const time = new Date(audio.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const time = formatClipDate(audio.timestamp);
     const displayTitle = audio.filename || `Audio Entry ${entries.length - index}`;
     const isOpen = isEntryOpen(audio.id);
     const isProcessing = processingIds.has(audio.id);
@@ -1365,8 +2817,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 250,
-        tolerance: 5
+        distance: 8
       }
     }),
     useSensor(TouchSensor, {
@@ -1392,9 +2843,13 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     <div className="space-y-4 relative mt-2">
       {isReordering && (
         <div className="flex items-center justify-center mb-6">
-          <div className="bg-brand/10 text-brand border border-brand/20 text-xs uppercase font-bold tracking-widest px-4 py-2 rounded-full shadow-sm flex items-center gap-2">
+          <button
+            onClick={() => onToggleReordering?.()}
+            className="bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 text-xs uppercase font-bold tracking-widest px-4 py-2 rounded-full shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
+            title="Click to deactivate reorder mode"
+          >
             <GripHorizontal className="w-4 h-4" /> Reorder Mode Active
-          </div>
+          </button>
         </div>
       )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -1474,15 +2929,23 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
               />
             ) : (
               <span
-                className="font-bold text-sm text-white cursor-text hover:text-white/80 transition-colors flex items-center gap-2 group w-max"
-                onClick={(e) => { e.stopPropagation(); setTempTitle(displayTitle); setIsEditingTitle(true); }}
-                title="Edit clip name"
+                className={`font-bold text-sm text-white flex items-center gap-2 group w-max ${isOpen ? 'cursor-text hover:text-white/80' : ''}`}
+                onClick={(e) => {
+                  if (isOpen) {
+                    e.stopPropagation();
+                    setTempTitle(displayTitle);
+                    setIsEditingTitle(true);
+                  }
+                }}
+                title={isOpen ? "Edit clip name" : undefined}
               >
                 {displayTitle}
-                <Edit2 className="w-3 h-3 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0 cursor-pointer" />
+                {isOpen && (
+                  <Edit2 className="w-3 h-3 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0 cursor-pointer" />
+                )}
               </span>
             )}
-            <span className="text-xs text-white/40">{time}h - {audio.type === 'recording' ? 'Live' : 'Clip'}</span>
+            <span className="text-xs text-white/40">{time} - {audio.type === 'recording' ? 'Live' : 'Clip'}</span>
           </div>
           {isProcessing && (
             <span className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand animate-pulse bg-brand/10 px-3 py-1.5 rounded-lg border border-brand/20">PROCESSING...</span>
@@ -1735,58 +3198,4 @@ function StructuredBullets({ contentObj, isReport, onChange }: { contentObj: any
   return <ul className="m-0 p-0 list-none">{listItems}</ul>;
 }
 
-function CustomLanguagePicker({ language, setLanguage }: { language: Language, setLanguage: (l: Language) => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const pickerRef = useRef<HTMLDivElement>(null);
 
-  const options: { value: Language, label: string }[] = [
-    { value: 'auto', label: 'Auto' },
-    { value: 'pt-BR', label: 'PT-BR' },
-    { value: 'es', label: 'ES' },
-    { value: 'en', label: 'EN' }
-  ];
-
-  // Close when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const selectedOption = options.find(o => o.value === language);
-
-  return (
-    <div className="relative" ref={pickerRef} id="languagePicker">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-full transition-colors shadow-sm"
-      >
-        <Globe className="w-5 h-5 sm:w-6 sm:h-6" />
-      </button>
-
-      {isOpen && (
-        <div className="absolute bottom-full left-0 mb-3 bg-[#2a2a2e] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200 min-w-[120px]">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => {
-                setLanguage(option.value);
-                setIsOpen(false);
-              }}
-              className={`w-full text-left px-4 py-3 text-sm transition-colors border-b border-white/5 last:border-0 ${language === option.value
-                ? 'bg-brand/20 text-brand font-bold'
-                : 'text-white/80 hover:bg-white/10'
-                }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}

@@ -19,6 +19,8 @@ export const callZoukAudioProcessor = async (payload: {
     language: string;
     sessionId: string;
     filename?: string;
+    glossary?: any[];
+    danceStyle?: string;
 }) => {
     const base64Audio = await blobToBase64(payload.audio);
     const mimeType = payload.audio.type || 'audio/webm';
@@ -36,7 +38,9 @@ export const callZoukAudioProcessor = async (payload: {
             language: payload.language,
             filename: payload.filename,
             base64Audio,
-            mimeType
+            mimeType,
+            glossary: payload.glossary,
+            danceStyle: payload.danceStyle
         })
     });
 
@@ -61,3 +65,4 @@ export const callZoukAudioProcessor = async (payload: {
 
     return await response.json();
 };
+

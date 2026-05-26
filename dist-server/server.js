@@ -32,27 +32,46 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
-async function processAudioWithGemini(base64Audio, mimeType, language, zoukGlossary) {
+async function processAudioWithGemini(base64Audio, mimeType, language, danceGlossary, danceStyle = 'Brazilian Zouk') {
     let totalPromptTokens = 0;
     let totalResponseTokens = 0;
     // Flatten the glossary JSON into a dense, comma-separated string to save tokens
-    const compressedGlossary = Array.isArray(zoukGlossary) ? zoukGlossary.map((item) => {
+    const compressedGlossary = Array.isArray(danceGlossary) ? danceGlossary.map((item) => {
         const variants = item.variants && item.variants.length > 0 ? ` (${item.variants.join(', ')})` : '';
         return `${item.canonicalTerm || ''}${variants}`;
     }).filter(Boolean).join(', ') : '';
-    const glossaryContext = compressedGlossary ? `\n\nKnown Brazilian Zouk terminology to listen for:\n${compressedGlossary}` : '';
-    const prompt = `You are an expert Brazilian Zouk instructor processing a lesson audio (Language: ${language || 'Auto'}).
+    const isAuto = danceStyle.toLowerCase() === 'auto';
+    const glossaryContext = compressedGlossary ? `\n\nKnown ${isAuto ? 'dance' : danceStyle} terminology to listen for:\n${compressedGlossary}` : '';
+    let prompt = '';
+    if (isAuto) {
+        prompt = `You are an expert dance instructor processing a lesson audio (Language: ${language || 'Auto'}).
+Provide:
+1. A clean transcription of the audio. Remove speech disfluencies and false starts. Preserve exact technical meaning and terminology.
+2. The detected dance style of this lesson (e.g. Brazilian Zouk, Salsa, Bachata, Kizomba, West Coast Swing, or another style).
+
+Return ONLY valid JSON matching this schema:
+{
+  "transcript": "raw transcription text",
+  "detectedStyle": "detected dance style name"
+}
+
+${glossaryContext}`;
+    }
+    else {
+        prompt = `You are an expert ${danceStyle} instructor processing a lesson audio (Language: ${language || 'Auto'}).
 Provide a clean transcription of the audio.
 - Remove speech disfluencies and false starts.
 - Preserve exact technical meaning and terminology.
 - Output ONLY the raw transcription text. No JSON, no markdown.
 
 ${glossaryContext}`;
+    }
     const result = await genAI.models.generateContent({
         model: 'gemini-2.5-flash', // Fast and accurate for transcribing
         config: {
             temperature: 0.1, // Very low temp for stable transcription
             maxOutputTokens: 2000,
+            responseMimeType: isAuto ? 'application/json' : 'text/plain'
         },
         contents: [
             {
@@ -74,22 +93,39 @@ ${glossaryContext}`;
     console.log(`[Gemini Transcription Usage] Prompt: ${totalPromptTokens} tokens`);
     console.log(`[Gemini Transcription Usage] Response: ${totalResponseTokens} tokens`);
     console.log(`[Gemini Transcription Usage] Total: ${totalTokens} tokens`);
+    if (isAuto) {
+        try {
+            const cleanText = (result.text || '').replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+            const parsed = JSON.parse(cleanText || '{}');
+            return {
+                transcript: (parsed.transcript || '').trim(),
+                detectedStyle: (parsed.detectedStyle || '').trim()
+            };
+        }
+        catch (e) {
+            console.error('Failed to parse detected JSON from Gemini, fallback to raw text:', e);
+            return {
+                transcript: (result.text || '').trim(),
+                detectedStyle: 'Brazilian Zouk' // Fallback default
+            };
+        }
+    }
     return {
         transcript: (result.text || '').trim()
     };
 }
-async function consolidateTranscriptsWithGemini(transcripts, zoukGlossary) {
+async function consolidateTranscriptsWithGemini(transcripts, danceGlossary, danceStyle = 'Brazilian Zouk') {
     if (!transcripts || transcripts.length === 0)
         return null;
     // Flatten the glossary
-    const compressedGlossary = Array.isArray(zoukGlossary) ? zoukGlossary.map((item) => {
+    const compressedGlossary = Array.isArray(danceGlossary) ? danceGlossary.map((item) => {
         const variants = item.variants && item.variants.length > 0 ? ` (${item.variants.join(', ')})` : '';
         return `${item.canonicalTerm || ''}${variants}`;
     }).filter(Boolean).join(', ') : '';
-    const glossaryContext = compressedGlossary ? `\n\nBrazilian Zouk Glossary for reference:\n${compressedGlossary}` : '';
+    const glossaryContext = compressedGlossary ? `\n\n${danceStyle} Glossary for reference:\n${compressedGlossary}` : '';
     const combinedTranscripts = transcripts.map((t, i) => `--- Clip ${i + 1} Transcription ---\n${t}`).join('\n\n');
-    const prompt = `You are a world-class Brazilian Zouk head instructor. 
-Below are multiple transcriptions from various moments of a single Zouk lesson.
+    const prompt = `You are a world-class ${danceStyle} head instructor. 
+Below are multiple transcriptions from various moments of a single ${danceStyle} lesson.
 Your task is to provide a single, cohesive, "Consolidated Session Report" that synthesizes ALL the technical information while ELIMINATING redundancies.
 
 CRITICAL: 
@@ -150,7 +186,7 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
             return res.status(429).json({ error: 'Too many audio requests. Maximum 10 per minute allowed.' });
         }
         audioRequestTimestamps.push(now);
-        const { sessionId, language, filename, base64Audio, mimeType } = req.body;
+        const { sessionId, language, filename, base64Audio, mimeType, glossary, danceStyle } = req.body;
         if (!sessionId || !base64Audio) {
             console.error('[/api/gemini/process-single-audio] Missing required fields:', {
                 hasSessionId: !!sessionId,
@@ -162,24 +198,24 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
             console.error('[/api/gemini/process-single-audio] GEMINI_API_KEY is not configured');
             return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
         }
-        const glossaryPath = path.resolve(process.cwd(), 'zoukGlossary.json');
-        let zoukGlossary = {};
-        if (fs.existsSync(glossaryPath)) {
-            try {
-                zoukGlossary = JSON.parse(fs.readFileSync(glossaryPath, 'utf-8'));
-            }
-            catch (e) {
-                console.warn('[/api/gemini/process-single-audio] Failed to parse zoukGlossary.json:', e);
+        let activeGlossary = glossary;
+        let activeStyle = danceStyle || 'Brazilian Zouk';
+        if (!activeGlossary) {
+            const glossaryPath = path.resolve(process.cwd(), 'zoukGlossary.json');
+            if (fs.existsSync(glossaryPath)) {
+                try {
+                    activeGlossary = JSON.parse(fs.readFileSync(glossaryPath, 'utf-8'));
+                }
+                catch (e) {
+                    console.warn('[/api/gemini/process-single-audio] Failed to parse zoukGlossary.json:', e);
+                }
             }
         }
         const resolvedMimeType = mimeType || 'audio/webm';
-        console.log(`[/api/gemini/process-single-audio] Processing audio for session=${sessionId}`);
-        console.log('MIME:', resolvedMimeType);
-        console.log('Base64 length:', base64Audio.length);
-        console.log('Base64 head:', base64Audio.slice(0, 40));
+        console.log(`[/api/gemini/process-single-audio] Processing audio for session=${sessionId}, style=${activeStyle}`);
         let result;
         try {
-            result = await processAudioWithGemini(base64Audio, resolvedMimeType, language || 'Auto', zoukGlossary);
+            result = await processAudioWithGemini(base64Audio, resolvedMimeType, language || 'Auto', activeGlossary, activeStyle);
         }
         catch (geminiError) {
             const status = geminiError?.status || geminiError?.code;
@@ -239,7 +275,7 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             return res.status(429).json({ error: 'Too many audio requests. Maximum 10 per minute allowed.' });
         }
         audioRequestTimestamps.push(now);
-        const { sessionId, audios } = req.body;
+        const { sessionId, audios, glossary, danceStyle } = req.body;
         if (!sessionId || !audios || !Array.isArray(audios)) {
             console.error('[/api/gemini/process-audio] Invalid payload:', { sessionId, audiosType: typeof audios });
             return res.status(400).json({ error: 'Invalid payload: sessionId and audios array are required' });
@@ -248,14 +284,17 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             console.error('[/api/gemini/process-audio] GEMINI_API_KEY is not configured');
             return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
         }
-        const glossaryPath = path.resolve(process.cwd(), 'zoukGlossary.json');
-        let zoukGlossary = {};
-        if (fs.existsSync(glossaryPath)) {
-            try {
-                zoukGlossary = JSON.parse(fs.readFileSync(glossaryPath, 'utf-8'));
-            }
-            catch (e) {
-                console.warn('[/api/gemini/process-audio] Failed to parse zoukGlossary.json:', e);
+        let activeGlossary = glossary;
+        let activeStyle = danceStyle || 'Brazilian Zouk';
+        if (!activeGlossary) {
+            const glossaryPath = path.resolve(process.cwd(), 'zoukGlossary.json');
+            if (fs.existsSync(glossaryPath)) {
+                try {
+                    activeGlossary = JSON.parse(fs.readFileSync(glossaryPath, 'utf-8'));
+                }
+                catch (e) {
+                    console.warn('[/api/gemini/process-audio] Failed to parse zoukGlossary.json:', e);
+                }
             }
         }
         const allTranscripts = [];
@@ -278,7 +317,7 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             const resolvedMimeType = audio.mimeType || 'audio/webm';
             console.log(`[/api/gemini/process-audio] Transcribing audio ${i + 1}/${audios.length}, id=${audioId}`);
             try {
-                const result = await processAudioWithGemini(audio.base64, resolvedMimeType, language, zoukGlossary);
+                const result = await processAudioWithGemini(audio.base64, resolvedMimeType, language, activeGlossary, activeStyle);
                 if (result.transcript) {
                     allTranscripts.push(result.transcript);
                     newTranscriptsRecord[audioId] = result.transcript;
@@ -291,7 +330,7 @@ app.post('/api/gemini/process-audio', async (req, res) => {
         }
         console.log(`[/api/gemini/process-audio] Total transcripts gathered: ${allTranscripts.length}. Synthesizing...`);
         // 3. Synthesize the final consolidated report
-        const report = await consolidateTranscriptsWithGemini(allTranscripts, zoukGlossary);
+        const report = await consolidateTranscriptsWithGemini(allTranscripts, activeGlossary, activeStyle);
         return res.json({
             report,
             newTranscripts: newTranscriptsRecord
@@ -306,6 +345,94 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             error: 'Internal server error',
             details: error?.message || String(error)
         });
+    }
+});
+// Route to generate a new dance style glossary dynamically
+app.post('/api/gemini/generate-glossary', async (req, res) => {
+    try {
+        const { styleName } = req.body;
+        if (!styleName) {
+            return res.status(400).json({ error: 'styleName is required' });
+        }
+        if (!GEMINI_API_KEY) {
+            return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
+        }
+        console.log(`[/api/gemini/generate-glossary] Generating vocabulary for "${styleName}"`);
+        const prompt = `You are a world-class dance historian and head instructor.
+Generate a comprehensive glossary of vocabulary, technical movements, and terminology for the dance style: "${styleName}".
+Generate exactly 10 to 18 of the most common, distinct, and important moves, concepts, mechanical terms, or styling terms specific to this dance style.
+
+Return ONLY a valid JSON array matching this schema:
+[
+  {
+    "canonicalTerm": "Canonical Term Name (e.g. Cross Body Lead)",
+    "variants": ["variant 1", "variant 2"],
+    "category": "foundation | turns | mechanics | head | body | styling | advanced"
+  }
+]`;
+        const result = await genAI.models.generateContent({
+            model: 'gemini-2.5-flash',
+            config: {
+                temperature: 0.3,
+                responseMimeType: 'application/json'
+            },
+            contents: [{ parts: [{ text: prompt }] }]
+        });
+        const cleanText = (result.text || '').replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+        const terms = JSON.parse(cleanText || '[]');
+        return res.json({ terms });
+    }
+    catch (error) {
+        console.error('[/api/gemini/generate-glossary] Glossary generation failed:', error);
+        return res.status(500).json({ error: 'Failed to generate glossary', details: error.message });
+    }
+});
+// Sharing endpoints
+const SHARE_DIR = path.resolve(__dirname, '../shared');
+// Ensure shared directory exists
+if (!fs.existsSync(SHARE_DIR)) {
+    fs.mkdirSync(SHARE_DIR, { recursive: true });
+}
+app.post('/api/share', (req, res) => {
+    try {
+        const sessionData = req.body;
+        if (!sessionData || !sessionData.title) {
+            return res.status(400).json({ error: 'Invalid shared session data' });
+        }
+        // Generate a random 6-character alphanumeric short code
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let shareId = '';
+        for (let i = 0; i < 6; i++) {
+            shareId += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        const filePath = path.join(SHARE_DIR, `${shareId}.json`);
+        fs.writeFileSync(filePath, JSON.stringify(sessionData, null, 2), 'utf-8');
+        console.log(`[server] Session shared successfully with ID: ${shareId}`);
+        res.json({ shareId });
+    }
+    catch (e) {
+        console.error('Sharing failed:', e);
+        res.status(500).json({ error: 'Failed to share session', details: e.message });
+    }
+});
+app.get('/api/share/:shareId', (req, res) => {
+    try {
+        const { shareId } = req.params;
+        const filePath = path.join(SHARE_DIR, `${shareId}.json`);
+        // Basic path traversal prevention
+        const resolvedPath = path.resolve(filePath);
+        if (!resolvedPath.startsWith(path.resolve(SHARE_DIR))) {
+            return res.status(400).json({ error: 'Invalid share ID' });
+        }
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'Shared session not found' });
+        }
+        const data = fs.readFileSync(filePath, 'utf-8');
+        res.json(JSON.parse(data));
+    }
+    catch (e) {
+        console.error('Retrieving shared session failed:', e);
+        res.status(500).json({ error: 'Failed to retrieve shared session', details: e.message });
     }
 });
 // Fallback route: all non-API routes return dist/index.html
