@@ -159,7 +159,8 @@ export const db = {
       });
     }
 
-    // Serialize blob-mode media items to Base64; reference-mode items only store metadata
+    // Serialize media items: convert both Blob mode and Reference mode files to Base64
+    // so they are fully packaged and restored on import.
     const serializedMedia = [];
     for (const item of allMedia) {
       if (item.storageMode === 'blob' && item.blob) {
@@ -173,11 +174,31 @@ export const db = {
           serializedMedia.push({ ...item, blob: undefined, mediaBase64: base64 });
         } catch (e) {
           console.error("Failed to serialize media blob for item", item.id, e);
-          serializedMedia.push({ ...item, blob: undefined }); // skip blob on error
+          serializedMedia.push({ ...item, blob: undefined });
         }
       } else {
-        // Reference mode: only metadata backed up (no fileHandle — not JSON-serializable)
-        serializedMedia.push({ ...item, blob: undefined, fileHandle: undefined });
+        // Reference mode: try to read the file contents using the file handle
+        // and serialize it to Base64 in the backup so it's not lost on restore!
+        let base64 = undefined;
+        if (item.fileHandle) {
+          try {
+            // Request read permission if needed
+            const perm = await item.fileHandle.queryPermission({ mode: 'read' });
+            if (perm !== 'granted') {
+              await item.fileHandle.requestPermission({ mode: 'read' });
+            }
+            const file = await item.fileHandle.getFile();
+            base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+          } catch (e) {
+            console.error("Failed to serialize reference file for backup", item.id, e);
+          }
+        }
+        serializedMedia.push({ ...item, blob: undefined, fileHandle: undefined, mediaBase64: base64 });
       }
     }
 
@@ -273,14 +294,17 @@ export const db = {
       }
     }
 
-    // 7. Restore Media Items (blob-mode items restore from Base64; reference-mode items restore as broken links)
+    // 7. Restore Media Items (blob-mode items restore from Base64; reference-mode items restore as broken links unless base64 data is found in backup)
     const mediaToRestore = backup.data.media;
     if (Array.isArray(mediaToRestore)) {
       for (const m of mediaToRestore) {
         let restoredBlob: Blob | undefined = undefined;
-        if (m.storageMode === 'blob' && m.mediaBase64) {
+        let finalStorageMode = m.storageMode;
+
+        if (m.mediaBase64) {
           try {
             restoredBlob = base64ToBlob(m.mediaBase64);
+            finalStorageMode = 'blob'; // promote to blob mode so it's fully restored and viewable!
           } catch (e) {
             console.error("Failed to reconstruct media blob for item", m.id, e);
           }
@@ -292,9 +316,9 @@ export const db = {
           filename: m.filename,
           mimeType: m.mimeType,
           size: m.size,
-          storageMode: m.storageMode,
+          storageMode: finalStorageMode,
           blob: restoredBlob,
-          fileHandle: undefined // fileHandle is not JSON-serializable; restored as broken link
+          fileHandle: undefined
         };
         await db.saveMediaItem(mediaItem);
       }
