@@ -40,6 +40,10 @@ import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, Session
 import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
+import { CustomSelect } from './components/CustomSelect';
+import { CustomCheckbox } from './components/CustomCheckbox';
+import { CustomSwitch } from './components/CustomSwitch';
+import { AutoGrowingTextarea } from './components/AutoGrowingTextarea';
 import Markdown from 'react-markdown';
 import { exportDocx } from './lib/exportDocx';
 import { useTranslation } from './i18n/TranslationContext';
@@ -175,6 +179,7 @@ export default function App() {
   
   const [folderModal, setFolderModal] = useState<{ type: 'create' | 'rename', id?: string, name: string } | null>(null);
   const [deleteFolderModal, setDeleteFolderModal] = useState<{ id: string, name: string } | null>(null);
+  const [deleteFolderAlsoSessions, setDeleteFolderAlsoSessions] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
   
   const [shareModal, setShareModal] = useState<{
@@ -1217,15 +1222,14 @@ export default function App() {
                 <p className="text-xs text-white/60 leading-relaxed">
                   {t('appSettings.languageSectionDesc')}
                 </p>
-                <select
+                <CustomSelect
                   value={uiLanguage}
-                  onChange={(e) => setUILanguage(e.target.value as any)}
-                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
-                >
-                  {Object.entries(UI_LANGUAGE_NAMES).map(([code, name]) => (
-                    <option key={code} value={code} className="bg-[#2a2a2e]">{name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setUILanguage(val as any)}
+                  options={Object.entries(UI_LANGUAGE_NAMES).map(([code, name]) => ({
+                    value: code,
+                    label: name
+                  }))}
+                />
               </div>
 
               {/* Backup & Restore — collapsible */}
@@ -1404,28 +1408,38 @@ export default function App() {
             <p className="text-white/80">
               {t('modals.deleteFolderMsg', { name: deleteFolderModal.name })}
             </p>
-            
+
             {/* Custom confirm option checkbox */}
-            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-start gap-3">
-              <input
-                type="checkbox"
+            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">
+              <CustomCheckbox
                 id="deleteSessionsCheckbox"
-                className="mt-1.5 w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand shrink-0 cursor-pointer"
+                checked={deleteFolderAlsoSessions}
+                onChange={setDeleteFolderAlsoSessions}
+                label={
+                  <div className="text-sm text-red-300 font-semibold cursor-pointer select-none">
+                    {t('modals.deleteFolderAlsoSessions')}
+                    <span className="block text-xs font-normal text-white/50 mt-1 font-sans">
+                      {t('modals.deleteFolderSessionsNote')}
+                    </span>
+                  </div>
+                }
               />
-              <label htmlFor="deleteSessionsCheckbox" className="text-sm text-red-300 font-semibold cursor-pointer select-none">
-                {t('modals.deleteFolderAlsoSessions')}
-                <span className="block text-xs font-normal text-white/50 mt-1 font-sans">
-                  {t('modals.deleteFolderSessionsNote')}
-                </span>
-              </label>
             </div>
 
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setDeleteFolderModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
               <button
                 onClick={() => {
-                  const cb = document.getElementById('deleteSessionsCheckbox') as HTMLInputElement;
-                  confirmDeleteFolder(cb?.checked || false);
+                  setDeleteFolderModal(null);
+                  setDeleteFolderAlsoSessions(false);
+                }}
+                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+              >
+                {t('modals.cancelBtn')}
+              </button>
+              <button
+                onClick={() => {
+                  confirmDeleteFolder(deleteFolderAlsoSessions);
+                  setDeleteFolderAlsoSessions(false);
                 }}
                 className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]"
               >
@@ -1524,34 +1538,31 @@ export default function App() {
                 <p className="text-white/70 text-sm">
                   {t('modals.shareSelectInfo')}
                 </p>
-                <div className="space-y-4 bg-black/20 p-4.5 rounded-2xl border border-white/5 max-h-[45vh] overflow-y-auto pr-1">
+                <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5 max-h-[45vh] overflow-y-auto pr-1">
                   <div className="space-y-2">
-                    <label className={`flex items-center gap-3 ${!shareModal.availableReport ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
-                      <input
-                        type="checkbox"
-                        disabled={!shareModal.availableReport}
-                        checked={shareModal.shareReport}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setShareModal({
-                            ...shareModal,
-                            shareReport: checked,
-                            shareStrictSummary: checked ? shareModal.availableStrictSummary : false,
-                            shareDrills: checked ? shareModal.availableDrills : false,
-                            shareHomework: checked ? shareModal.availableHomework : false,
-                            shareTechnical: checked ? shareModal.availableTechnical : false,
-                            shareEmotional: checked ? shareModal.availableEmotional : false,
-                          });
-                        }}
-                        className="w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
-                      />
-                      <span className={`text-sm font-semibold ${!shareModal.availableReport ? 'text-white/40' : 'text-white'}`}>
-                        {t('modals.shareConsolidatedReport')} {!shareModal.availableReport && t('modals.shareReportLocked')}
-                      </span>
-                    </label>
-                    
+                    <CustomSwitch
+                      disabled={!shareModal.availableReport}
+                      checked={shareModal.shareReport}
+                      onChange={(checked) => {
+                        setShareModal({
+                          ...shareModal,
+                          shareReport: checked,
+                          shareStrictSummary: checked ? shareModal.availableStrictSummary : false,
+                          shareDrills: checked ? shareModal.availableDrills : false,
+                          shareHomework: checked ? shareModal.availableHomework : false,
+                          shareTechnical: checked ? shareModal.availableTechnical : false,
+                          shareEmotional: checked ? shareModal.availableEmotional : false,
+                        });
+                      }}
+                      label={
+                        <span className={`text-sm font-semibold ${!shareModal.availableReport ? 'text-white/40' : 'text-white'}`}>
+                          {t('modals.shareConsolidatedReport')} {!shareModal.availableReport && t('modals.shareReportLocked')}
+                        </span>
+                      }
+                      className="px-2 py-1.5"
+                    />
                     {/* Hierarchical sub-options */}
-                    <div className={`pl-7 space-y-2 border-l border-white/10 ml-2 mt-1 transition-all ${(!shareModal.availableReport || !shareModal.shareReport) ? 'opacity-40' : ''}`}>
+                    <div className={`space-y-2.5 mt-2.5 transition-all ${(!shareModal.availableReport || !shareModal.shareReport) ? 'opacity-40' : ''}`}>
                       {/* Select all / Deselect all toggle */}
                       {shareModal.availableReport && shareModal.shareReport && (
                         <div className="flex gap-2 mb-1.5 animate-in fade-in duration-200">
@@ -1586,85 +1597,72 @@ export default function App() {
                         </div>
                       )}
                       
-                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableStrictSummary) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                        <input
-                          type="checkbox"
-                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableStrictSummary}
-                          checked={shareModal.shareStrictSummary}
-                          onChange={(e) => setShareModal({ ...shareModal, shareStrictSummary: e.target.checked })}
-                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
-                        />
-                        <span className="text-xs text-white/80">{t('modals.shareStrictSummary')} {!shareModal.availableStrictSummary && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
-                      </label>
-                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableDrills) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                        <input
-                          type="checkbox"
-                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableDrills}
-                          checked={shareModal.shareDrills}
-                          onChange={(e) => setShareModal({ ...shareModal, shareDrills: e.target.checked })}
-                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
-                        />
-                        <span className="text-xs text-white/80">{t('modals.shareDrills')} {!shareModal.availableDrills && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
-                      </label>
-                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableHomework) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                        <input
-                          type="checkbox"
-                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableHomework}
-                          checked={shareModal.shareHomework}
-                          onChange={(e) => setShareModal({ ...shareModal, shareHomework: e.target.checked })}
-                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
-                        />
-                        <span className="text-xs text-white/80">{t('modals.shareHomework')} {!shareModal.availableHomework && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
-                      </label>
-                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableTechnical) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                        <input
-                          type="checkbox"
-                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableTechnical}
-                          checked={shareModal.shareTechnical}
-                          onChange={(e) => setShareModal({ ...shareModal, shareTechnical: e.target.checked })}
-                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
-                        />
-                        <span className="text-xs text-white/80">{t('modals.shareTechnical')} {!shareModal.availableTechnical && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
-                      </label>
-                      <label className={`flex items-center gap-2.5 ${(!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableEmotional) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                        <input
-                          type="checkbox"
-                          disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableEmotional}
-                          checked={shareModal.shareEmotional}
-                          onChange={(e) => setShareModal({ ...shareModal, shareEmotional: e.target.checked })}
-                          className="w-3.5 h-3.5 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
-                        />
-                        <span className="text-xs text-white/80">{t('modals.shareEmotional')} {!shareModal.availableEmotional && shareModal.availableReport && t('modals.shareNotAvailable')}</span>
-                      </label>
+                      <CustomCheckbox
+                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableStrictSummary}
+                        checked={shareModal.shareStrictSummary}
+                        onChange={(checked) => setShareModal({ ...shareModal, shareStrictSummary: checked })}
+                        label={t('modals.shareStrictSummary') + (!shareModal.availableStrictSummary && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
+                        className="py-0.5"
+                      />
+                      <CustomCheckbox
+                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableDrills}
+                        checked={shareModal.shareDrills}
+                        onChange={(checked) => setShareModal({ ...shareModal, shareDrills: checked })}
+                        label={t('modals.shareDrills') + (!shareModal.availableDrills && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
+                        className="py-0.5"
+                      />
+                      <CustomCheckbox
+                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableHomework}
+                        checked={shareModal.shareHomework}
+                        onChange={(checked) => setShareModal({ ...shareModal, shareHomework: checked })}
+                        label={t('modals.shareHomework') + (!shareModal.availableHomework && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
+                        className="py-0.5"
+                      />
+                      <CustomCheckbox
+                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableTechnical}
+                        checked={shareModal.shareTechnical}
+                        onChange={(checked) => setShareModal({ ...shareModal, shareTechnical: checked })}
+                        label={t('modals.shareTechnical') + (!shareModal.availableTechnical && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
+                        className="py-0.5"
+                      />
+                      <CustomCheckbox
+                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableEmotional}
+                        checked={shareModal.shareEmotional}
+                        onChange={(checked) => setShareModal({ ...shareModal, shareEmotional: checked })}
+                        label={t('modals.shareEmotional') + (!shareModal.availableEmotional && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
+                        className="py-0.5"
+                      />
                     </div>
                   </div>
 
-                  <label className={`flex items-center gap-3 ${!shareModal.availableNotes ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
-                    <input
-                      type="checkbox"
+                  <div className="pt-2 border-t border-white/5">
+                    <CustomSwitch
                       disabled={!shareModal.availableNotes}
                       checked={shareModal.shareNotes}
-                      onChange={(e) => setShareModal({ ...shareModal, shareNotes: e.target.checked })}
-                      className="w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                      onChange={(checked) => setShareModal({ ...shareModal, shareNotes: checked })}
+                      label={
+                        <span className={`text-sm font-semibold ${!shareModal.availableNotes ? 'text-white/40' : 'text-white'}`}>
+                          {t('modals.shareNotes')} {!shareModal.availableNotes && t('modals.shareNoNotes')}
+                        </span>
+                      }
+                      className="px-2 py-1.5"
                     />
-                    <span className={`text-sm font-semibold ${!shareModal.availableNotes ? 'text-white/40' : 'text-white'}`}>
-                      {t('modals.shareNotes')} {!shareModal.availableNotes && t('modals.shareNoNotes')}
-                    </span>
-                  </label>
-                  <label className={`flex items-center gap-3 ${!shareModal.availableTranscripts ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
-                    <input
-                      type="checkbox"
+                  </div>
+
+                  <div className="pt-2 border-t border-white/5">
+                    <CustomSwitch
                       disabled={!shareModal.availableTranscripts}
                       checked={shareModal.shareTranscripts}
-                      onChange={(e) => setShareModal({ ...shareModal, shareTranscripts: e.target.checked })}
-                      className="w-4 h-4 text-brand bg-black/30 border-white/20 rounded focus:ring-brand disabled:cursor-not-allowed"
+                      onChange={(checked) => setShareModal({ ...shareModal, shareTranscripts: checked })}
+                      label={
+                        <span className={`text-sm font-semibold ${!shareModal.availableTranscripts ? 'text-white/40' : 'text-white'}`}>
+                          {t('modals.shareTranscripts')} {!shareModal.availableTranscripts && t('modals.shareNoTranscripts')}
+                        </span>
+                      }
+                      className="px-2 py-1.5"
                     />
-                    <span className={`text-sm font-semibold ${!shareModal.availableTranscripts ? 'text-white/40' : 'text-white'}`}>
-                      {t('modals.shareTranscripts')} {!shareModal.availableTranscripts && t('modals.shareNoTranscripts')}
-                    </span>
-                  </label>
-                </div>
-                
+                  </div>
+                </div>                
                 <div className="flex gap-3 justify-end items-center">
                   <button onClick={() => setShareModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
                   <button
@@ -2715,16 +2713,15 @@ function SessionDetail({
                   <Folder className="w-3.5 h-3.5 text-brand" />
                   {t('sessionSettings.folderLabel')}
                 </label>
-                <select
-                  value={tempGroupId}
-                  onChange={(e) => setTempGroupId(e.target.value)}
-                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
-                >
-                  <option value="" className="bg-[#2a2a2e]">{t('sessionSettings.folderNone')}</option>
-                  {groups.map(g => (
-                    <option key={g.id} value={g.id} className="bg-[#2a2a2e]">{g.name}</option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={tempGroupId || ''}
+                  onChange={setTempGroupId}
+                  position="relative"
+                  options={[
+                    { value: '', label: t('sessionSettings.folderNone') },
+                    ...groups.map(g => ({ value: g.id, label: g.name }))
+                  ]}
+                />
               </div>
 
               {/* Glossary Selector */}
@@ -2733,17 +2730,16 @@ function SessionDetail({
                   <BookOpen className="w-3.5 h-3.5 text-brand" />
                   {t('sessionSettings.glossaryLabel')}
                 </label>
-                <select
+                <CustomSelect
                   value={tempGlossaryId}
-                  onChange={(e) => setTempGlossaryId(e.target.value)}
-                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white/80 outline-none focus:border-brand/50 transition-colors w-full cursor-pointer"
-                >
-                  <option value="auto" className="bg-[#2a2a2e]">{t('sessionSettings.glossaryAuto')}</option>
-                  {glossaries.map(g => (
-                    <option key={g.id} value={g.id} className="bg-[#2a2a2e]">{g.name}</option>
-                  ))}
-                  <option value="other" className="bg-[#2a2a2e]">{t('sessionSettings.glossaryOther')}</option>
-                </select>
+                  onChange={setTempGlossaryId}
+                  position="relative"
+                  options={[
+                    { value: 'auto', label: t('sessionSettings.glossaryAuto') },
+                    ...glossaries.map(g => ({ value: g.id, label: g.name })),
+                    { value: 'other', label: t('sessionSettings.glossaryOther') }
+                  ]}
+                />
               </div>
 
               {/* Specify Custom Dance Style */}
@@ -3091,12 +3087,12 @@ function EditableText({ value, onChange, className, multiline = false }: { value
   if (isEditing) {
     if (multiline) {
       return (
-        <textarea
+        <AutoGrowingTextarea
           autoFocus
           value={tempValue}
           onChange={(e) => setTempValue(e.target.value)}
           onBlur={handleSubmit}
-          className={`w-full bg-black/40 text-white/90 p-3 rounded-xl border border-brand/50 outline-none focus:border-brand transition-colors resize-y min-h-[100px] text-sm ${className || ''}`}
+          className={`w-full bg-black/40 text-white/90 p-3 rounded-xl border border-brand/50 outline-none focus:border-brand transition-colors resize-none overflow-hidden text-sm ${className || ''}`}
         />
       );
     }
@@ -3463,44 +3459,42 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     ));
   });
 
-  // Add the Notes Card
+  // Add the Notes Card (always render so it is visible even on empty/new sessions)
   const notesId = `notes-${sessionId}`;
-  if (sessionNotes || isNoteVisible || entries.length > 0) {
-    availableItems.set(notesId, (
-      <div className="glass p-6 rounded-2xl border border-white/10 shadow-sm relative w-full box-border">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('session.notesHeading')}</h3>
-          {!isNoteVisible && !sessionNotes && (
-            <button
-              onClick={() => setIsNoteVisible(true)}
-              className="text-brand hover:text-brand/80 font-bold text-sm transition-colors"
-            >
-              {t('session.addNote')}
-            </button>
-          )}
-        </div>
-        {(isNoteVisible || !!sessionNotes) && (
-          <textarea
-            autoFocus={isNoteVisible && !sessionNotes}
-            placeholder={t('session.notesPlaceholder')}
-            value={sessionNotes || ''}
-            onChange={(e) => {
-              onUpdateNotes(e.target.value);
-              if (e.target.value.trim().length === 0) {
-                setIsNoteVisible(false);
-              }
-            }}
-            onBlur={(e) => {
-              if (e.target.value.trim().length === 0) {
-                setIsNoteVisible(false);
-              }
-            }}
-            className="w-full min-h-[150px] bg-black/20 text-white/80 p-4 rounded-xl border border-white/5 outline-none focus:border-brand/50 transition-colors resize-y overflow-hidden box-border"
-          />
+  availableItems.set(notesId, (
+    <div className="glass p-6 rounded-2xl border border-white/10 shadow-sm relative w-full box-border">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('session.notesHeading')}</h3>
+        {!isNoteVisible && !sessionNotes && (
+          <button
+            onClick={() => setIsNoteVisible(true)}
+            className="text-brand hover:text-brand/80 font-bold text-sm transition-colors"
+          >
+            {t('session.addNote')}
+          </button>
         )}
       </div>
-    ));
-  }
+      {(isNoteVisible || !!sessionNotes) && (
+        <AutoGrowingTextarea
+          autoFocus={isNoteVisible && !sessionNotes}
+          placeholder={t('session.notesPlaceholder')}
+          value={sessionNotes || ''}
+          onChange={(e) => {
+            onUpdateNotes(e.target.value);
+            if (e.target.value.trim().length === 0) {
+              setIsNoteVisible(false);
+            }
+          }}
+          onBlur={(e) => {
+            if (e.target.value.trim().length === 0) {
+              setIsNoteVisible(false);
+            }
+          }}
+          className="w-full min-h-[150px] bg-black/20 text-white/80 p-4 rounded-xl border border-white/5 outline-none focus:border-brand/50 transition-colors resize-none overflow-hidden box-border"
+        />
+      )}
+    </div>
+  ));
 
   // Calculate sorted order 
   const currentKeys = Array.from(availableItems.keys());
