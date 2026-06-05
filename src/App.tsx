@@ -175,6 +175,7 @@ export default function App() {
   
   const [folderModal, setFolderModal] = useState<{ type: 'create' | 'rename', id?: string, name: string } | null>(null);
   const [deleteFolderModal, setDeleteFolderModal] = useState<{ id: string, name: string } | null>(null);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   
   const [shareModal, setShareModal] = useState<{
     sessionId: string;
@@ -1116,6 +1117,49 @@ export default function App() {
         </div>
       )}
 
+      {/* Export Session Modal */}
+      {showExportConfirm && selectedSession && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6" onClick={() => setShowExportConfirm(false)}>
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <Download className="w-5 h-5 text-brand" />
+              {t('modals.confirmExport')}
+            </h3>
+            <p className="text-white/70 text-sm">
+              {t('modals.exportMsg')}
+            </p>
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button
+                onClick={() => setShowExportConfirm(false)}
+                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer text-xs"
+              >
+                {t('modals.cancelBtn')}
+              </button>
+              <button
+                onClick={async () => {
+                  setShowExportConfirm(false);
+                  showSpinner(t('toast.generatingDoc'));
+                  try {
+                    const report = await db.getSessionFinalReport(selectedSession.id);
+                    const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp);
+                    await exportDocx(selectedSession, sessionEntries, report, t);
+                    showToast(t('toast.docExported'));
+                  } catch (err) {
+                    console.error(err);
+                    showToast(t('toast.failedExport'), true);
+                  } finally {
+                    hideSpinner();
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs"
+              >
+                {t('modals.exportBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Reprocess Modal */}
       {reprocessModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
@@ -1776,20 +1820,7 @@ export default function App() {
           )}
           {view === 'detail' && selectedSession && (
             <button
-              onClick={async () => {
-                showSpinner(t('toast.generatingDoc'));
-                try {
-                  const report = await db.getSessionFinalReport(selectedSession.id);
-                  const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp);
-                  await exportDocx(selectedSession, sessionEntries, report, t);
-                  showToast(t('toast.docExported'));
-                } catch (err) {
-                  console.error(err);
-                  showToast(t('toast.failedExport'), true);
-                } finally {
-                  hideSpinner();
-                }
-              }}
+              onClick={() => setShowExportConfirm(true)}
               className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
               title={t('session.exportToWord')}
             >
@@ -2826,7 +2857,12 @@ function SessionDetail({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            <div 
+              className="flex-1 overflow-y-auto space-y-3 pr-1"
+              onClick={() => {
+                if (isDeleteMode) setIsDeleteMode(false);
+              }}
+            >
               {mediaItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-white/30 gap-3">
                   <Images className="w-10 h-10 opacity-30" />
@@ -2848,14 +2884,23 @@ function SessionDetail({
                         }`}
                       >
                         {broken ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-center">
+                          <button
+                            className="w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-center cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isDeleteMode) {
+                                setMediaToDelete(item);
+                              }
+                            }}
+                          >
                             <LinkIcon className="w-6 h-6 text-red-400/60" />
                             <p className="text-[9px] text-white/40 leading-tight">{t('session.galleryBrokenLink')}</p>
-                          </div>
+                          </button>
                         ) : url ? (
                           <button
                             className="w-full h-full cursor-pointer"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               if (isDeleteMode) {
                                 setMediaToDelete(item);
                               } else {

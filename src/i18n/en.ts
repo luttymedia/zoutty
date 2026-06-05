@@ -84,6 +84,10 @@ const en = {
     confirmReprocess: 'Confirm Reprocess',
     reprocessMsg: 'Are you sure you want to reprocess this audio clip? This will overwrite the previous processing.',
     reprocessBtn: 'Reprocess',
+    // Export Session
+    confirmExport: 'Export Session',
+    exportMsg: 'You are about to download this session (including all transcriptions, summary reports, and homework) as a formatted Word Document (.docx).',
+    exportBtn: 'Download',
     // Version modal
     closeBtn: 'Close',
     // Restore backup

@@ -86,6 +86,10 @@ const es: Translations = {
     confirmReprocess: 'Confirmar reprocesamiento',
     reprocessMsg: '¿Seguro que quieres reprocesar este clip de audio? Esto sobreescribirá el procesamiento anterior.',
     reprocessBtn: 'Reprocesar',
+    // Export Session
+    confirmExport: 'Exportar Sesión',
+    exportMsg: 'Estás a punto de descargar esta sesión (incluyendo todas las transcripciones, informes de resumen y tareas) como un documento de Word formateado (.docx).',
+    exportBtn: 'Descargar',
     // Version modal
     closeBtn: 'Cerrar',
     // Restore backup
