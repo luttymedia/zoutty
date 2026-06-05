@@ -269,7 +269,52 @@ const en = {
     en: 'English',
     es: 'Español',
   },
-} as const;
+
+  // ─── Onboarding ─────────────────────────────────────────────────────────────
+  onboarding: {
+    welcomeTitle: 'Welcome to Zoutty.',
+    welcomeSubtitle: 'The memory and progression system for private dance lessons.',
+    interfaceLanguage: 'Interface Language',
+    primaryStyles: 'Primary Dance Styles',
+    brazilianZouk: 'Brazilian Zouk',
+    bachata: 'Bachata',
+    salsa: 'Salsa',
+    westCoastSwing: 'West Coast Swing',
+    kizomba: 'Kizomba',
+    other: 'Other',
+    continueBtn: 'Continue',
+    beforeWeStart: 'Before we start',
+    permissionsDesc: 'Zoutty works entirely on your device. To make that possible, we need a couple of permissions.',
+    micAccess: 'Microphone Access',
+    micDesc: 'Required to record the concepts, feedback, and notes from your lessons. Audio is never sent to the cloud.',
+    localStorage: 'Local Storage',
+    storageDesc: 'Required to save your sessions and link video files. Everything stays on your phone.',
+    startExploring: 'Start Exploring',
+    // Demo content
+    demoSessionTitle: 'Welcome & Tour Session',
+    demoSessionSubtitle: 'Editable session subtitle',
+    demoAudioTranscript: 'This is a mock recording of a dance lesson. You can capture combinations, tips, or feedback from your class here.',
+    demoAudioFilename: 'Sample Audio.mp3',
+    demoReportStrict1: 'Focus on weight transfer',
+    demoReportStrict2: 'Keep your frame engaged during turns',
+    demoReportDrill: '10 minutes of basic step alone',
+    demoReportHomework: 'Review the combo video',
+    // Demo Tooltips
+    demoTooltipConsolidate: '💡 In a real session, this button generates a structured AI report from all your clips.',
+    demoTooltipRecord: '💡  In a real session, tap here to record a live audio.',
+    demoTooltipUpload: '💡 In a real session, tap here to upload an audio file.',
+    demoTooltipEdit: '💡 In a real session, you can edit this text directly.',
+    demoTooltipDelete: '💡 In a real session, this deletes the item.',
+    demoTooltipShare: '💡 In a real session, you can generate a link to share this session.',
+    demoTooltipExport: '💡 In a real session, you can export this session to a Word Document.',
+    demoTooltipGallery: '💡 In a real session, you can attach videos and photos to the session here.',
+    demoTooltipSettings: '💡 In a real session, you can configure the dance style and language here.',
+    demoTooltipGlossary: '💡 In a real session, this detects the dance style automatically and applies the correct terminology (glossary) to the AI report.',
+    demoTooltipReprocess: '💡 In a real session, this re-transcribes the audio and extracts the raw content again.',
+    demoTooltipReorder: '💡 In a real session, you can reorder the items in this session.',
+    demoTooltipNotes: '💡 In a real session, you can add personal written notes to your session here.',
+  },
+};
 
 export default en;
 export type Translations = typeof en;

@@ -44,6 +44,7 @@ import { CustomSelect } from './components/CustomSelect';
 import { CustomCheckbox } from './components/CustomCheckbox';
 import { CustomSwitch } from './components/CustomSwitch';
 import { AutoGrowingTextarea } from './components/AutoGrowingTextarea';
+import { WelcomeModal } from './components/WelcomeModal';
 import Markdown from 'react-markdown';
 import { exportDocx } from './lib/exportDocx';
 import { useTranslation } from './i18n/TranslationContext';
@@ -152,6 +153,9 @@ const getSessionDefaultTitle = (date: Date | number, lang: string) => {
 
 export default function App() {
   const { t, uiLanguage, setUILanguage } = useTranslation();
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
+    () => localStorage.getItem('zoutty_onboarding_completed') === 'true'
+  );
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
@@ -1100,6 +1104,74 @@ export default function App() {
     }
   };
 
+  const seedDemoSession = async () => {
+    const demoSessionId = "demo-session";
+    const newSession = {
+      id: demoSessionId,
+      title: t('onboarding.demoSessionTitle'),
+      subtitle: t('onboarding.demoSessionSubtitle'),
+      date: Date.now(),
+      glossaryId: 'auto',
+      isDemo: true
+    };
+    await db.saveSession(newSession);
+
+    const mockAudio = {
+      id: "demo-audio-1",
+      sessionId: demoSessionId,
+      timestamp: Date.now(),
+      language: uiLanguage,
+      transcript: t('onboarding.demoAudioTranscript'),
+      type: "recording" as const,
+      filename: t('onboarding.demoAudioFilename'),
+    };
+    await db.saveAudioEntry(mockAudio);
+    
+    const mockReport = {
+      id: "demo-report-1",
+      sessionId: demoSessionId,
+      timestamp: Date.now(),
+      report: {
+        strictSummary: [t('onboarding.demoReportStrict1'), t('onboarding.demoReportStrict2')],
+        expandedInsights: {
+          drills: [t('onboarding.demoReportDrill')],
+          homework: [t('onboarding.demoReportHomework')],
+          technicalExpansion: [],
+          emotionalNotes: []
+        }
+      }
+    };
+    await db.saveFinalReport(mockReport);
+
+    const loadedSessions = await db.getSessions();
+    loadedSessions.sort((a, b) => b.date - a.date);
+    setSessions(loadedSessions);
+    
+    const loadedAudios = await db.getAudioEntries();
+    const audioRecord: Record<string, any> = {};
+    loadedAudios.forEach(a => audioRecord[a.id] = a);
+    setAudioEntries(audioRecord);
+    
+    // Auto navigate to the demo session list view (Homepage)
+    navigateTo('list', null, null, 'push');
+  };
+
+  const handleCompleteOnboarding = () => {
+    localStorage.setItem('zoutty_onboarding_completed', 'true');
+    setHasCompletedOnboarding(true);
+    seedDemoSession();
+  };
+
+  if (!hasCompletedOnboarding) {
+    return (
+      <WelcomeModal
+        currentLanguage={uiLanguage}
+        setLanguage={setUILanguage}
+        onComplete={handleCompleteOnboarding}
+      />
+    );
+  }
+
   // --- Renderers ---
   return (
     <div className="min-h-screen font-sans selection:bg-brand/30">
@@ -1276,6 +1348,28 @@ export default function App() {
                   </label>
                 </div>
               </AppSettingsCollapsible>
+
+              {/* Dev & Testing Section */}
+              <div className="space-y-3 border-t border-white/5 pt-6">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <Wand2 className="w-4 h-4 text-brand" />
+                  Development & Testing
+                </h4>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  Trigger onboarding flow or re-inject the mock demo session for testing purposes.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowAppSettings(false);
+                    localStorage.removeItem('zoutty_onboarding_completed');
+                    setHasCompletedOnboarding(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-brand/20 bg-brand/5 text-brand hover:bg-brand/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Test Onboarding Flow
+                </button>
+              </div>
 
               {/* Reset Section */}
               <div className="space-y-3 border-t border-white/5 pt-6">
@@ -1820,7 +1914,13 @@ export default function App() {
           )}
           {view === 'detail' && selectedSession && (
             <button
-              onClick={() => setShowExportConfirm(true)}
+              onClick={() => {
+                if (selectedSession.isDemo) {
+                  showToast(t('onboarding.demoTooltipExport'), false);
+                } else {
+                  setShowExportConfirm(true);
+                }
+              }}
               className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
               title={t('session.exportToWord')}
             >
@@ -2000,7 +2100,7 @@ export default function App() {
                       onClick={() => {
                         navigateTo('detail', session.id, selectedGroupId);
                       }}
-                      className="glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer rounded-2xl border border-white/5 hover:border-brand/25"
+                      className={`glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer rounded-2xl border ${session.isDemo ? 'border-brand/50 shadow-[0_0_20px_rgba(45,212,191,0.2)] animate-pulse hover:border-brand/70' : 'border-white/5 hover:border-brand/25'}`}
                     >
                       <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
                         <FileAudio className="w-6 h-6 text-brand" />
@@ -2042,15 +2142,15 @@ export default function App() {
             session={selectedSession}
             entries={Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp)}
             processingIds={processingIds}
-            onRecording={(blob, lang) => addAudioEntry(selectedSession.id, blob, lang, 'recording')}
-            onUpload={(e, lang) => handleFileUpload(e, lang)}
-            onConsolidate={handleConsolidate}
+            onRecording={(blob, lang) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipRecord'), false) : addAudioEntry(selectedSession.id, blob, lang, 'recording')}
+            onUpload={(e, lang) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipUpload'), false) : handleFileUpload(e, lang)}
+            onConsolidate={selectedSession.isDemo ? () => showToast(t('onboarding.demoTooltipConsolidate'), false) : handleConsolidate}
             onUpdateSession={(changes) => updateSession(selectedSession.id, changes)}
-            onUpdateEntry={updateAudioEntry}
-            onDeleteEntry={(id) => requestDeleteAudio(id, 'Audio Entry')}
-            onProcessEntry={handleProcessEntry}
-            onRequestReprocess={(id) => setReprocessModal(id)}
-            onError={(msg) => showToast(msg, true)}
+            onUpdateEntry={(id, changes) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipEdit'), false) : updateAudioEntry(id, changes)}
+            onDeleteEntry={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipDelete'), false) : requestDeleteAudio(id, 'Audio Entry')}
+            onProcessEntry={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipConsolidate'), false) : handleProcessEntry(id)}
+            onRequestReprocess={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipReprocess'), false) : setReprocessModal(id)}
+            showToast={showToast}
             groups={groups}
             glossaries={glossaries}
             onShare={async () => {
@@ -2110,7 +2210,7 @@ function SessionDetail({
   onDeleteEntry,
   onProcessEntry,
   onRequestReprocess,
-  onError,
+  showToast,
   groups,
   glossaries,
   onShare,
@@ -2129,7 +2229,7 @@ function SessionDetail({
   onDeleteEntry: (entryId: string) => void;
   onProcessEntry: (entryId: string) => Promise<void>;
   onRequestReprocess: (id: string) => void;
-  onError: (msg: string) => void;
+  showToast: (msg: string, isError?: boolean) => void;
   groups: SessionGroup[];
   glossaries: DanceGlossary[];
   onShare: () => void;
@@ -2372,6 +2472,10 @@ function SessionDetail({
   const isCancelledRef = useRef(false);
 
   const startRecording = async () => {
+    if (session.isDemo) {
+      showToast(t('onboarding.demoTooltipRecord'), false);
+      return;
+    }
     try {
       isCancelledRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -2498,10 +2602,14 @@ function SessionDetail({
           {/* Active Dance Style / Glossary Badge */}
           <button
             onClick={() => {
-              setTempGroupId(session.groupId || '');
-              setTempGlossaryId(session.glossaryId || 'auto');
-              setTempCustomGlossaryStyle(session.customGlossaryStyle || '');
-              setIsSettingsOpen(true);
+              if (session.isDemo) {
+                showToast(t('onboarding.demoTooltipGlossary'), false);
+              } else {
+                setTempGroupId(session.groupId || '');
+                setTempGlossaryId(session.glossaryId || 'auto');
+                setTempCustomGlossaryStyle(session.customGlossaryStyle || '');
+                setIsSettingsOpen(true);
+              }
             }}
             className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-brand/10 border border-brand/20 hover:bg-brand/20 transition-all text-brand font-medium cursor-pointer"
             title={t('session.sessionSettings')}
@@ -2528,7 +2636,14 @@ function SessionDetail({
         ) : (
           <p
             className="text-xl font-bold text-white cursor-text hover:text-white/80 transition-colors flex items-center gap-2 group w-max"
-            onClick={() => { setTempTitle(session.title); setIsEditingTitle(true); }}
+            onClick={() => {
+              if (session.isDemo) {
+                showToast(t('onboarding.demoTooltipEdit'), false);
+              } else {
+                setTempTitle(session.title);
+                setIsEditingTitle(true);
+              }
+            }}
             title={t('session.editTitleHint')}
           >
             {session.title}
@@ -2552,7 +2667,13 @@ function SessionDetail({
         ) : (
           <div className="flex items-center justify-between mt-1.5">
             <button
-              onClick={() => setIsEditingSubtitle(true)}
+              onClick={() => {
+                if (session.isDemo) {
+                  showToast(t('onboarding.demoTooltipEdit'), false);
+                } else {
+                  setIsEditingSubtitle(true);
+                }
+              }}
               className="text-sm text-white/40 hover:text-white/60 transition-colors text-left flex items-center gap-2 group"
             >
               {session.subtitle ? (
@@ -2564,7 +2685,13 @@ function SessionDetail({
             </button>
             <div className="flex items-center gap-2">
               <button
-                onClick={onShare}
+                onClick={() => {
+                  if (session.isDemo) {
+                    showToast(t('onboarding.demoTooltipShare'), false);
+                  } else {
+                    onShare();
+                  }
+                }}
                 className={`p-2 rounded-xl border transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] ${
                   session.shareId
                     ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20'
@@ -2575,14 +2702,26 @@ function SessionDetail({
                 <Share2 className={`w-4 h-4 ${session.shareId ? '' : 'text-brand'}`} />
               </button>
               <button
-                onClick={() => setIsReordering(!isReordering)}
+                onClick={() => {
+                  if (session.isDemo) {
+                    showToast(t('onboarding.demoTooltipReorder'), false);
+                  } else {
+                    setIsReordering(!isReordering);
+                  }
+                }}
                 className={`p-2 rounded-xl border transition-colors flex items-center justify-center ${isReordering ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'} min-h-[38px] min-w-[38px]`}
                 title={isReordering ? t('session.disableReorder') : t('session.enableReorder')}
               >
                 <GripHorizontal className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setIsGalleryOpen(true)}
+                onClick={() => {
+                  if (session.isDemo) {
+                    showToast(t('onboarding.demoTooltipGallery'), false);
+                  } else {
+                    setIsGalleryOpen(true);
+                  }
+                }}
                 className={`p-2 rounded-xl border transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] ${
                   mediaItems.length > 0
                     ? 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-sm'
@@ -2594,10 +2733,14 @@ function SessionDetail({
               </button>
               <button
                 onClick={() => {
-                  setTempGroupId(session.groupId || '');
-                  setTempGlossaryId(session.glossaryId || 'auto');
-                  setTempCustomGlossaryStyle(session.customGlossaryStyle || '');
-                  setIsSettingsOpen(true);
+                  if (session.isDemo) {
+                    showToast(t('onboarding.demoTooltipSettings'), false);
+                  } else {
+                    setTempGroupId(session.groupId || '');
+                    setTempGlossaryId(session.glossaryId || 'auto');
+                    setTempCustomGlossaryStyle(session.customGlossaryStyle || '');
+                    setIsSettingsOpen(true);
+                  }
                 }}
                 className="p-2 rounded-xl border bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80 transition-colors flex items-center justify-center min-h-[38px] min-w-[38px]"
                 title={t('session.sessionSettings')}
@@ -2626,6 +2769,7 @@ function SessionDetail({
           onUpdateOrder={(newOrder) => onUpdateSession({ cardOrder: newOrder })}
           sessionNotes={session.notes}
           onUpdateNotes={(newNotes) => onUpdateSession({ notes: newNotes })}
+          showToast={showToast}
         />
       </div>
 
@@ -2640,10 +2784,18 @@ function SessionDetail({
         )}
 
         <label
+          onClick={(e) => {
+            if (session.isDemo) {
+              e.preventDefault();
+              showToast(t('onboarding.demoTooltipUpload'), false);
+            }
+          }}
           className="cursor-pointer flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-full transition-colors shadow-sm"
         >
           <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
-          <input id="uploadBtn" type="file" accept="audio/*" multiple className="hidden" onChange={(e) => onUpload(e, language)} />
+          <input id="uploadBtn" type="file" accept="audio/*,video/*" multiple className="hidden" onChange={(e) => {
+            if (!session.isDemo) onUpload(e, language);
+          }} />
         </label>
 
         {isRecording && (
@@ -3075,7 +3227,7 @@ function SessionDetail({
 
 // ─── New display helpers ───────────────────────────────────────────────────
 
-function EditableText({ value, onChange, className, multiline = false }: { value: string, onChange: (v: string) => void, className?: string, multiline?: boolean }) {
+function EditableText({ value, onChange, className, multiline = false, onIntercept }: { value: string, onChange: (v: string) => void, className?: string, multiline?: boolean, onIntercept?: () => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempValue, setTempValue] = useState(value);
 
@@ -3115,7 +3267,15 @@ function EditableText({ value, onChange, className, multiline = false }: { value
 
   return (
     <div
-      onClick={(e) => { e.stopPropagation(); setTempValue(value); setIsEditing(true); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onIntercept) {
+          onIntercept();
+        } else {
+          setTempValue(value);
+          setIsEditing(true);
+        }
+      }}
       className={`cursor-text hover:bg-white/5 rounded px-1 -mx-1 transition-colors group relative w-full ${className || ''}`}
       title="Click to edit"
     >
@@ -3141,7 +3301,7 @@ function CollapsiblePanel({ title, children, defaultOpen = true, accent = false 
   );
 }
 
-function BulletList({ items, onChange }: { items: string[], onChange?: (newItems: string[]) => void }) {
+function BulletList({ items, onChange, onIntercept }: { items: string[], onChange?: (newItems: string[]) => void, onIntercept?: () => void }) {
   if (!items || items.length === 0) return null;
   return (
     <ul className="space-y-2 mt-1">
@@ -3155,6 +3315,7 @@ function BulletList({ items, onChange }: { items: string[], onChange?: (newItems
               <EditableText
                 value={item}
                 multiline={true}
+                onIntercept={onIntercept}
                 onChange={(newVal) => {
                   const copy = [...items];
                   if (!newVal.trim()) {
@@ -3175,12 +3336,12 @@ function BulletList({ items, onChange }: { items: string[], onChange?: (newItems
   );
 }
 
-function StrictSummaryBlock({ data, onChange }: { data: string[], onChange?: (newItems: string[]) => void }) {
+function StrictSummaryBlock({ data, onChange, onIntercept }: { data: string[], onChange?: (newItems: string[]) => void, onIntercept?: () => void }) {
   if (!data || data.length === 0) return <p className="text-white/30 italic text-sm">No strict summary content extracted.</p>;
-  return <BulletList items={data} onChange={onChange} />;
+  return <BulletList items={data} onChange={onChange} onIntercept={onIntercept} />;
 }
 
-function ExpandedInsightsBlock({ data, onChange }: { data: ExpandedInsights, onChange?: (newData: ExpandedInsights) => void }) {
+function ExpandedInsightsBlock({ data, onChange, onIntercept }: { data: ExpandedInsights, onChange?: (newData: ExpandedInsights) => void, onIntercept?: () => void }) {
   const { t } = useTranslation();
   const allEmpty =
     (data.drills?.length ?? 0) === 0 &&
@@ -3202,17 +3363,17 @@ function ExpandedInsightsBlock({ data, onChange }: { data: ExpandedInsights, onC
           <ChevronDown className="w-4 h-4 text-purple-400/50 ml-auto" />
         </summary>
         <div className="p-4 space-y-3 bg-black/20">
-          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.drills')} defaultOpen={false}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} /></CollapsiblePanel>}
-          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.homework')} defaultOpen={false}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} /></CollapsiblePanel>}
-          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.technicalExpansion')} defaultOpen={false}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} /></CollapsiblePanel>}
-          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.emotionalNotes')} defaultOpen={false}><BulletList items={data.emotionalNotes} onChange={onChange ? (arr) => handleChange('emotionalNotes', arr) : undefined} /></CollapsiblePanel>}
+          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.drills')} defaultOpen={false}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
+          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.homework')} defaultOpen={false}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
+          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.technicalExpansion')} defaultOpen={false}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
+          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.emotionalNotes')} defaultOpen={false}><BulletList items={data.emotionalNotes} onChange={onChange ? (arr) => handleChange('emotionalNotes', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
         </div>
       </details>
     </div>
   );
 }
 
-function TranscriptBlock({ text, onChange }: { text: string, onChange?: (newText: string) => void }) {
+function TranscriptBlock({ text, onChange, onIntercept }: { text: string, onChange?: (newText: string) => void, onIntercept?: () => void }) {
   const { t } = useTranslation();
   if (!text) return null;
   return (
@@ -3225,7 +3386,7 @@ function TranscriptBlock({ text, onChange }: { text: string, onChange?: (newText
         </summary>
         <div className="p-4 bg-black/20 text-white/50 text-sm italic leading-relaxed">
           {onChange ? (
-            <EditableText value={text} onChange={onChange} multiline={true} className="whitespace-pre-wrap block" />
+            <EditableText value={text} onChange={onChange} multiline={true} className="whitespace-pre-wrap block" onIntercept={onIntercept} />
           ) : (
             <span className="whitespace-pre-wrap">{text}</span>
           )}
@@ -3271,10 +3432,18 @@ function SortableCard({ id, children, isDraggable = true, isReordering = false }
 
 // ─── Session Structured Data ────────────────────────────────────────────────
 
-function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onToggleReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onToggleReordering?: () => void; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void }) {
+function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onToggleReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes, showToast }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onToggleReordering?: () => void; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void; showToast?: (msg: string, isError?: boolean) => void }) {
   const [report, setReport] = useState<any | null>(null);
 
   const { t, uiLanguage } = useTranslation();
+
+  const handleIntercept = () => {
+    if (sessionId === 'demo-session' && showToast) {
+      showToast(t('onboarding.demoTooltipEdit'), false);
+    }
+  };
+  const interceptProp = sessionId === 'demo-session' ? handleIntercept : undefined;
+
   const formatClipDate = (timestamp: number) => {
     const d = new Date(timestamp);
     const day = String(d.getDate()).padStart(2, '0');
@@ -3400,14 +3569,14 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
               <>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
-                  <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} />
+                  <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} onIntercept={interceptProp} />
                 </div>
-                {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} />}
+                {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} onIntercept={interceptProp} />}
               </>
             )}
             {legacyReportContent && (
               <>
-                <StructuredBullets contentObj={legacyReportContent} isReport={true} onChange={handleUpdateLegacyConsolidated} />
+                <StructuredBullets contentObj={legacyReportContent} isReport={true} onChange={handleUpdateLegacyConsolidated} onIntercept={interceptProp} />
               </>
             )}
           </div>
@@ -3457,6 +3626,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
         onProcess={() => onProcessEntry(audio.id)}
         onRequestReprocess={() => onRequestReprocess(audio.id)}
         onUpdateContent={(changes) => onUpdateEntry(audio.id, changes)}
+        showToast={showToast}
       />
     ));
   });
@@ -3469,7 +3639,13 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
         <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('session.notesHeading')}</h3>
         {!isNoteVisible && !sessionNotes && (
           <button
-            onClick={() => setIsNoteVisible(true)}
+            onClick={() => {
+              if (sessionId === 'demo-session' && showToast) {
+                showToast(t('onboarding.demoTooltipNotes'), false);
+              } else {
+                setIsNoteVisible(true);
+              }
+            }}
             className="text-brand hover:text-brand/80 font-bold text-sm transition-colors"
           >
             {t('session.addNote')}
@@ -3481,6 +3657,13 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
           autoFocus={isNoteVisible && !sessionNotes}
           placeholder={t('session.notesPlaceholder')}
           value={sessionNotes || ''}
+          onClick={(e) => {
+             if (sessionId === 'demo-session' && showToast) {
+               e.preventDefault();
+               showToast(t('onboarding.demoTooltipNotes'), false);
+             }
+          }}
+          readOnly={sessionId === 'demo-session'}
           onChange={(e) => {
             onUpdateNotes(e.target.value);
             if (e.target.value.trim().length === 0) {
@@ -3579,7 +3762,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   );
 }
 
-function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onUpdateTitle, onDelete, onProcess, onRequestReprocess, onUpdateContent }: {
+function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onUpdateTitle, onDelete, onProcess, onRequestReprocess, onUpdateContent, showToast }: {
   displayTitle: string;
   time: string;
   audio: AudioEntry;
@@ -3593,11 +3776,19 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
   onProcess: () => void;
   onRequestReprocess: () => void;
   onUpdateContent: (changes: Partial<AudioEntry>) => void;
+  showToast?: (msg: string, isError?: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(displayTitle);
+
+  const handleIntercept = () => {
+    if (audio.sessionId === 'demo-session' && showToast) {
+      showToast(t('onboarding.demoTooltipEdit'), false);
+    }
+  };
+  const interceptProp = audio.sessionId === 'demo-session' ? handleIntercept : undefined;
 
   const handleTitleSubmit = () => {
     if (tempTitle.trim() && tempTitle.trim() !== displayTitle) {
@@ -3642,8 +3833,12 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                 onClick={(e) => {
                   if (isOpen) {
                     e.stopPropagation();
-                    setTempTitle(displayTitle);
-                    setIsEditingTitle(true);
+                    if (audio.sessionId === 'demo-session' && showToast) {
+                      showToast(t('onboarding.demoTooltipEdit'), false);
+                    } else {
+                      setTempTitle(displayTitle);
+                      setIsEditingTitle(true);
+                    }
                   }
                 }}
                 title={isOpen ? "Edit clip name" : undefined}
@@ -3682,25 +3877,38 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
 
       {isOpen && (
         <div className="p-4 sm:p-5 bg-black/20 border-t border-white/5 space-y-4">
-          {audioUrl && (
+          {audioUrl ? (
             <audio controls src={audioUrl} className="w-full h-10 opacity-90 rounded-xl bg-black/20" />
-          )}
+          ) : audio.sessionId === 'demo-session' ? (
+            <div className="w-full h-10 flex items-center gap-3 bg-black/20 rounded-xl px-4 overflow-hidden relative cursor-not-allowed">
+               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
+               <div className="w-4 h-4 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
+                 <div className="w-1.5 h-1.5 bg-black rounded-full ml-[2px]"></div>
+               </div>
+               <div className="flex-1 flex items-center justify-between gap-[3px] opacity-50 overflow-hidden px-2">
+                 {[12,24,18,10,14,22,20,12,10,16,24,18,12,14,20,24,16,10,14,22,18,12,14,20,16,10,12,22,18,14].map((h, i) => (
+                   <div key={i} className="w-1.5 rounded-full bg-brand/60" style={{ height: `${h}px` }}></div>
+                 ))}
+               </div>
+               <span className="text-[10px] text-brand/50 font-mono tracking-widest">00:45</span>
+            </div>
+          ) : null}
 
           {hasNewShape ? (
             <>
               {audio.strictSummary && (audio.strictSummary as string[]).length > 0 && (
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
-                  <StrictSummaryBlock data={audio.strictSummary as string[]} onChange={(s) => onUpdateContent({ strictSummary: s })} />
+                  <StrictSummaryBlock data={audio.strictSummary as string[]} onChange={(s) => onUpdateContent({ strictSummary: s })} onIntercept={interceptProp} />
                 </div>
               )}
-              {audio.expandedInsights && <ExpandedInsightsBlock data={audio.expandedInsights} onChange={(ei) => onUpdateContent({ expandedInsights: ei })} />}
-              <TranscriptBlock text={audio.transcript ?? ''} onChange={(t) => onUpdateContent({ transcript: t })} />
+              {audio.expandedInsights && <ExpandedInsightsBlock data={audio.expandedInsights} onChange={(ei) => onUpdateContent({ expandedInsights: ei })} onIntercept={interceptProp} />}
+              <TranscriptBlock text={audio.transcript ?? ''} onChange={(t) => onUpdateContent({ transcript: t })} onIntercept={interceptProp} />
             </>
           ) : (
             <>
               {Object.keys(legacyContent).length > 0 ? (
-                <StructuredBullets contentObj={legacyContent} onChange={(newObj) => {
+                <StructuredBullets contentObj={legacyContent} onIntercept={interceptProp} onChange={(newObj) => {
                   if ((audio as any).processedData) {
                     onUpdateContent({ processedData: { ...(audio as any).processedData, ...newObj } } as any);
                   } else if (audio.transcript && typeof legacyContent === 'object') {
@@ -3717,7 +3925,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
               {audio.transcript && !hasNewShape && (
                 <div className="mt-4 pt-4 border-t border-white/5 text-sm">
                   <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">{t('session.rawTranscript')}</span>
-                  <EditableText value={audio.transcript} onChange={(t) => onUpdateContent({ transcript: t })} multiline className="text-white/60 italic leading-relaxed whitespace-pre-wrap block" />
+                  <EditableText value={audio.transcript} onChange={(t) => onUpdateContent({ transcript: t })} multiline className="text-white/60 italic leading-relaxed whitespace-pre-wrap block" onIntercept={interceptProp} />
                 </div>
               )}
             </>
@@ -3814,7 +4022,7 @@ function CollapsibleSection({ title, contentObj, isReport = false, isOpen, onTog
   );
 }
 
-function StructuredBullets({ contentObj, isReport, onChange }: { contentObj: any, isReport?: boolean, onChange?: (newObj: any) => void }) {
+function StructuredBullets({ contentObj, isReport, onChange, onIntercept }: { contentObj: any, isReport?: boolean, onChange?: (newObj: any) => void, onIntercept?: () => void }) {
   if (!contentObj || typeof contentObj !== 'object') return null;
 
   const processBulletItem = (origItem: any, key: React.Key, path?: (string | number)[]) => {
@@ -3839,6 +4047,7 @@ function StructuredBullets({ contentObj, isReport, onChange }: { contentObj: any
             <EditableText
               value={text}
               multiline={true}
+              onIntercept={onIntercept}
               onChange={(newVal) => {
                 const copy = JSON.parse(JSON.stringify(contentObj));
                 let curr = copy;

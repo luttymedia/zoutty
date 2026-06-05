@@ -268,8 +268,53 @@ const es: Translations = {
 
   // ─── Language Names ──────────────────────────────────────────────────────────
   languages: {
-    en: 'English',
+    en: 'Inglés',
     es: 'Español',
+  },
+
+  // ─── Onboarding ─────────────────────────────────────────────────────────────
+  onboarding: {
+    welcomeTitle: 'Bienvenido a Zoutty.',
+    welcomeSubtitle: 'El sistema de memoria y progresión para clases privadas de baile.',
+    interfaceLanguage: 'Idioma de la Interfaz',
+    primaryStyles: 'Estilos de Baile Principales',
+    brazilianZouk: 'Zouk Brasileño',
+    bachata: 'Bachata',
+    salsa: 'Salsa',
+    westCoastSwing: 'West Coast Swing',
+    kizomba: 'Kizomba',
+    other: 'Otro',
+    continueBtn: 'Continuar',
+    beforeWeStart: 'Antes de empezar',
+    permissionsDesc: 'Zoutty funciona completamente en tu dispositivo. Para que esto sea posible, necesitamos un par de permisos.',
+    micAccess: 'Acceso al Micrófono',
+    micDesc: 'Necesario para grabar los conceptos, correcciones y notas de tus clases. El audio nunca se envía a la nube.',
+    localStorage: 'Almacenamiento Local',
+    storageDesc: 'Necesario para guardar tus sesiones y enlazar archivos de video. Todo se queda en tu teléfono.',
+    startExploring: 'Empezar a Explorar',
+    // Demo content
+    demoSessionTitle: 'Sesión de Bienvenida y Tour',
+    demoSessionSubtitle: 'Subtítulo editable de la sesión',
+    demoAudioTranscript: 'Esta es una grabación de prueba de una clase de baile. Puedes capturar combinaciones, consejos o correcciones de la clase aquí.',
+    demoAudioFilename: 'Audio de Prueba.mp3',
+    demoReportStrict1: 'Concéntrate en la transferencia de peso',
+    demoReportStrict2: 'Mantén el marco activo durante los giros',
+    demoReportDrill: '10 minutos de paso básico solo',
+    demoReportHomework: 'Revisar el video de la combinación',
+    // Demo Tooltips
+    demoTooltipConsolidate: '💡 En una sesión real, este botón genera un reporte estructurado usando IA a partir de tus clips.',
+    demoTooltipRecord: '💡 En una sesión real, toca aquí para grabar un audio en directo.',
+    demoTooltipUpload: '💡 En una sesión real, toca aquí para subir un archivo de audio.',
+    demoTooltipEdit: '💡 En una sesión real, puedes editar este texto directamente.',
+    demoTooltipDelete: '💡 En una sesión real, esto elimina el elemento.',
+    demoTooltipShare: '💡 En una sesión real, puedes generar un enlace para compartir esta sesión.',
+    demoTooltipExport: '💡 En una sesión real, puedes exportar esta sesión a un documento de Word.',
+    demoTooltipGallery: '💡 En una sesión real, puedes adjuntar fotos y videos a la sesión aquí.',
+    demoTooltipSettings: '💡 En una sesión real, puedes configurar el estilo de baile y el idioma de los audios aquí.',
+    demoTooltipGlossary: '💡 En una sesión real, esto detecta el estilo de baile automáticamente y aplica la terminología (glosario) correcta al reporte.',
+    demoTooltipReprocess: '💡 En una sesión real, esto vuelve a transcribir el audio y extrae el contenido original.',
+    demoTooltipReorder: '💡 En una sesión real, puedes reordenar los elementos de esta sesión.',
+    demoTooltipNotes: '💡 En una sesión real, puedes añadir notas personales a tu sesión aquí.',
   },
 };
 

@@ -36,6 +36,7 @@ export interface Session {
   glossaryId?: string; // Optional active glossary ID (or 'auto' or 'other')
   customGlossaryStyle?: string; // Optional custom style name if glossaryId is 'other'
   shareId?: string; // Optional share short code ID
+  isDemo?: boolean; // Indicates if this is a mock/demo session
 }
 
 export interface SessionGroup {
