@@ -27,12 +27,16 @@ import {
   Copy,
   Settings,
   BookOpen,
-  Music
+  Music,
+  Images,
+  AlertTriangle,
+  LinkIcon
 } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
 import { db } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
-import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary } from './types';
+import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia } from './types';
 import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
@@ -149,6 +153,7 @@ export default function App() {
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [audioEntries, setAudioEntries] = useState<Record<string, AudioEntry>>({});
+  const [sessionMedia, setSessionMedia] = useState<SessionMedia[]>([]);
 
   const [toastMessage, setToastMessage] = useState<{ text: string, isError: boolean, actionText?: string, onAction?: () => void } | null>(null);
   const [spinnerText, setSpinnerText] = useState<string | null>(null);
@@ -554,6 +559,15 @@ export default function App() {
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
 
+  // Load media for the selected session whenever it changes
+  useEffect(() => {
+    if (!selectedSessionId) {
+      setSessionMedia([]);
+      return;
+    }
+    db.getSessionMedia(selectedSessionId).then(items => setSessionMedia(items)).catch(console.error);
+  }, [selectedSessionId]);
+
   // --- Actions ---
 
   const createSession = async () => {
@@ -616,11 +630,15 @@ export default function App() {
       if (!sessionToDelete) return;
 
       const sessionAudios = await db.getSessionAudios(id);
+      const sessionMediaItems = await db.getSessionMedia(id);
 
       setSessions(prev => prev.filter(s => s.id !== id));
       const newEntries = { ...audioEntries };
       sessionAudios.forEach(a => delete newEntries[a.id]);
       setAudioEntries(newEntries);
+      if (selectedSessionId === id) {
+        setSessionMedia([]);
+      }
 
       if (selectedSessionId === id) {
         navigateTo('list', null, sessionToDelete.groupId || null, 'replace');
@@ -628,6 +646,7 @@ export default function App() {
 
       const timeoutId = setTimeout(async () => {
         for (const audio of sessionAudios) await db.deleteAudioEntry(audio.id);
+        for (const media of sessionMediaItems) await db.deleteMediaItem(media.id);
         await db.deleteSession(id);
       }, 5000);
 
@@ -2037,6 +2056,8 @@ export default function App() {
               });
             }}
             onDeleteSession={() => requestDeleteSession(selectedSession.id, selectedSession.title)}
+            mediaItems={sessionMedia}
+            onMediaChange={setSessionMedia}
           />
         )}
       </main>
@@ -2062,7 +2083,9 @@ function SessionDetail({
   groups,
   glossaries,
   onShare,
-  onDeleteSession
+  onDeleteSession,
+  mediaItems,
+  onMediaChange
 }: {
   session: Session;
   entries: AudioEntry[];
@@ -2080,12 +2103,197 @@ function SessionDetail({
   glossaries: DanceGlossary[];
   onShare: () => void;
   onDeleteSession: () => void;
+  mediaItems: SessionMedia[];
+  onMediaChange: (items: SessionMedia[]) => void;
 }) {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
-  const [micLevel, setMicLevel] = useState(0); // 0..1 live mic energy
+  const [micLevel, setMicLevel] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const timerRef = useRef<any>(null);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isAddingMedia, setIsAddingMedia] = useState(false);
+  const [mediaObjectUrls, setMediaObjectUrls] = useState<Record<string, string>>({});
+  const [brokenMediaIds, setBrokenMediaIds] = useState<Set<string>>(new Set());
+  const [lightboxItem, setLightboxItem] = useState<SessionMedia | null>(null);
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [mediaToDelete, setMediaToDelete] = useState<SessionMedia | null>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
+  const isFileAccessSupported = typeof window !== 'undefined' && 'showOpenFilePicker' in window;
+
+  // Revoke object URLs on cleanup
+  useEffect(() => {
+    return () => {
+      Object.values(mediaObjectUrls).forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  // Resolve object URLs for media items when drawer opens
+  useEffect(() => {
+    if (!isGalleryOpen) return;
+    const resolveUrls = async () => {
+      const newUrls: Record<string, string> = {};
+      const newBroken = new Set<string>();
+      for (const item of mediaItems) {
+        if (mediaObjectUrls[item.id]) continue; // already resolved
+        try {
+          let file: File | Blob | null = null;
+          if (item.storageMode === 'reference' && item.fileHandle) {
+            // Request read permission if needed
+            const perm = await item.fileHandle.queryPermission({ mode: 'read' });
+            if (perm !== 'granted') {
+              await item.fileHandle.requestPermission({ mode: 'read' });
+            }
+            file = await item.fileHandle.getFile();
+          } else if (item.storageMode === 'blob' && item.blob) {
+            file = item.blob;
+          }
+          if (file) {
+            newUrls[item.id] = URL.createObjectURL(file);
+          } else {
+            newBroken.add(item.id);
+          }
+        } catch {
+          newBroken.add(item.id);
+        }
+      }
+      setMediaObjectUrls(prev => ({ ...prev, ...newUrls }));
+      setBrokenMediaIds(prev => {
+        const next = new Set(prev);
+        newBroken.forEach(id => next.add(id));
+        return next;
+      });
+    };
+    resolveUrls();
+  }, [isGalleryOpen, mediaItems]);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleAddMedia = async () => {
+    if (isFileAccessSupported) {
+      // Reference Mode: use File System Access API
+      try {
+        const handles = await (window as any).showOpenFilePicker({
+          multiple: true,
+          types: [
+            { description: 'Images & Videos', accept: { 'image/*': [], 'video/*': [] } }
+          ]
+        });
+        setIsAddingMedia(true);
+        const newItems: SessionMedia[] = [];
+        for (const handle of handles) {
+          const file: File = await handle.getFile();
+          const item: SessionMedia = {
+            id: crypto.randomUUID(),
+            sessionId: session.id,
+            timestamp: Date.now(),
+            filename: file.name,
+            mimeType: file.type,
+            size: file.size,
+            storageMode: 'reference',
+            fileHandle: handle
+          };
+          await db.saveMediaItem(item);
+          newItems.push(item);
+        }
+        onMediaChange([...mediaItems, ...newItems]);
+        setIsAddingMedia(false);
+      } catch (err: any) {
+        setIsAddingMedia(false);
+        if (err?.name !== 'AbortError') onError(t('session.galleryFailedAttach'));
+      }
+    } else {
+      // Blob Mode: standard file input for Safari/iOS/Firefox
+      mediaInputRef.current?.click();
+    }
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setIsAddingMedia(true);
+    const MAX_BLOB_SIZE = 500 * 1024 * 1024; // 500 MB hard cap
+    const LOW_STORAGE_THRESHOLD = 100 * 1024 * 1024; // warn below 100MB free
+
+    try {
+      // Check available storage
+      let availableBytes: number | null = null;
+      if ('storage' in navigator && 'estimate' in navigator.storage) {
+        const { quota = 0, usage = 0 } = await navigator.storage.estimate();
+        availableBytes = quota - usage;
+      }
+
+      const newItems: SessionMedia[] = [];
+      for (const file of files) {
+        // Validate type
+        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+          onError(t('session.galleryUnsupportedType'));
+          continue;
+        }
+        // Hard cap
+        if (file.size > MAX_BLOB_SIZE) {
+          onError(t('session.galleryFileTooLarge', { size: formatBytes(file.size) }));
+          continue;
+        }
+        // Storage warning
+        if (availableBytes !== null && availableBytes < LOW_STORAGE_THRESHOLD) {
+          onError(t('session.galleryStorageWarning', {
+            available: formatBytes(availableBytes),
+            size: formatBytes(file.size)
+          }));
+        }
+
+        let blobToStore: Blob = file;
+        // Compress images (not videos)
+        if (file.type.startsWith('image/')) {
+          try {
+            blobToStore = await imageCompression(file, {
+              maxWidthOrHeight: 1920,
+              useWebWorker: true
+            });
+          } catch {
+            blobToStore = file; // fallback to original on compression failure
+          }
+        }
+
+        const item: SessionMedia = {
+          id: crypto.randomUUID(),
+          sessionId: session.id,
+          timestamp: Date.now(),
+          filename: file.name,
+          mimeType: file.type,
+          size: blobToStore.size,
+          storageMode: 'blob',
+          blob: blobToStore
+        };
+        await db.saveMediaItem(item);
+        newItems.push(item);
+      }
+      if (newItems.length > 0) onMediaChange([...mediaItems, ...newItems]);
+    } catch (err) {
+      console.error('[Gallery] Failed to attach media:', err);
+      onError(t('session.galleryFailedAttach'));
+    } finally {
+      setIsAddingMedia(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteMediaItem = async (item: SessionMedia) => {
+    // Revoke object URL if any
+    if (mediaObjectUrls[item.id]) {
+      URL.revokeObjectURL(mediaObjectUrls[item.id]);
+      setMediaObjectUrls(prev => { const c = { ...prev }; delete c[item.id]; return c; });
+    }
+    setBrokenMediaIds(prev => { const n = new Set(prev); n.delete(item.id); return n; });
+    await db.deleteMediaItem(item.id);
+    onMediaChange(mediaItems.filter(m => m.id !== item.id));
+  };
 
   useEffect(() => {
     return () => {
@@ -2344,6 +2552,17 @@ function SessionDetail({
                 <GripHorizontal className="w-4 h-4" />
               </button>
               <button
+                onClick={() => setIsGalleryOpen(true)}
+                className={`p-2 rounded-xl border transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] ${
+                  mediaItems.length > 0
+                    ? 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-sm'
+                    : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'
+                }`}
+                title={t('session.openGallery')}
+              >
+                <Images className={`w-4 h-4 ${mediaItems.length > 0 ? '' : 'text-brand'}`} />
+              </button>
+              <button
                 onClick={() => {
                   setTempGroupId(session.groupId || '');
                   setTempGlossaryId(session.glossaryId || 'auto');
@@ -2542,6 +2761,286 @@ function SessionDetail({
             </div>
           </div>
         </>
+      )}
+
+      {/* Hidden file input for blob mode (Safari/iOS) */}
+      <input
+        ref={mediaInputRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
+
+      {/* Gallery Drawer */}
+      {isGalleryOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 animate-in fade-in duration-200"
+            onClick={() => {
+              setIsGalleryOpen(false);
+              setIsDeleteMode(false);
+            }}
+          />
+          {/* Drawer Panel */}
+          <div className="fixed bottom-0 left-0 right-0 rounded-t-3xl border-t border-white/10 p-6 pb-8 bg-[#1e1e22]/95 backdrop-blur-md z-50 flex flex-col gap-5 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto sm:w-[480px] sm:rounded-l-3xl sm:rounded-tr-none sm:border-l sm:border-t-0 sm:slide-in-from-right max-h-[90vh] sm:max-h-full">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 shrink-0">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Images className="w-5 h-5 text-purple-400" />
+                {t('session.galleryTitle')}
+                {mediaItems.length > 0 && (
+                  <span className="text-xs font-normal text-white/40 ml-1">{t('session.galleryItemCount', { count: mediaItems.length })}</span>
+                )}
+              </h3>
+              <div className="flex items-center gap-2">
+                {mediaItems.length > 0 && (
+                  <button
+                    onClick={() => setIsDeleteMode(!isDeleteMode)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      isDeleteMode
+                        ? 'bg-red-500/20 border-red-500/40 text-red-300'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                    }`}
+                  >
+                    {isDeleteMode ? t('session.galleryDoneBtn') : t('session.galleryEditBtn')}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setIsGalleryOpen(false);
+                    setIsDeleteMode(false);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Storage info note */}
+            <div className="shrink-0 text-[11px] text-white/40 bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 leading-relaxed flex items-start gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-yellow-400/70 mt-0.5 shrink-0" />
+              <span>{isFileAccessSupported ? t('session.galleryStorageNote') : t('session.galleryBlobNote')}</span>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              {mediaItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-white/30 gap-3">
+                  <Images className="w-10 h-10 opacity-30" />
+                  <p className="text-sm">{t('session.galleryEmpty')}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {mediaItems.map(item => {
+                    const url = mediaObjectUrls[item.id];
+                    const broken = brokenMediaIds.has(item.id);
+                    const isVideo = item.mimeType.startsWith('video/');
+                    return (
+                      <div
+                        key={item.id}
+                        className={`relative group rounded-xl overflow-hidden border bg-black/30 aspect-square transition-all ${
+                          isDeleteMode
+                            ? 'animate-wiggle border-red-500/40 shadow-lg shadow-red-500/10'
+                            : 'border-white/10'
+                        }`}
+                      >
+                        {broken ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-center">
+                            <LinkIcon className="w-6 h-6 text-red-400/60" />
+                            <p className="text-[9px] text-white/40 leading-tight">{t('session.galleryBrokenLink')}</p>
+                          </div>
+                        ) : url ? (
+                          <button
+                            className="w-full h-full cursor-pointer"
+                            onClick={() => {
+                              if (isDeleteMode) {
+                                setMediaToDelete(item);
+                              } else {
+                                setIsVideoPlaying(false);
+                                setLightboxItem(item);
+                              }
+                            }}
+                          >
+                            {isVideo ? (
+                              <video src={url} className="w-full h-full object-cover" muted playsInline />
+                            ) : (
+                              <img src={url} alt={item.filename} className="w-full h-full object-cover" />
+                            )}
+                            {isVideo && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center">
+                                  <span className="text-white text-xs ml-0.5">▶</span>
+                                </div>
+                              </div>
+                            )}
+                          </button>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-5 h-5 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
+                          </div>
+                        )}
+                        {/* Delete button (visible when in delete mode) */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMediaToDelete(item);
+                          }}
+                          className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-600 border border-red-500 text-white transition-all flex items-center justify-center z-10 ${
+                            isDeleteMode ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'
+                          }`}
+                          title={t('session.galleryDeleteItem')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        {/* Filename tooltip */}
+                        <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ${isDeleteMode ? 'hidden' : ''}`}>
+                          <p className="text-[9px] text-white/80 truncate">{item.filename}</p>
+                          <p className="text-[8px] text-white/40">{formatBytes(item.size)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Add Media Button */}
+            <div className="shrink-0 border-t border-white/5 pt-4">
+              <button
+                onClick={handleAddMedia}
+                disabled={isAddingMedia}
+                className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400/60 transition-all text-xs font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAddingMedia ? (
+                  <><div className="w-4 h-4 border-2 border-purple-400/40 border-t-purple-400 rounded-full animate-spin" />{t('session.galleryCompressingImage')}</>
+                ) : (
+                  <><Images className="w-4 h-4" />{t('session.galleryAddBtn')}</>
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Lightbox */}
+      {lightboxItem && (() => {
+        const url = mediaObjectUrls[lightboxItem.id];
+        const isVideo = lightboxItem.mimeType.startsWith('video/');
+        return (
+          <div
+            className="fixed inset-0 bg-black/95 z-[60] flex flex-col items-center justify-center animate-in fade-in duration-200"
+            onClick={() => setLightboxItem(null)}
+          >
+            {/* Delete button (Top Left) */}
+            <button
+              className="absolute top-4 left-4 p-2.5 rounded-full bg-red-600/80 hover:bg-red-600 text-white transition-colors z-30 flex items-center justify-center min-h-[40px] min-w-[40px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMediaToDelete(lightboxItem);
+              }}
+              title={t('session.galleryDeleteItem')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            {/* Close button (Top Right) */}
+            <button
+              className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-30 flex items-center justify-center min-h-[40px] min-w-[40px]"
+              onClick={() => setLightboxItem(null)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            {url && (
+              isVideo ? (
+                <div 
+                  className="relative w-full h-full max-w-4xl max-h-[80vh] flex items-center justify-center"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <video
+                    ref={videoRef}
+                    src={url}
+                    controls
+                    onPlay={() => setIsVideoPlaying(true)}
+                    onPause={() => setIsVideoPlaying(false)}
+                    onEnded={() => setIsVideoPlaying(false)}
+                    className="w-full h-full max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200 cursor-pointer"
+                  />
+                  {/* Invisible click handler overlay for play/pause (leaves space at bottom for native controls) */}
+                  <div
+                    className="absolute top-0 left-0 right-0 bottom-16 z-10 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (videoRef.current) {
+                        if (videoRef.current.paused) {
+                          videoRef.current.play();
+                        } else {
+                          videoRef.current.pause();
+                        }
+                      }
+                    }}
+                  />
+                  {!isVideoPlaying && (
+                    <button
+                      className="absolute inset-0 m-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-all scale-100 hover:scale-105 active:scale-95 shadow-2xl z-20 cursor-pointer border border-white/10 animate-in fade-in duration-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        videoRef.current?.play();
+                      }}
+                    >
+                      <span className="text-2xl sm:text-3xl ml-1.5">▶</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <img
+                  src={url}
+                  alt={lightboxItem.filename}
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
+                  onClick={e => e.stopPropagation()}
+                />
+              )
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Custom App Delete Modal */}
+      {mediaToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[70] p-6" onClick={() => setMediaToDelete(null)}>
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold flex items-center gap-2 text-red-400">
+              <Trash2 className="w-5 h-5 text-red-500" />
+              {t('modals.confirmDeletion')}
+            </h3>
+            <p className="text-white/70 text-sm">
+              {t('session.galleryConfirmDelete')}
+            </p>
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button
+                onClick={() => setMediaToDelete(null)}
+                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer text-xs"
+              >
+                {t('modals.cancelBtn')}
+              </button>
+              <button
+                onClick={async () => {
+                  const toDelete = mediaToDelete;
+                  setMediaToDelete(null);
+                  await handleDeleteMediaItem(toDelete);
+                  if (lightboxItem?.id === toDelete.id) {
+                    setLightboxItem(null);
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] cursor-pointer text-xs"
+              >
+                {t('modals.deleteBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

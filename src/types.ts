@@ -66,3 +66,15 @@ export interface FinalReport {
   timestamp: number;
 }
 
+export interface SessionMedia {
+  id: string;
+  sessionId: string;
+  timestamp: number;
+  filename: string;
+  mimeType: string;
+  size: number; // in bytes
+  storageMode: 'reference' | 'blob';
+  fileHandle?: any; // FileSystemFileHandle — Reference mode (Chrome/Edge desktop)
+  blob?: Blob;      // Blob mode — Safari/Firefox/iOS fallback
+}
+

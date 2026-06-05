@@ -1,4 +1,4 @@
-// Spanish — Spain (ES) translations
+// Spanish - Spain (ES) translations
 // This file must match the structure of en.ts exactly (TypeScript enforces this).
 
 import type { Translations } from './en';
@@ -189,6 +189,30 @@ const es: Translations = {
     stopRecording: 'Detener grabación y guardar',
     startRecording: 'Iniciar grabación',
     zouttySettings: 'Ajustes de Zoutty',
+    // Gallery / Media
+    openGallery: 'Abrir galería multimedia',
+    galleryTitle: 'Galería Multimedia',
+    galleryEmpty: 'Aún no hay archivos adjuntos a esta sesión.',
+    galleryAddBtn: 'Añadir foto o vídeo',
+    galleryEditBtn: 'Editar',
+    galleryDoneBtn: 'Hecho',
+    galleryItemCount: '{count} elemento(s)',
+    galleryStorageMode: 'Almacenado como: {mode}',
+    galleryStorageModeReference: 'Enlace a archivo local',
+    galleryStorageModeBlob: 'Guardado en el navegador',
+    galleryBrokenLink: 'Archivo no encontrado - puede que se haya movido o eliminado.',
+    galleryDeleteItem: 'Eliminar este archivo',
+    galleryConfirmDelete: '¿Eliminar este elemento de la sesión?',
+    galleryStorageNote: 'Las fotos y vídeos se almacenan solo en tu dispositivo. Las copias de seguridad incluyen un enlace a tus archivos - si los mueves o eliminas localmente, los enlaces se romperán.',
+    galleryBlobNote: 'Las fotos y vídeos se guardan directamente en el almacenamiento del navegador. Las copias de seguridad incluirán los archivos, lo que puede aumentar considerablemente su tamaño.',
+    galleryStorageWarning: 'Poco almacenamiento disponible ({available} libres). Es posible que este archivo ({size}) no se guarde correctamente. Considera liberar espacio.',
+    galleryFileTooLarge: 'Este archivo es demasiado grande para adjuntarlo ({size}). Por favor, elige un archivo más pequeño.',
+    galleryUnsupportedType: 'Este tipo de archivo no es compatible. Por favor, elige una imagen o vídeo.',
+    galleryCompressingImage: 'Optimizando imagen...',
+    galleryAttached: '¡{filename} adjuntado!',
+    galleryRemoved: 'Archivo eliminado.',
+    galleryFailedAttach: 'Error al adjuntar el archivo.',
+    galleryFailedRemove: 'Error al eliminar el archivo.',
   },
 
   // ─── Toast Messages ──────────────────────────────────────────────────────────

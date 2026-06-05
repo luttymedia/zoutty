@@ -1,4 +1,4 @@
-// English (EN) — source of truth for all UI translations
+// English (EN) - source of truth for all UI translations
 // All other language files must match this structure exactly (enforced by TypeScript).
 
 const en = {
@@ -187,6 +187,30 @@ const en = {
     stopRecording: 'Stop recording and save',
     startRecording: 'Start recording',
     zouttySettings: 'Zoutty Settings',
+    // Gallery / Media
+    openGallery: 'Open media gallery',
+    galleryTitle: 'Media Gallery',
+    galleryEmpty: 'No media attached to this session yet.',
+    galleryAddBtn: 'Add Photo or Video',
+    galleryEditBtn: 'Edit',
+    galleryDoneBtn: 'Done',
+    galleryItemCount: '{count} item(s)',
+    galleryStorageMode: 'Stored as: {mode}',
+    galleryStorageModeReference: 'Local file link',
+    galleryStorageModeBlob: 'Saved in browser',
+    galleryBrokenLink: 'File not found - it may have been moved or deleted.',
+    galleryDeleteItem: 'Remove this media item',
+    galleryConfirmDelete: 'Remove this item from the session?',
+    galleryStorageNote: 'Photos and videos are stored only on your device. Backups include a link to your files - if you move or delete them locally, the links will break.',
+    galleryBlobNote: 'Photos and videos are saved directly in your browser storage. Backups will include the files, which may increase the backup size significantly.',
+    galleryStorageWarning: 'Low storage available ({available} free). This file ({size}) may not save reliably. Consider freeing up space.',
+    galleryFileTooLarge: 'This file is too large to attach ({size}). Please choose a smaller file.',
+    galleryUnsupportedType: 'This file type is not supported. Please choose an image or video.',
+    galleryCompressingImage: 'Optimizing image...',
+    galleryAttached: '{filename} attached!',
+    galleryRemoved: 'Media removed.',
+    galleryFailedAttach: 'Failed to attach media.',
+    galleryFailedRemove: 'Failed to remove media.',
   },
 
   // ─── Toast Messages ──────────────────────────────────────────────────────────

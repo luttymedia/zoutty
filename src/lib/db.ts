@@ -1,7 +1,7 @@
-import { Session, AudioEntry, FinalReport, SessionGroup, DanceGlossary } from '../types';
+import { Session, AudioEntry, FinalReport, SessionGroup, DanceGlossary, SessionMedia } from '../types';
 
 const DB_NAME = 'ZouttyAppDB';
-const DB_VERSION = 3; // Inc version for sessionGroups and glossaries
+const DB_VERSION = 4; // v4: added sessionMedia store
 
 export const dbStart = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -23,6 +23,9 @@ export const dbStart = (): Promise<IDBDatabase> => {
       }
       if (!db.objectStoreNames.contains('glossaries')) {
         db.createObjectStore('glossaries', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('sessionMedia')) {
+        db.createObjectStore('sessionMedia', { keyPath: 'id' });
       }
     };
 
@@ -103,6 +106,15 @@ export const db = {
   getGlossaries: () => readAllFromDb<DanceGlossary>('glossaries'),
   deleteGlossary: (id: string) => deleteFromDb('glossaries', id),
 
+  // Session Media
+  saveMediaItem: (item: SessionMedia) => writeToDb('sessionMedia', item),
+  getSessionMedia: async (sessionId: string): Promise<SessionMedia[]> => {
+    const all = await readAllFromDb<SessionMedia>('sessionMedia');
+    return all.filter(m => m.sessionId === sessionId).sort((a, b) => a.timestamp - b.timestamp);
+  },
+  getAllMedia: () => readAllFromDb<SessionMedia>('sessionMedia'),
+  deleteMediaItem: (id: string) => deleteFromDb('sessionMedia', id),
+
   // Backup & Restore
   exportDatabase: async () => {
     const sessions = await db.getSessions();
@@ -110,6 +122,7 @@ export const db = {
     const groups = await db.getGroups();
     const glossaries = await db.getGlossaries();
     const finalReports = await db.getFinalReports();
+    const allMedia = await db.getAllMedia();
     
     // Convert each audio's audioBlob into a Base64 string for JSON compatibility
     const serializedAudios = [];
@@ -134,6 +147,28 @@ export const db = {
       });
     }
 
+    // Serialize blob-mode media items to Base64; reference-mode items only store metadata
+    const serializedMedia = [];
+    for (const item of allMedia) {
+      if (item.storageMode === 'blob' && item.blob) {
+        try {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(item.blob!);
+          });
+          serializedMedia.push({ ...item, blob: undefined, mediaBase64: base64 });
+        } catch (e) {
+          console.error("Failed to serialize media blob for item", item.id, e);
+          serializedMedia.push({ ...item, blob: undefined }); // skip blob on error
+        }
+      } else {
+        // Reference mode: only metadata backed up (no fileHandle — not JSON-serializable)
+        serializedMedia.push({ ...item, blob: undefined, fileHandle: undefined });
+      }
+    }
+
     return {
       version: 2,
       timestamp: Date.now(),
@@ -142,7 +177,8 @@ export const db = {
         audios: serializedAudios,
         groups,
         glossaries,
-        finalReports
+        finalReports,
+        media: serializedMedia
       }
     };
   },
@@ -222,13 +258,42 @@ export const db = {
           type: a.type,
           filename: a.filename
         };
+        await db.saveAudioEntry(entryToSave);
+      }
+    }
+
+    // 7. Restore Media Items (blob-mode items restore from Base64; reference-mode items restore as broken links)
+    const mediaToRestore = backup.data.media;
+    if (Array.isArray(mediaToRestore)) {
+      for (const m of mediaToRestore) {
+        let restoredBlob: Blob | undefined = undefined;
+        if (m.storageMode === 'blob' && m.mediaBase64) {
+          try {
+            const res = await fetch(m.mediaBase64);
+            restoredBlob = await res.blob();
+          } catch (e) {
+            console.error("Failed to reconstruct media blob for item", m.id, e);
+          }
+        }
+        const mediaItem: SessionMedia = {
+          id: m.id,
+          sessionId: m.sessionId,
+          timestamp: m.timestamp,
+          filename: m.filename,
+          mimeType: m.mimeType,
+          size: m.size,
+          storageMode: m.storageMode,
+          blob: restoredBlob,
+          fileHandle: undefined // fileHandle is not JSON-serializable; restored as broken link
+        };
+        await db.saveMediaItem(mediaItem);
       }
     }
   },
 
   clearDatabase: async () => {
     const dbInst = await dbStart();
-    const storeNames = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries'];
+    const storeNames = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
     const transaction = dbInst.transaction(storeNames, 'readwrite');
     storeNames.forEach(name => {
       transaction.objectStore(name).clear();
