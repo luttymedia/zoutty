@@ -128,6 +128,20 @@ function AppSettingsCollapsible({ label, icon, children }: { label: string; icon
   );
 }
 
+const getSessionDefaultTitle = (date: Date | number, lang: string) => {
+  const d = new Date(date);
+  if (lang === 'es') {
+    const days = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+    const dayName = days[d.getDay()];
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear()).slice(-2);
+    return `${dayName} ${day}/${month}/${year}`;
+  } else {
+    return format(d, "EEE dd/MM/yy");
+  }
+};
+
 export default function App() {
   const { t, uiLanguage, setUILanguage } = useTranslation();
   const [view, setView] = useState<'list' | 'detail'>('list');
@@ -483,7 +497,7 @@ export default function App() {
         let changed = false;
 
         for (const session of needsMigration) {
-          const newTitle = format(new Date(session.date), "EEE dd/MM/yy");
+          const newTitle = getSessionDefaultTitle(session.date, uiLanguage);
           const idx = updatedSessions.findIndex(s => s.id === session.id);
           if (idx !== -1) {
             updatedSessions[idx] = { ...updatedSessions[idx], title: newTitle };
@@ -545,7 +559,7 @@ export default function App() {
   const createSession = async () => {
     const newSession: Session = {
       id: crypto.randomUUID(),
-      title: format(new Date(), "EEE dd/MM/yy"),
+      title: getSessionDefaultTitle(Date.now(), uiLanguage),
       subtitle: '',
       date: Date.now(),
       groupId: selectedGroupId || undefined,
@@ -2734,18 +2748,19 @@ function SortableCard({ id, children, isDraggable = true, isReordering = false }
 function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onToggleReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onToggleReordering?: () => void; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void }) {
   const [report, setReport] = useState<any | null>(null);
 
+  const { t, uiLanguage } = useTranslation();
   const formatClipDate = (timestamp: number) => {
     const d = new Date(timestamp);
     const day = String(d.getDate()).padStart(2, '0');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const month = months[d.getMonth()];
+    const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const month = uiLanguage === 'es' ? monthsEs[d.getMonth()] : monthsEn[d.getMonth()];
     const year = String(d.getFullYear()).slice(-2);
     const hours = String(d.getHours()).padStart(2, '0');
     const minutes = String(d.getMinutes()).padStart(2, '0');
     return `${day}-${month}-${year} ${hours}:${minutes}`;
   };
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
-  const { t } = useTranslation();
   const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(false);
   const [isNoteVisible, setIsNoteVisible] = useState(false);
 
