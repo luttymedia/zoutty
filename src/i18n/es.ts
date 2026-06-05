@@ -200,7 +200,7 @@ const es: Translations = {
     galleryAddBtn: 'Añadir foto o vídeo',
     galleryEditBtn: 'Editar',
     galleryDoneBtn: 'Hecho',
-    galleryItemCount: '{count} elemento(s)',
+    galleryItemCount: '{count} item(s)',
     galleryStorageMode: 'Almacenado como: {mode}',
     galleryStorageModeReference: 'Enlace a archivo local',
     galleryStorageModeBlob: 'Guardado en el navegador',
