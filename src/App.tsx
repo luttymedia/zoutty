@@ -2118,7 +2118,6 @@ function SessionDetail({
   const [lightboxItem, setLightboxItem] = useState<SessionMedia | null>(null);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [mediaToDelete, setMediaToDelete] = useState<SessionMedia | null>(null);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const isFileAccessSupported = typeof window !== 'undefined' && 'showOpenFilePicker' in window;
@@ -2860,7 +2859,6 @@ function SessionDetail({
                               if (isDeleteMode) {
                                 setMediaToDelete(item);
                               } else {
-                                setIsVideoPlaying(false);
                                 setLightboxItem(item);
                               }
                             }}
@@ -2963,9 +2961,6 @@ function SessionDetail({
                     ref={videoRef}
                     src={url}
                     controls
-                    onPlay={() => setIsVideoPlaying(true)}
-                    onPause={() => setIsVideoPlaying(false)}
-                    onEnded={() => setIsVideoPlaying(false)}
                     className="w-full h-full max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200 cursor-pointer"
                   />
                   {/* Invisible click handler overlay for play/pause (leaves space at bottom for native controls) */}
@@ -2982,17 +2977,6 @@ function SessionDetail({
                       }
                     }}
                   />
-                  {!isVideoPlaying && (
-                    <button
-                      className="absolute inset-0 m-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-all scale-100 hover:scale-105 active:scale-95 shadow-2xl z-20 cursor-pointer border border-white/10 animate-in fade-in duration-200"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        videoRef.current?.play();
-                      }}
-                    >
-                      <span className="text-2xl sm:text-3xl ml-1.5">▶</span>
-                    </button>
-                  )}
                 </div>
               ) : (
                 <img
