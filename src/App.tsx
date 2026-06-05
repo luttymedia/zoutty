@@ -1798,11 +1798,13 @@ export default function App() {
           >
             <ZouttyIcon className="w-10 h-10 text-brand shrink-0" />
           </button>
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-brand font-bold">{t('appName')}</p>
-            <h1 className="text-lg font-bold tracking-tight">
-              {t('appSubtitle')}
+          <div className="flex flex-col justify-center">
+            <h1 className="text-lg uppercase tracking-[0.2em] text-brand font-bold leading-none">
+              {t('appName')}
             </h1>
+            <p className="text-xs font-bold tracking-tight text-white/90 mt-1 leading-none">
+              {t('appSubtitle')}
+            </p>
           </div>
         </div>
 
