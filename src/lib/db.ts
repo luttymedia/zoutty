@@ -3,6 +3,18 @@ import { Session, AudioEntry, FinalReport, SessionGroup, DanceGlossary, SessionM
 const DB_NAME = 'ZouttyAppDB';
 const DB_VERSION = 4; // v4: added sessionMedia store
 
+const base64ToBlob = (dataUrl: string): Blob => {
+  const arr = dataUrl.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || '';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+};
+
 export const dbStart = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -192,7 +204,7 @@ export const db = {
     
     // 1. Clear database stores
     const dbInst = await dbStart();
-    const storeNames = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries'];
+    const storeNames = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
     const transaction = dbInst.transaction(storeNames, 'readwrite');
     storeNames.forEach(name => {
       transaction.objectStore(name).clear();
@@ -237,8 +249,7 @@ export const db = {
         let blob = undefined;
         if (a.audioBlobBase64) {
           try {
-            const res = await fetch(a.audioBlobBase64);
-            blob = await res.blob();
+            blob = base64ToBlob(a.audioBlobBase64);
           } catch (e) {
             console.error("Failed to reconstruct audio blob for entry", a.id, e);
           }
@@ -269,8 +280,7 @@ export const db = {
         let restoredBlob: Blob | undefined = undefined;
         if (m.storageMode === 'blob' && m.mediaBase64) {
           try {
-            const res = await fetch(m.mediaBase64);
-            restoredBlob = await res.blob();
+            restoredBlob = base64ToBlob(m.mediaBase64);
           } catch (e) {
             console.error("Failed to reconstruct media blob for item", m.id, e);
           }
