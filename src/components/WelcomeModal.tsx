@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ZouttyIcon } from './ZouttyIcon';
 import { CustomSelect } from './CustomSelect';
-import { ChevronRight, Mic, HardDrive, Sparkles } from 'lucide-react';
+import { ChevronRight, Mic, HardDrive, Sparkles, Cloud } from 'lucide-react';
 import { UI_LANGUAGE_NAMES } from '../i18n';
 import { useTranslation } from '../i18n/TranslationContext';
 
@@ -41,7 +41,7 @@ export function WelcomeModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-500">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" />
       
-      <div className="relative w-full max-w-md bg-zinc-900/80 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-hidden flex flex-col gap-8 animate-in slide-in-from-bottom-8 duration-700">
+      <div className="relative w-full max-w-md max-h-[90vh] bg-zinc-900/80 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-y-auto flex flex-col gap-8 animate-in slide-in-from-bottom-8 duration-700">
         {/* Glow effect */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-brand/20 blur-[100px] pointer-events-none" />
 
@@ -138,6 +138,18 @@ export function WelcomeModal({
                     <h3 className="text-white font-bold mb-1">{t('onboarding.localStorage')}</h3>
                     <p className="text-white/50 text-sm leading-relaxed">
                       {t('onboarding.storageDesc')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex gap-4">
+                  <div className="bg-green-500/20 w-12 h-12 rounded-full flex items-center justify-center shrink-0">
+                    <Cloud className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold mb-1">{t('onboarding.cloudBackup')}</h3>
+                    <p className="text-white/50 text-sm leading-relaxed">
+                      {t('onboarding.cloudBackupDesc')}
                     </p>
                   </div>
                 </div>
