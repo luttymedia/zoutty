@@ -41,6 +41,7 @@
 
     html {
       height: 100%;
+      scrollbar-gutter: stable;
     }
 
     body {
@@ -981,8 +982,10 @@
     /* The tooltip bubble */
     .tooltip-bubble {
       position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 0;
+      right: 0;
+      margin-left: auto;
+      margin-right: auto;
       z-index: 102;
       background: rgba(10, 30, 33, 0.97);
       border: 1px solid var(--brand-30);
@@ -1286,12 +1289,12 @@
     @keyframes tooltip-in {
       from {
         opacity: 0;
-        transform: translateX(-50%) translateY(8px);
+        transform: translateY(8px);
       }
 
       to {
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
+        transform: translateY(0);
       }
     }
 
@@ -1553,12 +1556,13 @@
       </svg>
     </div>
     <div class="welcome-logo">ZOUTTY</div>
-    <div class="welcome-logo-sub" id="welcome-logo-sub">AI Dance Lesson Assistant</div>
+    <div class="welcome-logo-sub" id="welcome-logo-sub">Private Lesson Companion</div>
     <div class="welcome-bubble" id="welcome-bubble">
-      <strong>Hey everyone!</strong> Thanks so much for testing Zoutty with me — I really appreciate it!<br><br>
-      I built this to help us manage classes better: organize students, record live feedback, save reference videos, and
-      let Gemini AI generate clean session reports.<br><br>
-      Let me show you around in <strong>60 seconds</strong> before you install. 👇
+      <strong>Hey There!</strong> Thanks so much for helping me test Zoutty, I really appreciate it!<br><br>
+      I built it to make private lessons easier to <strong>capture, organize, and revisit</strong>. Record key
+      takeaways, save reference material, and let AI turn your notes into <strong>clear session summaries, drills, and
+        insights</strong>.<br><br>
+      Here's a quick <strong>60-second tour</strong> before you install. 👇
     </div>
     <button class="btn-start" onclick="startTour()">
       <span id="btn-start-text">Start the Tour</span>
@@ -1894,8 +1898,8 @@
     <canvas id="confetti-canvas"></canvas>
     <div class="cta-check">🎉</div>
     <h2 class="cta-title" id="cta-title">You're all set!</h2>
-    <p class="cta-sub" id="cta-sub">Now you know the ropes. Install Zoutty to your home screen and start logging your
-      first real class.</p>
+    <p class="cta-sub" id="cta-sub">You're ready to start capturing real lessons. Install Zoutty and create your first
+      session.</p>
     <button class="btn-install" id="install-btn" onclick="triggerInstall()">
       <svg viewBox="0 0 24 24">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2"
@@ -1970,11 +1974,11 @@
 
     const translations = {
       en: {
-        welcomeTitleSub: "AI Dance Lesson Assistant",
-        welcomeIntro: `<strong>Hey everyone!</strong> Thanks so much for testing Zoutty with me — I really appreciate it!<br><br>I built this to help us manage classes better: organize students, record live feedback, save reference videos, and let Gemini AI generate clean session reports.<br><br>Let me show you around in <strong>60 seconds</strong> before you install. 👇`,
+        welcomeTitleSub: "Private Lesson Companion",
+        welcomeIntro: `<strong>Hey There!</strong> Thanks so much for helping me test Zoutty, I really appreciate it!<br><br>I built it to make private lessons easier to <strong>capture, organize, and revisit</strong>. Record key takeaways, save reference material, and let AI turn your notes into <strong>clear session summaries, drills, and insights</strong>.<br><br>Here's a quick <strong>60-second tour</strong> before you install. 👇`,
         btnStartText: "Start the Tour",
         ctaTitle: "You're all set!",
-        ctaSub: "Now you know the ropes. Install Zoutty to your home screen and start logging your first real class.",
+        ctaSub: "You're ready to start capturing real lessons. Install Zoutty and create your first session.",
         btnInstallText: "Install Zoutty",
         btnBack: "Back",
         iosTitle: "Install on iPhone",
@@ -1997,16 +2001,16 @@
         reportHw: "Film 3 reps of the prep at home — compare head initiation timing.",
 
         // Step tooltips
-        step0_text: "Start by creating a <strong>folder for your student</strong>. In the real app, each student or group gets their own folder. Tap <strong>New Folder</strong> above.",
-        step1_text: "Your folder is open. Now tap <strong>New Session</strong> to log today's class inside it.",
-        step2_text: "You're inside a session. Tap the <strong>teal microphone button</strong> at the bottom to record live audio feedback during class — then tap again to save.",
-        step2_text_recording: "Nice! Tap the <strong>red Stop button</strong> to save the audio clip.",
-        step3_text: "Tap the <strong>purple gallery button</strong> to attach reference videos or photos to this session. They stay linked to the class permanently.",
+        step0_text: "Create your <strong>first folder</strong>. Most people use folders to organize <strong>students, topics, projects</strong>, or anything they want to keep separate.",
+        step1_text: "Nice! Now tap <strong>New Session</strong> to create a lesson inside that folder.",
+        step2_text: "During a lesson, tap the <strong>microphone</strong> to capture important <strong>explanations, corrections, or takeaways</strong> as audio notes.",
+        step2_text_recording: "Perfect! Tap <strong>Stop</strong> to save the clip.",
+        step3_text: "Add <strong>reference videos or photos</strong> to keep everything related to this lesson in <strong>one place</strong>.",
         step3_attached: "🎬 1 video attached to this session",
-        step4_text: "Tap the <strong>wand button</strong> to ask Gemini AI to consolidate all your audio clips into a clean, structured class report — automatically.",
-        step4_consolidating: "Gemini AI is consolidating your session…",
-        step5_text: "Go back to the home screen and tap the <strong>Settings gear</strong> in the top right. There you can connect your cloud storage to make sure nothing is ever lost.",
-        step6_text: "Tap <strong>Cloud Backup</strong> here to connect your Google Drive or iCloud. Once connected, Zoutty automatically backs up every session.",
+        step4_text: "Tap the <strong>wand</strong> to let Zoutty create a <strong>structured session report</strong> from your notes, including key takeaways, drills, homework, and insights.",
+        step4_consolidating: "Zoutty is creating your report…",
+        step5_text: "Now head to <strong>Settings</strong> using the <strong>gear icon</strong> in the top right of the home screen. You can connect your <strong>cloud storage</strong> there to make sure nothing is ever lost.",
+        step6_text: "Connect <strong>Google Drive</strong> to automatically <strong>back up your sessions</strong> and keep your learning history safe.",
         step_progress: (current, total) => `Step ${current} of ${total}`,
 
         // App text
@@ -2030,17 +2034,25 @@
         lblCloudStatusConnected: "Connected",
         lblLanguage: "Language",
         lblLanguageSub: "App UI & transcription language",
-        lblLanguageVal: "English"
+        lblLanguageVal: "English",
+        cloudSyncSection: "Cloud Sync",
+        cloudSyncTagline: "Recommended",
+        lblCloudSyncConnectedAs: "Connected as",
+        lblCloudSyncDisconnect: "Disconnect",
+        lblCloudSyncBackupNow: "Backup Now",
+        lblCloudSyncRestore: "Restore from Drive",
+        lblCloudSyncAutoNote: "You can also back up manually at any time."
       },
       es: {
-        welcomeTitleSub: "Asistente de Baile con IA",
-        welcomeIntro: `<strong>¡Hola a todos!</strong> Muchas gracias por probar Zoutty conmigo, ¡realmente lo aprecio mucho!<br><br>Desarrollé esto para ayudarnos a gestionar mejor las clases: organizar alumnos, grabar comentarios en vivo, guardar videos de referencia y generar informes limpios de cada sesión.<br><br>Te lo enseño en <strong>60 segundos</strong> antes de que lo instales. 👇`, btnStartText: "Iniciar el Tour",
+        welcomeTitleSub: "Compañero de Clases Privadas",
+        welcomeIntro: `<strong>¡Hola!</strong> Muchas gracias por ayudarme a probar Zoutty, ¡realmente lo aprecio!<br><br>Lo creé para que las clases privadas sean más fáciles de <strong>capturar, organizar y repasar</strong>. Graba puntos clave, guarda referencias y deja que la IA transforme tus notas en <strong>resúmenes, ejercicios e ideas claras</strong>.<br><br>Aquí tienes un recorrido rápido de <strong>60 segundos</strong> antes de instalar. 👇`,
+        btnStartText: "Iniciar el Tour",
         ctaTitle: "¡Todo listo!",
-        ctaSub: "Ahora ya conoces el funcionamiento. Instala Zoutty en tu pantalla de inicio y comienza a registrar tu primera clase real.",
+        ctaSub: "Estás listo para comenzar a capturar clases reales. Instala Zoutty y crea tu primera sesión.",
         btnInstallText: "Instalar Zoutty",
         btnBack: "Atrás",
         iosTitle: "Instalar en iPhone",
-        iosStep1: `Toca el botón <strong>Compartir</strong> <svg style="display:inline;vertical-align:middle;width:18px;height:18px;fill:var(--brand);" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><polyline points="16 6 12 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="2" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg> en la barra de herramientas de Safari.`,
+        iosStep1: `Toca el botón <strong>Compartir</strong> <svg style="display:inline;vertical-align:middle;width:18px;height:18px;fill:var(--brand);" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><polyline points="16 6 12 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="2" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg> in Safari's toolbar.`,
         iosStep2: `Desplázate por la hoja de compartir y toca <strong>"Agregar a la pantalla de inicio"</strong>.`,
         iosStep3: `Toca <strong>Agregar</strong> en la esquina superior derecha.`,
         iosGotIt: "¡Entendido!",
@@ -2059,16 +2071,16 @@
         reportHw: "Graba 3 repeticiones de la preparación en casa — compara el tiempo de inicio de la cabeza.",
 
         // Step tooltips
-        step0_text: "Comienza creando una <strong>carpeta para tu estudiante</strong>. En la aplicación real, cada estudiante o grupo tiene su propia carpeta. Toca <strong>Nueva Carpeta</strong> arriba.",
-        step1_text: "Tu carpeta está abierta. Ahora toca <strong>Nueva Sesión</strong> para registrar la clase de hoy dentro de ella.",
-        step2_text: "Estás dentro de una sesión. Toca el <strong>botón de micrófono turquesa</strong> en la parte inferior para grabar comentarios en vivo durante la clase, luego toca nuevamente para guardar.",
-        step2_text_recording: "¡Bien! Toca el <strong>botón rojo Detener</strong> para guardar el clip de audio.",
-        step3_text: "Toca el <strong>botón morado de galería</strong> para adjuntar videos o fotos de referencia a esta sesión. Se quedan vinculados permanentemente.",
+        step0_text: "Crea tu <strong>primera carpeta</strong>. La mayoría de la gente usa carpetas para organizar <strong>alumnos, temas, proyectos</strong> o cualquier cosa que deseen mantener separada.",
+        step1_text: "¡Excelente! Ahora toca <strong>Nueva Sesión</strong> para crear una clase dentro de esa carpeta.",
+        step2_text: "Durante una clase, toca el <strong>micrófono</strong> para capturar <strong>explicaciones, correcciones o puntos clave</strong> importantes en notas de audio.",
+        step2_text_recording: "¡Perfecto! Toca <strong>Detener</strong> para guardar el clip.",
+        step3_text: "Añade <strong>videos o fotos de referencia</strong> para mantener todo lo relacionado con esta clase en <strong>un solo lugar</strong>.",
         step3_attached: "🎬 1 video adjunto a esta sesión",
-        step4_text: "Toca el <strong>botón de varita</strong> para pedirle a la IA de Gemini que consolide todos tus clips de audio en un informe de sesión limpio y estructurado de forma automática.",
-        step4_consolidating: "La IA de Gemini está consolidando tu sesión…",
-        step5_text: "Regresa a la pantalla de inicio y toca el <strong>engranaje de Ajustes</strong> arriba a la derecha. Allí puedes conectar tu almacenamiento en la nube para asegurar que nada se pierda.",
-        step6_text: "Toca <strong>Copia en la Nube</strong> aquí para conectar tu Google Drive o iCloud. Una vez conectado, Zoutty realiza copias de seguridad automáticas.",
+        step4_text: "Toca la <strong>varita</strong> para que Zoutty cree un <strong>informe de sesión estructurado</strong> a partir de tus notas, incluyendo puntos clave, ejercicios, tareas e ideas claras.",
+        step4_consolidating: "Zoutty está creando tu informe…",
+        step5_text: "Ahora ve a <strong>Ajustes</strong> usando el <strong>icono de engranaje</strong> en la parte superior derecha de la pantalla de inicio. Allí puedes conectar tu <strong>almacenamiento en la nube</strong> para asegurarte de que nunca se pierda nada.",
+        step6_text: "Conecta <strong>Google Drive</strong> para realizar <strong>copias de seguridad automáticas</strong> de tus sesiones y mantener seguro tu historial de aprendizaje.",
         step_progress: (current, total) => `Paso ${current} de ${total}`,
 
         // App text
@@ -2113,8 +2125,11 @@
       bubble.style.top = 'auto';
       bubble.style.bottom = 'auto';
       bubble.style.position = 'fixed';
-      bubble.style.left = '50%';
-      bubble.style.transform = 'translateX(-50%)';
+      bubble.style.left = '0';
+      bubble.style.right = '0';
+      bubble.style.marginLeft = 'auto';
+      bubble.style.marginRight = 'auto';
+      bubble.style.transform = 'none';
 
       if (position === 'bottom-fixed') {
         bubble.style.bottom = '155px';
