@@ -1,0 +1,2905 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description"
+    content="Zoutty – Quick guided tour before you install. Learn how to organize students, record live feedback, and generate AI session reports.">
+  <title>Welcome to Zoutty</title>
+  <link rel="apple-touch-icon" href="/icons/192x192.png">
+  <meta name="theme-color" content="#2DD4BF">
+
+  <!-- Google Font — exactly what the app uses -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─── Design Tokens (mirrors src/index.css exactly) ─── */
+    :root {
+      --brand: #2DD4BF;
+      --brand-10: rgba(45, 212, 191, 0.10);
+      --brand-20: rgba(45, 212, 191, 0.20);
+      --brand-30: rgba(45, 212, 191, 0.30);
+      --bg-dark: #021517;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.10);
+      --purple-20: rgba(168, 85, 247, 0.20);
+      --purple-40: rgba(168, 85, 247, 0.40);
+      --red-20: rgba(239, 68, 68, 0.20);
+      --orange-20: rgba(249, 115, 22, 0.20);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      height: 100%;
+    }
+
+    body {
+      min-height: 100%;
+      font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: radial-gradient(circle at 50% 0%, #06373A 0%, #021517 70%);
+      background-attachment: fixed;
+      background-color: var(--bg-dark);
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ─── Glassmorphism helpers ─── */
+    .glass {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .glass-dark {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+    }
+
+    .glow-brand {
+      box-shadow: 0 0 20px rgba(45, 212, 191, 0.2);
+    }
+
+    /* ─── App Shell ─── */
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Top Bar (mirrors the real header) ─── */
+    .app-header {
+      padding: 28px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .app-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-logo-text {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .app-logo-text h1 {
+      font-size: 18px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--brand);
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .app-logo-text p {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.9);
+      margin-top: 4px;
+      line-height: 1;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.10);
+    }
+
+    .icon-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--brand);
+    }
+
+    /* ─── App Content Area ─── */
+    .app-main {
+      max-width: 672px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px 160px;
+    }
+
+    /* ─── List Screen ─── */
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .btn-action {
+      padding: 14px 16px;
+      border: 1px solid;
+      border-radius: 16px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-action-teal {
+      background: var(--brand-10);
+      border-color: var(--brand-20);
+      color: var(--brand);
+      box-shadow: 0 0 20px rgba(45, 212, 191, 0.2);
+    }
+
+    .btn-action-teal:hover {
+      background: var(--brand-20);
+    }
+
+    .btn-action-blue {
+      background: rgba(59, 130, 246, 0.10);
+      border-color: rgba(59, 130, 246, 0.20);
+      color: #60a5fa;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.1);
+    }
+
+    .btn-action-blue:hover {
+      background: rgba(59, 130, 246, 0.20);
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255, 255, 255, 0.3);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Folder card */
+    .folder-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px;
+      cursor: pointer;
+      border: 1px solid rgba(59, 130, 246, 0.10);
+      border-radius: 16px;
+      background: var(--card-bg);
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+
+    .folder-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .folder-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.10);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .folder-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: #60a5fa;
+    }
+
+    .folder-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .folder-info h3 {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .folder-info p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .folder-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .folder-action-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .folder-action-btn.edit {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .folder-action-btn.edit:hover {
+      background: rgba(255, 255, 255, 0.10);
+    }
+
+    .folder-action-btn.del {
+      background: rgba(239, 68, 68, 0.10);
+    }
+
+    .folder-action-btn.del:hover {
+      background: rgba(239, 68, 68, 0.20);
+    }
+
+    .folder-action-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .folder-action-btn.edit svg {
+      fill: rgba(255, 255, 255, 0.6);
+    }
+
+    .folder-action-btn.del svg {
+      fill: #f87171;
+    }
+
+    /* Session card */
+    .session-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      background: var(--card-bg);
+      transition: all 0.2s;
+      margin-bottom: 16px;
+    }
+
+    .session-card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--brand-20);
+    }
+
+    .session-card .icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .session-card .icon-box svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--brand);
+    }
+
+    .session-card .info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .session-card .info h3 {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .session-card .info p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .session-card .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .session-card .actions button {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .session-card .actions .move-btn {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .session-card .actions .move-btn:hover {
+      background: rgba(255, 255, 255, 0.10);
+    }
+
+    .session-card .actions .move-btn svg {
+      fill: rgba(255, 255, 255, 0.6);
+      width: 20px;
+      height: 20px;
+    }
+
+    .session-card .actions .del-btn {
+      background: rgba(239, 68, 68, 0.10);
+    }
+
+    .session-card .actions .del-btn:hover {
+      background: rgba(239, 68, 68, 0.20);
+    }
+
+    .session-card .actions .del-btn svg {
+      fill: #f87171;
+      width: 20px;
+      height: 20px;
+    }
+
+    /* ─── Detail Screen ─── */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 10px;
+    }
+
+    .breadcrumb svg {
+      width: 14px;
+      height: 14px;
+      fill: var(--brand);
+    }
+
+    .breadcrumb span {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .session-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .session-main-title {
+      font-size: 21px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .glossary-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: var(--brand-10);
+      border: 1px solid var(--brand-20);
+      color: var(--brand);
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .glossary-badge svg {
+      width: 12px;
+      height: 12px;
+      fill: var(--brand);
+    }
+
+    .subtitle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+
+    .subtitle-text {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.4);
+      font-style: italic;
+    }
+
+    .session-action-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .sess-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sess-btn-neutral {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .sess-btn-neutral svg {
+      fill: var(--brand);
+      width: 16px;
+      height: 16px;
+    }
+
+    .sess-btn-purple {
+      background: var(--purple-20);
+      border-color: var(--purple-40);
+    }
+
+    .sess-btn-purple svg {
+      fill: #c084fc;
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Audio clip card */
+    .audio-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .audio-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .audio-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(45, 212, 191, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .audio-icon-box svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--brand);
+    }
+
+    .audio-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .audio-filename {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .audio-date {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 2px;
+    }
+
+    .audio-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .audio-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .audio-btn.neutral {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .audio-btn.neutral svg {
+      fill: rgba(255, 255, 255, 0.5);
+      width: 14px;
+      height: 14px;
+    }
+
+    .audio-btn.del {
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .audio-btn.del svg {
+      fill: #f87171;
+      width: 14px;
+      height: 14px;
+    }
+
+    .transcript-box {
+      font-size: 12px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.6);
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    /* AI Report card */
+    .report-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 24px;
+    }
+
+    .report-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .report-header svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .report-section {
+      padding: 16px;
+    }
+
+    .report-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.3);
+      margin-bottom: 10px;
+    }
+
+    .report-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.85);
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .report-item:last-child {
+      border-bottom: none;
+    }
+
+    .report-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--brand);
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    .report-item.drill .report-dot {
+      background: #a78bfa;
+    }
+
+    .report-item.hw .report-dot {
+      background: #fb923c;
+    }
+
+    /* ─── Settings Screen ─── */
+    .settings-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .settings-option:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .settings-option-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .settings-option-left .opt-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-option-left .opt-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .settings-option .label {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .settings-option .sub {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 2px;
+    }
+
+    .settings-option .status {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+    }
+
+    .status-disconnected {
+      background: rgba(239, 68, 68, 0.1);
+      color: #f87171;
+    }
+
+    .status-connected {
+      background: rgba(52, 211, 153, 0.1);
+      color: #34d399;
+    }
+
+    /* ─── Floating Bottom Controls (session detail) ─── */
+    .bottom-controls {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      z-index: 30;
+    }
+
+    .ctrl-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .ctrl-btn.upload {
+      background: var(--orange-20);
+    }
+
+    .ctrl-btn.upload svg {
+      fill: #fb923c;
+      width: 22px;
+      height: 22px;
+    }
+
+    .ctrl-btn.record-idle {
+      background: var(--brand);
+      width: 64px;
+      height: 64px;
+    }
+
+    .ctrl-btn.record-idle svg {
+      fill: #000;
+      width: 28px;
+      height: 28px;
+    }
+
+    .ctrl-btn.record-active {
+      background: #ef4444;
+      width: 64px;
+      height: 64px;
+    }
+
+    .ctrl-btn.record-active svg {
+      fill: #fff;
+      width: 28px;
+      height: 28px;
+    }
+
+    .ctrl-btn.consolidate {
+      background: var(--purple-20);
+    }
+
+    .ctrl-btn.consolidate svg {
+      fill: #c084fc;
+      width: 22px;
+      height: 22px;
+    }
+
+    .ctrl-btn.images-btn {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .ctrl-btn.images-btn svg {
+      fill: rgba(255, 255, 255, 0.5);
+      width: 22px;
+      height: 22px;
+    }
+
+    /* ─── Recording indicator above controls ─── */
+    .recording-badge {
+      position: fixed;
+      bottom: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(220, 38, 38, 0.9);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      backdrop-filter: blur(8px);
+      z-index: 31;
+      display: none;
+    }
+
+    .recording-badge.visible {
+      display: flex;
+    }
+
+    .recording-badge .ping {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fff;
+      animation: ping 1s infinite;
+    }
+
+    /* ─── Welcome Overlay Screen ─── */
+    #welcome-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(2, 21, 23, 0.97);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    /* .welcome-avatar styles removed to match app onboarding exactly */
+    .welcome-logo {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--brand);
+      margin-bottom: 4px;
+    }
+
+    .welcome-logo-sub {
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 32px;
+    }
+
+    .welcome-bubble {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 20px 22px;
+      max-width: 380px;
+      text-align: left;
+      font-size: 15px;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 32px;
+    }
+
+    .welcome-bubble strong {
+      color: #fff;
+    }
+
+    .btn-start {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--brand);
+      color: #000;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 36px;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(45, 212, 191, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-start:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 28px rgba(45, 212, 191, 0.4);
+    }
+
+    .btn-start svg {
+      width: 20px;
+      height: 20px;
+      fill: #000;
+    }
+
+    /* ─── Tooltip Overlay ─── */
+    #tooltip-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      pointer-events: none;
+      display: none;
+    }
+
+    #tooltip-overlay.active {
+      display: block;
+    }
+
+    /* Semi-transparent backdrop with highlight hole — done via box-shadow trick */
+    .backdrop-dim {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 21, 23, 0.72);
+      pointer-events: auto;
+      z-index: 101;
+    }
+
+    /* The tooltip bubble */
+    .tooltip-bubble {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 102;
+      background: rgba(10, 30, 33, 0.97);
+      border: 1px solid var(--brand-30);
+      border-radius: 20px;
+      padding: 16px 20px;
+      max-width: calc(100vw - 32px);
+      width: 380px;
+      pointer-events: auto;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--brand-20);
+      animation: tooltip-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .tooltip-bubble.top {
+      bottom: 140px;
+    }
+
+    .tooltip-bubble.bottom {
+      top: 110px;
+    }
+
+    .tooltip-inner {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .tooltip-emoji {
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .tooltip-text {
+      font-size: 14px;
+      line-height: 1.55;
+      color: #fff;
+    }
+
+    .tooltip-text strong {
+      color: var(--brand);
+    }
+
+    .tooltip-footer {
+      display: flex;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .tooltip-steps {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+      font-weight: 600;
+      flex: 1;
+      text-align: right;
+    }
+
+    .progress-dots {
+      display: flex;
+      gap: 5px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .progress-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transition: background 0.3s;
+    }
+
+    .progress-dot.active {
+      background: var(--brand);
+    }
+
+    .progress-dot.done {
+      background: rgba(45, 212, 191, 0.4);
+    }
+
+    /* Pulsing highlight ring on target element */
+    .highlight-target {
+      position: relative;
+      z-index: 110;
+      animation: highlight-pulse 1.8s infinite;
+    }
+
+    .highlight-target::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: inherit;
+      border: 2px solid var(--brand);
+      animation: ring-pulse 1.8s infinite;
+      pointer-events: none;
+    }
+
+    /* ─── CTA Screen (Install) ─── */
+    #cta-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(2, 21, 23, 0.98);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    #cta-screen.active {
+      display: flex;
+    }
+
+    .cta-check {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 2px solid #34d399;
+      background: rgba(52, 211, 153, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      margin-bottom: 24px;
+      animation: bounce-gentle 1s infinite alternate;
+    }
+
+    .cta-title {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .cta-sub {
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.6);
+      max-width: 320px;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    .btn-install {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, var(--brand), #0ea5e9);
+      color: #000;
+      font-family: inherit;
+      font-size: 17px;
+      font-weight: 700;
+      padding: 18px 40px;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 8px 28px rgba(45, 212, 191, 0.3);
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-install::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -60%;
+      width: 200%;
+      height: 100%;
+      background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.25), transparent);
+      transform: skewX(-20deg);
+      animation: shine 3s infinite;
+    }
+
+    .btn-install svg {
+      width: 20px;
+      height: 20px;
+      fill: #000;
+    }
+
+    .btn-open-web {
+      margin-top: 16px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--brand);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .btn-open-web:hover {
+      opacity: 0.8;
+    }
+
+    /* iOS Install Guide */
+    #ios-guide {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    #ios-guide.active {
+      display: flex;
+    }
+
+    .ios-card {
+      background: #0f2b2e;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 24px;
+      width: 100%;
+      max-width: 440px;
+      text-align: left;
+      animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .ios-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .ios-card-title button {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+    }
+
+    .ios-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .ios-step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--brand-10);
+      border: 1px solid var(--brand);
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn-got-it {
+      width: 100%;
+      padding: 14px;
+      margin-top: 8px;
+      background: var(--brand);
+      color: #000;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    /* Confetti Canvas */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 201;
+    }
+
+    /* ─── Animations ─── */
+    @keyframes slide-up {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes tooltip-in {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    @keyframes spin-slow {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes ping {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.7;
+        transform: scale(1.3);
+      }
+    }
+
+    @keyframes highlight-pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.3);
+      }
+
+      50% {
+        box-shadow: 0 0 0 8px rgba(45, 212, 191, 0.15);
+      }
+    }
+
+    @keyframes ring-pulse {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: scale(1.4);
+      }
+    }
+
+    @keyframes bounce-gentle {
+      from {
+        transform: translateY(0);
+      }
+
+      to {
+        transform: translateY(-8px);
+      }
+    }
+
+    @keyframes shine {
+      0% {
+        left: -60%;
+      }
+
+      50%,
+      100% {
+        left: 100%;
+      }
+    }
+
+    @keyframes recording-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+      }
+
+      70% {
+        box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    /* Language Switcher and Welcome Avatar styling adjustments */
+    .lang-switch-welcome {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 3px;
+      border-radius: 9999px;
+      z-index: 210;
+    }
+
+    .lang-btn {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      letter-spacing: 0.05em;
+    }
+
+    .lang-btn.active {
+      background: var(--brand);
+      color: #021517;
+      box-shadow: 0 2px 8px rgba(45, 212, 191, 0.3);
+    }
+
+    .lang-btn:hover:not(.active) {
+      color: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* .welcome-avatar override removed */
+    .recording-badge {
+      z-index: 111 !important;
+    }
+
+    .tour-dimmed {
+      opacity: 0.15 !important;
+      pointer-events: none !important;
+      filter: grayscale(80%) !important;
+      transition: all 0.25s ease;
+    }
+
+    .tooltip-back-btn {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: inherit;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex: 1;
+      text-align: left;
+      visibility: visible;
+      display: inline-block;
+    }
+
+    .tooltip-back-btn:hover {
+      color: var(--brand);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Highlight states for Step 5 & 7 full brightness */
+    .ctrl-btn.consolidate.highlight-target {
+      background: #a855f7 !important;
+      color: #fff !important;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.6) !important;
+    }
+
+    .ctrl-btn.consolidate.highlight-target svg {
+      stroke: #fff !important;
+    }
+
+    #cloud-option.highlight-target {
+      background: var(--brand) !important;
+      color: #021517 !important;
+      border-color: var(--brand) !important;
+      box-shadow: 0 0 20px rgba(45, 212, 191, 0.5) !important;
+    }
+
+    /* Floating logo and glow pulse animations */
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .animate-float {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse-slow {
+
+      0%,
+      100% {
+        opacity: 0.5;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+    }
+
+    .animate-pulse-slow {
+      animation: pulse-slow 3s ease-in-out infinite;
+    }
+
+    /* Responsive padding */
+    @media (max-width: 480px) {
+      .app-header {
+        padding: 20px 16px;
+      }
+
+      .app-main {
+        padding: 0 16px 160px;
+      }
+
+      .tooltip-bubble {
+        width: calc(100vw - 32px);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══════════════════════════════════════════════════════════
+     WELCOME OVERLAY (first thing they see)
+══════════════════════════════════════════════════════════ -->
+  <div id="welcome-overlay">
+    <!-- Language Switcher Pill -->
+    <div class="lang-switch-welcome">
+      <button class="lang-btn active" data-lang="en" onclick="switchLanguage('en')">EN</button>
+      <button class="lang-btn" data-lang="es" onclick="switchLanguage('es')">ES</button>
+    </div>
+
+    <div class="relative" style="position: relative; margin-bottom: 24px;">
+      <div class="absolute inset-0 bg-brand/30 blur-2xl rounded-full animate-pulse-slow"
+        style="position: absolute; inset: 0; background: rgba(45, 212, 191, 0.3); filter: blur(24px); border-radius: 50%;">
+      </div>
+      <!-- Inline ZouttyIcon SVG -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1008 1024"
+        style="width:80px;height:80px;fill:none;color:var(--brand);flex-shrink:0;position:relative;z-index:10;"
+        fill="none" class="animate-float">
+        <mask id="z-cutout-welcome">
+          <rect width="100%" height="100%" fill="white" />
+          <g fill="black">
+            <path
+              d="M 492.00 210.00 C 492.04 210.00 492.00 211.00 492.00 211.00 C 512.47 211.00 532.40 210.00 553.00 210.00 C 556.40 209.67 560.92 209.00 565.00 209.00 C 585.06 209.00 605.43 209.16 625.00 210.00 C 640.38 209.17 658.42 207.88 673.00 211.00 C 685.63 211.48 698.15 216.12 708.75 222.25 C 719.34 228.39 726.45 235.11 734.30 244.70 C 742.15 254.29 747.13 264.11 750.93 276.07 C 754.73 288.03 756.20 305.78 753.02 318.02 C 749.85 330.27 746.65 342.44 739.25 352.25 C 731.85 362.05 725.69 370.06 718.25 379.25 C 710.80 388.43 704.32 396.92 696.75 405.75 C 689.17 414.57 682.06 423.05 675.08 432.08 C 668.10 441.12 660.53 449.70 653.70 458.70 C 646.87 467.69 639.37 475.43 632.25 484.25 C 625.13 493.06 618.31 502.31 611.08 511.08 C 603.86 519.85 597.19 528.93 589.25 537.25 C 581.30 545.56 575.74 555.61 568.08 564.08 C 560.42 572.56 553.94 581.86 546.23 590.23 C 538.52 598.60 533.29 608.75 524.25 616.25 C 515.21 623.74 514.90 640.15 501.32 638.68 C 487.74 637.21 471.11 639.25 456.93 638.93 C 442.74 638.61 426.18 639.58 412.00 638.00 C 418.38 623.27 432.92 613.98 441.92 600.92 C 450.92 587.86 462.20 575.85 472.75 563.75 C 483.30 551.66 491.66 538.56 502.75 526.75 C 513.85 514.94 521.81 500.71 532.77 488.77 C 543.73 476.83 552.40 464.14 562.92 451.92 C 573.44 439.69 583.09 426.76 593.30 414.30 C 603.52 401.84 613.52 390.19 623.30 377.30 C 633.08 364.41 645.38 353.88 653.75 339.75 C 662.13 325.63 682.96 318.39 679.00 298.00 C 675.04 277.61 641.80 284.66 626.00 285.00 C 615.65 285.82 607.36 285.21 597.00 285.00 C 577.68 284.61 558.81 285.00 540.00 285.00 C 540.44 285.14 541.79 286.40 542.00 287.00 C 532.83 286.34 522.34 288.33 514.00 286.00 C 509.00 286.00 504.00 286.00 499.00 286.00 C 491.33 286.00 483.67 286.00 476.00 286.00 C 475.50 286.00 475.00 286.00 475.00 286.00 C 470.46 289.36 461.74 285.92 456.00 287.00 C 450.26 288.08 442.08 286.49 437.00 286.00 C 428.67 286.00 420.33 286.00 412.00 286.00 C 410.67 286.00 409.33 286.00 408.00 286.00 C 388.72 288.63 367.71 286.00 348.00 286.00 C 344.00 286.00 340.00 286.00 336.00 286.00 C 320.25 287.52 300.23 289.78 285.00 286.00 C 283.36 285.86 283.12 285.45 282.00 285.00 C 259.63 276.13 243.06 256.74 255.31 231.31 C 267.55 205.87 298.23 210.00 323.00 210.00 C 331.64 209.16 341.66 209.00 351.00 209.00 C 401.33 209.00 451.67 209.00 502.00 209.00 C 499.57 211.13 495.18 209.47 492.00 210.00" />
+            <path
+              d="M 554.00 334.00 C 563.67 334.00 573.33 334.00 583.00 334.00 C 581.70 333.84 578.15 332.84 577.00 332.00 C 582.51 333.06 594.38 329.71 596.00 334.00 C 595.02 340.37 584.92 345.03 582.25 351.25 C 579.57 357.46 572.17 362.33 568.25 368.25 C 564.32 374.16 558.99 380.65 554.25 386.25 C 549.51 391.85 544.71 397.20 539.75 402.75 C 534.79 408.30 530.41 414.98 525.75 420.75 C 521.08 426.51 516.48 432.04 511.75 437.75 C 507.02 443.46 502.30 448.88 497.75 454.75 C 493.21 460.62 488.00 466.48 483.25 472.25 C 478.50 478.01 474.70 484.10 469.75 489.75 C 464.79 495.39 460.02 501.49 455.25 507.25 C 450.47 513.00 445.88 518.40 441.25 524.25 C 436.61 530.09 431.45 535.93 426.75 541.75 C 422.05 547.57 418.05 553.46 413.08 559.08 C 408.11 564.70 403.71 570.27 399.08 576.08 C 394.45 581.90 389.23 587.82 384.75 593.75 C 380.26 599.67 375.43 604.86 370.75 610.75 C 366.07 616.64 360.83 622.17 356.25 628.25 C 351.67 634.33 347.51 639.30 342.25 645.25 C 336.98 651.20 333.21 655.80 329.08 663.08 C 324.94 670.36 327.66 680.37 336.08 683.92 C 344.49 687.47 352.31 689.58 362.00 689.00 C 371.69 688.42 382.08 685.99 392.00 687.00 C 401.92 688.01 411.68 687.81 422.00 688.00 C 432.32 688.19 442.83 687.08 453.00 687.00 C 463.17 686.92 472.64 688.52 483.00 688.00 C 493.36 687.48 502.91 688.71 513.01 687.01 C 523.11 685.31 533.88 689.17 544.00 688.00 C 554.12 686.83 564.98 689.73 575.00 688.00 C 585.02 686.28 594.94 687.62 605.00 688.00 C 615.06 688.38 625.96 688.51 636.00 688.00 C 646.04 687.49 656.59 686.30 667.00 687.00 C 652.64 669.79 633.52 655.25 636.93 630.93 C 640.33 606.60 673.34 594.06 692.69 606.31 C 712.05 618.55 720.89 634.86 738.25 649.75 C 755.60 664.64 764.17 678.44 782.25 693.75 C 800.32 709.06 797.85 738.51 780.75 753.75 C 763.66 768.99 752.89 783.16 736.25 798.25 C 719.60 813.34 711.42 829.61 691.77 841.77 C 672.12 853.93 643.40 844.63 637.67 819.33 C 631.94 794.02 653.74 779.13 668.00 762.00 C 666.67 762.00 665.33 762.00 664.00 762.00 C 633.37 759.97 600.56 764.87 569.00 763.00 C 537.44 761.13 503.83 764.98 473.00 762.00 C 469.33 762.00 465.67 762.00 462.00 762.00 C 438.51 764.27 411.44 763.38 388.00 762.00 C 371.64 762.62 352.66 762.96 336.93 761.07 C 321.19 759.19 307.06 755.29 294.30 746.70 C 281.55 738.10 274.49 730.52 266.08 717.92 C 257.67 705.32 253.77 689.44 253.00 674.00 C 252.23 658.56 257.59 641.23 264.31 628.31 C 271.02 615.38 278.54 605.42 287.75 594.75 C 296.96 584.08 305.58 574.85 314.25 564.25 C 322.92 553.64 330.14 543.44 339.25 533.25 C 348.36 523.05 355.82 512.07 364.75 501.75 C 373.68 491.44 381.98 481.03 390.25 470.25 C 398.53 459.47 408.06 450.25 416.25 439.25 C 424.43 428.24 433.46 419.10 441.75 407.75 C 450.04 396.41 458.86 388.41 467.25 376.25 C 475.65 364.10 484.20 358.53 492.25 344.25 C 500.31 329.98 520.32 334.56 535.00 334.00 C 541.89 332.21 547.22 332.62 554.00 334.00" />
+          </g>
+        </mask>
+        <path mask="url(#z-cutout-welcome)" fill="currentColor"
+          d="M 377.00 21.00 C 399.33 21.00 421.67 21.00 444.00 21.00 C 450.35 20.39 457.96 20.00 465.00 20.00 C 492.00 20.00 519.00 20.00 546.00 20.00 C 552.71 20.00 560.05 20.42 566.00 21.00 C 589.00 21.00 612.00 21.00 635.00 21.00 C 681.83 21.00 729.28 18.47 776.00 21.00 C 805.60 22.61 840.32 26.80 865.23 41.77 C 890.14 56.74 909.45 67.07 928.30 89.70 C 947.16 112.32 959.08 130.97 969.31 159.69 C 979.54 188.42 983.56 223.25 982.00 257.00 C 980.44 290.75 983.88 330.93 982.00 366.00 C 980.12 401.07 983.80 439.52 982.00 475.00 C 980.20 510.47 983.32 547.65 982.00 583.00 C 980.68 618.35 982.30 657.29 982.00 692.00 C 981.70 726.71 980.94 767.22 981.01 800.01 C 981.07 832.79 973.30 862.19 960.08 889.08 C 946.85 915.96 934.05 931.88 911.92 951.92 C 889.79 971.95 871.43 983.68 842.32 993.32 C 813.22 1002.97 778.93 1007.18 745.00 1006.00 C 711.07 1004.82 670.52 1004.88 635.00 1005.00 C 599.48 1005.12 559.84 1004.89 524.00 1005.00 C 488.16 1005.11 449.50 1004.82 414.00 1005.00 C 378.50 1005.18 337.29 1004.64 303.00 1005.00 C 268.71 1005.36 227.82 1007.79 197.00 1002.00 C 166.18 996.21 143.24 986.40 120.25 968.75 C 97.26 951.09 78.40 939.23 64.25 913.75 C 50.09 888.28 37.28 865.21 32.00 835.00 C 26.73 804.79 27.00 761.35 27.00 729.00 C 27.00 720.32 27.23 710.91 28.00 703.00 C 28.00 678.67 28.00 654.33 28.00 630.00 C 28.00 623.00 28.00 616.00 28.00 609.00 C 28.00 543.94 28.00 479.56 28.00 415.00 C 28.00 409.41 27.51 403.57 28.00 398.00 C 28.31 394.42 29.00 390.88 29.00 387.00 C 28.42 380.98 28.00 373.71 28.00 367.00 C 28.00 363.00 28.00 359.00 28.00 355.00 C 28.00 322.25 25.80 280.18 27.00 248.00 C 28.20 215.82 31.85 182.82 43.32 155.32 C 54.79 127.82 65.09 109.21 84.75 87.75 C 104.41 66.29 122.06 54.84 147.23 41.23 C 172.40 27.61 206.69 22.59 236.00 21.00 C 282.68 18.47 330.24 21.00 377.00 21.00 Z" />
+      </svg>
+    </div>
+    <div class="welcome-logo">ZOUTTY</div>
+    <div class="welcome-logo-sub" id="welcome-logo-sub">AI Dance Lesson Assistant</div>
+    <div class="welcome-bubble" id="welcome-bubble">
+      <strong>Hey everyone!</strong> Thanks so much for testing Zoutty with me — I really appreciate it!<br><br>
+      I built this to help us manage classes better: organize students, record live feedback, save reference videos, and
+      let Gemini AI generate clean session reports.<br><br>
+      Let me show you around in <strong>60 seconds</strong> before you install. 👇
+    </div>
+    <button class="btn-start" onclick="startTour()">
+      <span id="btn-start-text">Start the Tour</span>
+      <svg viewBox="0 0 24 24">
+        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" fill="none" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+     THE ACTUAL ZOUTTY APP (rendered below, tour overlays on top)
+══════════════════════════════════════════════════════════ -->
+  <div class="app-shell">
+
+    <!-- ── Top Bar ── -->
+    <header class="app-header">
+      <div class="app-header-left">
+        <!-- ZouttyIcon SVG (inlined) -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1008 1024"
+          style="width:40px;height:40px;fill:none;color:var(--brand);flex-shrink:0;" fill="none">
+          <mask id="z-cutout">
+            <rect width="100%" height="100%" fill="white" />
+            <g fill="black">
+              <path
+                d="M 492.00 210.00 C 492.04 210.00 492.00 211.00 492.00 211.00 C 512.47 211.00 532.40 210.00 553.00 210.00 C 556.40 209.67 560.92 209.00 565.00 209.00 C 585.06 209.00 605.43 209.16 625.00 210.00 C 640.38 209.17 658.42 207.88 673.00 211.00 C 685.63 211.48 698.15 216.12 708.75 222.25 C 719.34 228.39 726.45 235.11 734.30 244.70 C 742.15 254.29 747.13 264.11 750.93 276.07 C 754.73 288.03 756.20 305.78 753.02 318.02 C 749.85 330.27 746.65 342.44 739.25 352.25 C 731.85 362.05 725.69 370.06 718.25 379.25 C 710.80 388.43 704.32 396.92 696.75 405.75 C 689.17 414.57 682.06 423.05 675.08 432.08 C 668.10 441.12 660.53 449.70 653.70 458.70 C 646.87 467.69 639.37 475.43 632.25 484.25 C 625.13 493.06 618.31 502.31 611.08 511.08 C 603.86 519.85 597.19 528.93 589.25 537.25 C 581.30 545.56 575.74 555.61 568.08 564.08 C 560.42 572.56 553.94 581.86 546.23 590.23 C 538.52 598.60 533.29 608.75 524.25 616.25 C 515.21 623.74 514.90 640.15 501.32 638.68 C 487.74 637.21 471.11 639.25 456.93 638.93 C 442.74 638.61 426.18 639.58 412.00 638.00 C 418.38 623.27 432.92 613.98 441.92 600.92 C 450.92 587.86 462.20 575.85 472.75 563.75 C 483.30 551.66 491.66 538.56 502.75 526.75 C 513.85 514.94 521.81 500.71 532.77 488.77 C 543.73 476.83 552.40 464.14 562.92 451.92 C 573.44 439.69 583.09 426.76 593.30 414.30 C 603.52 401.84 613.52 390.19 623.30 377.30 C 633.08 364.41 645.38 353.88 653.75 339.75 C 662.13 325.63 682.96 318.39 679.00 298.00 C 675.04 277.61 641.80 284.66 626.00 285.00 C 615.65 285.82 607.36 285.21 597.00 285.00 C 577.68 284.61 558.81 285.00 540.00 285.00 C 540.44 285.14 541.79 286.40 542.00 287.00 C 532.83 286.34 522.34 288.33 514.00 286.00 C 509.00 286.00 504.00 286.00 499.00 286.00 C 491.33 286.00 483.67 286.00 476.00 286.00 C 475.50 286.00 475.00 286.00 475.00 286.00 C 470.46 289.36 461.74 285.92 456.00 287.00 C 450.26 288.08 442.08 286.49 437.00 286.00 C 428.67 286.00 420.33 286.00 412.00 286.00 C 410.67 286.00 409.33 286.00 408.00 286.00 C 388.72 288.63 367.71 286.00 348.00 286.00 C 344.00 286.00 340.00 286.00 336.00 286.00 C 320.25 287.52 300.23 289.78 285.00 286.00 C 283.36 285.86 283.12 285.45 282.00 285.00 C 259.63 276.13 243.06 256.74 255.31 231.31 C 267.55 205.87 298.23 210.00 323.00 210.00 C 331.64 209.16 341.66 209.00 351.00 209.00 C 401.33 209.00 451.67 209.00 502.00 209.00 C 499.57 211.13 495.18 209.47 492.00 210.00" />
+              <path
+                d="M 554.00 334.00 C 563.67 334.00 573.33 334.00 583.00 334.00 C 581.70 333.84 578.15 332.84 577.00 332.00 C 582.51 333.06 594.38 329.71 596.00 334.00 C 595.02 340.37 584.92 345.03 582.25 351.25 C 579.57 357.46 572.17 362.33 568.25 368.25 C 564.32 374.16 558.99 380.65 554.25 386.25 C 549.51 391.85 544.71 397.20 539.75 402.75 C 534.79 408.30 530.41 414.98 525.75 420.75 C 521.08 426.51 516.48 432.04 511.75 437.75 C 507.02 443.46 502.30 448.88 497.75 454.75 C 493.21 460.62 488.00 466.48 483.25 472.25 C 478.50 478.01 474.70 484.10 469.75 489.75 C 464.79 495.39 460.02 501.49 455.25 507.25 C 450.47 513.00 445.88 518.40 441.25 524.25 C 436.61 530.09 431.45 535.93 426.75 541.75 C 422.05 547.57 418.05 553.46 413.08 559.08 C 408.11 564.70 403.71 570.27 399.08 576.08 C 394.45 581.90 389.23 587.82 384.75 593.75 C 380.26 599.67 375.43 604.86 370.75 610.75 C 366.07 616.64 360.83 622.17 356.25 628.25 C 351.67 634.33 347.51 639.30 342.25 645.25 C 336.98 651.20 333.21 655.80 329.08 663.08 C 324.94 670.36 327.66 680.37 336.08 683.92 C 344.49 687.47 352.31 689.58 362.00 689.00 C 371.69 688.42 382.08 685.99 392.00 687.00 C 401.92 688.01 411.68 687.81 422.00 688.00 C 432.32 688.19 442.83 687.08 453.00 687.00 C 463.17 686.92 472.64 688.52 483.00 688.00 C 493.36 687.48 502.91 688.71 513.01 687.01 C 523.11 685.31 533.88 689.17 544.00 688.00 C 554.12 686.83 564.98 689.73 575.00 688.00 C 585.02 686.28 594.94 687.62 605.00 688.00 C 615.06 688.38 625.96 688.51 636.00 688.00 C 646.04 687.49 656.59 686.30 667.00 687.00 C 652.64 669.79 633.52 655.25 636.93 630.93 C 640.33 606.60 673.34 594.06 692.69 606.31 C 712.05 618.55 720.89 634.86 738.25 649.75 C 755.60 664.64 764.17 678.44 782.25 693.75 C 800.32 709.06 797.85 738.51 780.75 753.75 C 763.66 768.99 752.89 783.16 736.25 798.25 C 719.60 813.34 711.42 829.61 691.77 841.77 C 672.12 853.93 643.40 844.63 637.67 819.33 C 631.94 794.02 653.74 779.13 668.00 762.00 C 666.67 762.00 665.33 762.00 664.00 762.00 C 633.37 759.97 600.56 764.87 569.00 763.00 C 537.44 761.13 503.83 764.98 473.00 762.00 C 469.33 762.00 465.67 762.00 462.00 762.00 C 438.51 764.27 411.44 763.38 388.00 762.00 C 371.64 762.62 352.66 762.96 336.93 761.07 C 321.19 759.19 307.06 755.29 294.30 746.70 C 281.55 738.10 274.49 730.52 266.08 717.92 C 257.67 705.32 253.77 689.44 253.00 674.00 C 252.23 658.56 257.59 641.23 264.31 628.31 C 271.02 615.38 278.54 605.42 287.75 594.75 C 296.96 584.08 305.58 574.85 314.25 564.25 C 322.92 553.64 330.14 543.44 339.25 533.25 C 348.36 523.05 355.82 512.07 364.75 501.75 C 373.68 491.44 381.98 481.03 390.25 470.25 C 398.53 459.47 408.06 450.25 416.25 439.25 C 424.43 428.24 433.46 419.10 441.75 407.75 C 450.04 396.41 458.86 388.41 467.25 376.25 C 475.65 364.10 484.20 358.53 492.25 344.25 C 500.31 329.98 520.32 334.56 535.00 334.00 C 541.89 332.21 547.22 332.62 554.00 334.00" />
+            </g>
+          </mask>
+          <path mask="url(#z-cutout)" fill="currentColor"
+            d="M 377.00 21.00 C 399.33 21.00 421.67 21.00 444.00 21.00 C 450.35 20.39 457.96 20.00 465.00 20.00 C 492.00 20.00 519.00 20.00 546.00 20.00 C 552.71 20.00 560.05 20.42 566.00 21.00 C 589.00 21.00 612.00 21.00 635.00 21.00 C 681.83 21.00 729.28 18.47 776.00 21.00 C 805.60 22.61 840.32 26.80 865.23 41.77 C 890.14 56.74 909.45 67.07 928.30 89.70 C 947.16 112.32 959.08 130.97 969.31 159.69 C 979.54 188.42 983.56 223.25 982.00 257.00 C 980.44 290.75 983.88 330.93 982.00 366.00 C 980.12 401.07 983.80 439.52 982.00 475.00 C 980.20 510.47 983.32 547.65 982.00 583.00 C 980.68 618.35 982.30 657.29 982.00 692.00 C 981.70 726.71 980.94 767.22 981.01 800.01 C 981.07 832.79 973.30 862.19 960.08 889.08 C 946.85 915.96 934.05 931.88 911.92 951.92 C 889.79 971.95 871.43 983.68 842.32 993.32 C 813.22 1002.97 778.93 1007.18 745.00 1006.00 C 711.07 1004.82 670.52 1004.88 635.00 1005.00 C 599.48 1005.12 559.84 1004.89 524.00 1005.00 C 488.16 1005.11 449.50 1004.82 414.00 1005.00 C 378.50 1005.18 337.29 1004.64 303.00 1005.00 C 268.71 1005.36 227.82 1007.79 197.00 1002.00 C 166.18 996.21 143.24 986.40 120.25 968.75 C 97.26 951.09 78.40 939.23 64.25 913.75 C 50.09 888.28 37.28 865.21 32.00 835.00 C 26.73 804.79 27.00 761.35 27.00 729.00 C 27.00 720.32 27.23 710.91 28.00 703.00 C 28.00 678.67 28.00 654.33 28.00 630.00 C 28.00 623.00 28.00 616.00 28.00 609.00 C 28.00 543.94 28.00 479.56 28.00 415.00 C 28.00 409.41 27.51 403.57 28.00 398.00 C 28.31 394.42 29.00 390.88 29.00 387.00 C 28.42 380.98 28.00 373.71 28.00 367.00 C 28.00 363.00 28.00 359.00 28.00 355.00 C 28.00 322.25 25.80 280.18 27.00 248.00 C 28.20 215.82 31.85 182.82 43.32 155.32 C 54.79 127.82 65.09 109.21 84.75 87.75 C 104.41 66.29 122.06 54.84 147.23 41.23 C 172.40 27.61 206.69 22.59 236.00 21.00 C 282.68 18.47 330.24 21.00 377.00 21.00 Z" />
+        </svg>
+        <div class="app-logo-text">
+          <h1 id="lbl-zoutty-title">ZOUTTY</h1>
+          <p id="lbl-zoutty-sub">AI Dance Lesson Assistant</p>
+        </div>
+      </div>
+      <div id="header-right">
+        <!-- Settings btn (shown on list screen) -->
+        <button id="header-settings-btn" class="icon-btn" onclick="tapHeaderSettings()">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <!-- ── SCREEN 1: Home (Folders + Sessions list) ── -->
+      <div id="screen-home" class="screen active">
+        <div class="btn-grid">
+          <button id="btn-new-session" class="btn-action btn-action-teal" onclick="tapNewSession()">
+            <!-- Plus icon -->
+            <svg style="width:16px;height:16px;fill:currentColor;" viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+            </svg>
+            <span id="btn-new-session-text">New Session</span>
+          </button>
+          <button id="btn-new-folder" class="btn-action btn-action-blue" onclick="tapNewFolder()">
+            <!-- FolderPlus icon -->
+            <svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;"
+              viewBox="0 0 24 24">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              <line x1="12" y1="11" x2="12" y2="17" />
+              <line x1="9" y1="14" x2="15" y2="14" />
+            </svg>
+            <span id="btn-new-folder-text">New Folder</span>
+          </button>
+        </div>
+
+        <div class="section-label" id="lbl-folders">FOLDERS</div>
+
+        <!-- No folders state initially — folder gets added dynamically -->
+        <div id="folders-list"></div>
+        <div id="no-folders" style="color:rgba(255,255,255,0.2);font-size:14px;text-align:center;padding:20px 0;">No
+          folders yet — tap New Folder to create one.</div>
+
+        <!-- Sessions label (below folders) -->
+        <div class="section-label" id="lbl-sessions" style="margin-top:28px;">SESSIONS</div>
+        <div id="sessions-list"></div>
+        <div id="no-sessions" style="color:rgba(255,255,255,0.2);font-size:14px;text-align:center;padding:20px 0;">No
+          sessions yet.</div>
+      </div>
+
+      <!-- ── SCREEN 2: Folder opened (sessions inside) ── -->
+      <div id="screen-folder" class="screen">
+        <div
+          style="display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(255,255,255,0.35);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:24px;">
+          <svg style="width:14px;height:14px;fill:#60a5fa;" viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="#60a5fa"
+              stroke-width="2" fill="none" />
+          </svg>
+          <span style="color:rgba(255,255,255,0.55);" id="folder-breadcrumb-name">Sarah (Zouk)</span>
+        </div>
+
+        <button id="btn-new-session-in-folder" class="btn-action btn-action-teal" style="width:100%;margin-bottom:24px;"
+          onclick="tapNewSessionInFolder()">
+          <svg style="width:16px;height:16px;fill:currentColor;" viewBox="0 0 24 24">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+          </svg>
+          <span id="btn-new-session-in-folder-text">New Session</span>
+        </button>
+
+        <div class="section-label" id="lbl-sessions-in-folder">SESSIONS IN THIS FOLDER</div>
+        <div id="folder-sessions-list"></div>
+        <div id="no-folder-sessions"
+          style="color:rgba(255,255,255,0.2);font-size:14px;text-align:center;padding:20px 0;">No sessions yet in this
+          folder.</div>
+      </div>
+
+      <!-- ── SCREEN 3: Session Detail ── -->
+      <div id="screen-detail" class="screen">
+        <div class="breadcrumb">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="#2DD4BF"
+              stroke-width="2" fill="none" />
+          </svg>
+          <span id="detail-folder-name">Sarah (Zouk)</span>
+          <span style="color:rgba(255,255,255,0.2);">/</span>
+        </div>
+
+        <div class="session-title-row">
+          <span class="session-main-title" id="detail-session-title">Fri 06/06/25</span>
+          <span class="glossary-badge">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM21 16c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+            </svg>
+            <span id="lbl-auto-detect">Auto Detect</span>
+          </span>
+        </div>
+
+        <div class="subtitle-row">
+          <span class="subtitle-text" id="lbl-add-subtitle">Add a subtitle…</span>
+          <div class="session-action-btns">
+            <button class="sess-btn sess-btn-neutral" title="Share">
+              <svg viewBox="0 0 24 24"
+                style="width:16px;height:16px;fill:none;stroke:var(--brand);stroke-width:2;stroke-linecap:round;">
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
+            </button>
+            <button class="sess-btn sess-btn-neutral" title="Reorder">
+              <svg viewBox="0 0 24 24"
+                style="width:16px;height:16px;fill:none;stroke:var(--brand);stroke-width:2;stroke-linecap:round;">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <button id="gallery-btn" class="sess-btn sess-btn-purple" title="Gallery" onclick="tapGalleryBtn()">
+              <svg viewBox="0 0 24 24"
+                style="width:16px;height:16px;fill:none;stroke:#c084fc;stroke-width:2;stroke-linecap:round;">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </button>
+            <button class="sess-btn sess-btn-neutral" title="Session Settings" onclick="tapSessionSettings()">
+              <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--brand);">
+                <path
+                  d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Audio clips appear here -->
+        <div id="audio-clips-list" style="margin-top:32px;"></div>
+
+        <!-- AI Report appears here -->
+        <div id="ai-report-container" style="display:none;" class="report-card">
+          <div class="report-header">
+            <svg style="fill:#c084fc;" viewBox="0 0 24 24">
+              <path
+                d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z" />
+            </svg>
+            <span style="color:#c084fc;" id="lbl-ai-report-title">AI Session Report</span>
+            <span style="margin-left:auto;color:rgba(255,255,255,0.2);font-size:11px;" id="lbl-ai-report-date">Fri
+              06/06/25</span>
+          </div>
+          <div class="report-section">
+            <div class="report-section-title" id="lbl-technical-notes">Technical Notes</div>
+            <div id="report-tech-items">
+              <!-- Dynamically populated in selected language -->
+            </div>
+          </div>
+          <div class="report-section" style="border-top:1px solid rgba(255,255,255,0.05);">
+            <div class="report-section-title" id="lbl-drills-homework">Drills & Homework</div>
+            <div id="report-drills-items">
+              <!-- Dynamically populated in selected language -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SCREEN 4: App Settings (Cloud) ── -->
+      <div id="screen-settings" class="screen">
+        <div
+          style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.3);margin-bottom:20px;"
+          id="lbl-app-settings">APP SETTINGS</div>
+
+        <!-- Cloud Sync (Google Drive) — PRIMARY -->
+        <div class="glass" id="cloud-sync-container"
+          style="padding: 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;">
+          <!-- Header row -->
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <svg style="width: 16px; height: 16px; flex-shrink: 0;" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+              <path fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            <h4 id="lbl-cloud-sync-section"
+              style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.4); flex: 1; margin: 0;">
+              Cloud Sync
+            </h4>
+            <span id="lbl-cloud-sync-tagline"
+              style="padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: 700; background: rgba(45, 212, 191, 0.15); color: var(--brand); border: 1px solid rgba(45, 212, 191, 0.25);">
+              Recommended
+            </span>
+            <button type="button"
+              style="margin-left: 4px; width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); background: none; color: rgba(255,255,255,0.4); font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
+              title="Why use Google Drive?">
+              ?
+            </button>
+          </div>
+
+          <!-- Content Area -->
+          <div id="cloud-sync-content">
+            <button id="cloud-option"
+              style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; border-radius: 12px; border: 1px solid rgba(45, 212, 191, 0.3); background: rgba(45, 212, 191, 0.1); color: #fff; cursor: pointer; transition: all 0.2s; font-size: 14px; font-weight: 700;"
+              onclick="tapConnectCloud()">
+              <svg style="width: 16px; height: 16px; flex-shrink: 0;" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                <path fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84z" />
+              </svg>
+              <span id="lbl-cloud-connect-btn">Connect Google Drive</span>
+            </button>
+          </div>
+        </div>
+        <div class="settings-option">
+          <div class="settings-option-left">
+            <div class="opt-icon" style="background:rgba(168,85,247,0.1);">
+              <svg style="fill:#a855f7;" viewBox="0 0 24 24">
+                <path
+                  d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
+            <div>
+              <div class="label" id="lbl-language">Language</div>
+              <div class="sub" id="lbl-language-sub">App UI & transcription language</div>
+            </div>
+          </div>
+          <span style="font-size:12px;color:rgba(255,255,255,0.4);" id="lbl-language-val">English</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- ─ Floating bottom controls (only shown on detail screen) ─ -->
+    <div id="bottom-controls" class="bottom-controls" style="display:none;">
+      <button class="ctrl-btn upload" title="Upload Audio">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" fill="none" />
+          <polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+          <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            fill="none" />
+        </svg>
+      </button>
+      <button id="record-btn" class="ctrl-btn record-idle" onclick="tapRecord()" title="Record">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="currentColor" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            fill="none" />
+          <line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <line x1="8" y1="23" x2="16" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </button>
+      <button id="consolidate-btn" class="ctrl-btn consolidate" onclick="tapConsolidate()" title="Consolidate with AI">
+        <svg viewBox="0 0 24 24">
+          <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Recording badge -->
+    <div id="recording-badge" class="recording-badge">
+      <span class="ping"></span>
+      <span id="record-timer-display">00:00</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+     TOOLTIP / TOUR OVERLAY
+══════════════════════════════════════════════════════════ -->
+  <div id="tooltip-overlay">
+    <div class="backdrop-dim"></div>
+    <div id="tooltip-bubble" class="tooltip-bubble">
+      <div class="tooltip-inner">
+        <span class="tooltip-emoji" id="tooltip-emoji">💡</span>
+        <div class="tooltip-text" id="tooltip-text">...</div>
+      </div>
+      <div class="tooltip-footer">
+        <button id="tooltip-back-btn" class="tooltip-back-btn" onclick="goToPreviousStep()">Back</button>
+        <div class="progress-dots" id="progress-dots"></div>
+        <span class="tooltip-steps" id="tooltip-steps">Step 1 of 7</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+     CTA SCREEN (Install App)
+══════════════════════════════════════════════════════════ -->
+  <div id="cta-screen">
+    <canvas id="confetti-canvas"></canvas>
+    <div class="cta-check">🎉</div>
+    <h2 class="cta-title" id="cta-title">You're all set!</h2>
+    <p class="cta-sub" id="cta-sub">Now you know the ropes. Install Zoutty to your home screen and start logging your
+      first real class.</p>
+    <button class="btn-install" id="install-btn" onclick="triggerInstall()">
+      <svg viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" fill="none" />
+        <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+        <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          fill="none" />
+      </svg>
+      <span id="btn-install-text">Install Zoutty</span>
+    </button>
+  </div>
+
+  <!-- iOS install guide -->
+  <div id="ios-guide" onclick="closeIos()">
+    <div class="ios-card" onclick="event.stopPropagation()">
+      <div class="ios-card-title">
+        <span id="ios-title-text">Install on iPhone</span>
+        <button onclick="closeIos()">✕</button>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">1</div>
+        <div id="ios-step1-text">Tap the <strong>Share</strong> button <svg
+            style="display:inline;vertical-align:middle;width:18px;height:18px;fill:var(--brand);" viewBox="0 0 24 24">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" fill="none" />
+            <polyline points="16 6 12 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              fill="none" />
+            <line x1="12" y1="2" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              fill="none" />
+          </svg> in Safari's toolbar.</div>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">2</div>
+        <div id="ios-step2-text">Scroll the share sheet and tap <strong>"Add to Home Screen"</strong>.</div>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">3</div>
+        <div id="ios-step3-text">Tap <strong>Add</strong> in the top right corner.</div>
+      </div>
+      <button class="btn-got-it" id="ios-got-it-btn" onclick="closeIos()">Got it!</button>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:201;display:none;"></canvas>
+
+  <!-- ══════════════════════════════════════════════════════════
+     TOUR LOGIC
+══════════════════════════════════════════════════════════ -->
+  <script>
+    /* ─── PWA Install intercept ─── */
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    /* ─── Tour state ─── */
+    const TOTAL_STEPS = 7;
+    let currentStepIndex = 0;
+    let isRecording = false;
+    let recordingInterval = null;
+    let recordingSeconds = 0;
+    let folderCreated = false;
+    let sessionCreated = false;
+    let audioAdded = false;
+    let reportShown = false;
+    let cloudConnected = false;
+
+    /* ─── Translations Dictionary ─── */
+    let currentLang = 'en';
+
+    const translations = {
+      en: {
+        welcomeTitleSub: "AI Dance Lesson Assistant",
+        welcomeIntro: `<strong>Hey everyone!</strong> Thanks so much for testing Zoutty with me — I really appreciate it!<br><br>I built this to help us manage classes better: organize students, record live feedback, save reference videos, and let Gemini AI generate clean session reports.<br><br>Let me show you around in <strong>60 seconds</strong> before you install. 👇`,
+        btnStartText: "Start the Tour",
+        ctaTitle: "You're all set!",
+        ctaSub: "Now you know the ropes. Install Zoutty to your home screen and start logging your first real class.",
+        btnInstallText: "Install Zoutty",
+        btnBack: "Back",
+        iosTitle: "Install on iPhone",
+        iosStep1: `Tap the <strong>Share</strong> button <svg style="display:inline;vertical-align:middle;width:18px;height:18px;fill:var(--brand);" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><polyline points="16 6 12 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="2" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg> in Safari's toolbar.`,
+        iosStep2: `Scroll the share sheet and tap <strong>"Add to Home Screen"</strong>.`,
+        iosStep3: `Tap <strong>Add</strong> in the top right corner.`,
+        iosGotIt: "Got it!",
+
+        // Dynamic feedback strings
+        feedbackClipTitle: "Feedback Clip 1",
+        feedbackClipDate: (sec) => `Today · ${sec}s`,
+        feedbackTranscript: "…keep the frame, lateral, forward, use your right shoulder more before the prep, remember to hold for a second…",
+
+        // Dynamic AI report content
+        lblAiReportTitle: "AI Session Report",
+        reportTech1: "Forward weight on beat 1 during the lateral — heel-ball connection before the prep.",
+        reportTech2: "Linear prep must arrive before head movement initiates — frame stays connected.",
+        reportTech3: "Keep the inside shoulder slightly forward to maintain the counter-body position.",
+        reportDrill: "5 min solo lateral with deliberate heel-ball sequence at 50% tempo.",
+        reportHw: "Film 3 reps of the prep at home — compare head initiation timing.",
+
+        // Step tooltips
+        step0_text: "Start by creating a <strong>folder for your student</strong>. In the real app, each student or group gets their own folder. Tap <strong>New Folder</strong> above.",
+        step1_text: "Your folder is open. Now tap <strong>New Session</strong> to log today's class inside it.",
+        step2_text: "You're inside a session. Tap the <strong>teal microphone button</strong> at the bottom to record live audio feedback during class — then tap again to save.",
+        step2_text_recording: "Nice! Tap the <strong>red Stop button</strong> to save the audio clip.",
+        step3_text: "Tap the <strong>purple gallery button</strong> to attach reference videos or photos to this session. They stay linked to the class permanently.",
+        step3_attached: "🎬 1 video attached to this session",
+        step4_text: "Tap the <strong>wand button</strong> to ask Gemini AI to consolidate all your audio clips into a clean, structured class report — automatically.",
+        step4_consolidating: "Gemini AI is consolidating your session…",
+        step5_text: "Go back to the home screen and tap the <strong>Settings gear</strong> in the top right. There you can connect your cloud storage to make sure nothing is ever lost.",
+        step6_text: "Tap <strong>Cloud Backup</strong> here to connect your Google Drive or iCloud. Once connected, Zoutty automatically backs up every session.",
+        step_progress: (current, total) => `Step ${current} of ${total}`,
+
+        // App text
+        btnNewSession: "New Session",
+        btnNewFolder: "New Folder",
+        lblFolders: "FOLDERS",
+        lblSessions: "SESSIONS",
+        noFolders: "No folders yet — tap New Folder to create one.",
+        noSessions: "No sessions yet.",
+        lblSessionsInFolder: "SESSIONS IN THIS FOLDER",
+        noFolderSessions: "No sessions yet in this folder.",
+        lblAutoDetect: "Auto Detect",
+        lblAddSubtitle: "Add a subtitle…",
+        lblTechnicalNotes: "Technical Notes",
+        lblDrillsHomework: "Drills & Homework",
+        lblAppSettings: "APP SETTINGS",
+        lblCloudBackup: "Cloud Backup",
+        lblCloudBackupSub: "Google Drive / iCloud — Not connected",
+        lblCloudBackupSubConnected: "Google Drive — Auto-backup enabled",
+        lblCloudStatusDisconnected: "Disconnected",
+        lblCloudStatusConnected: "Connected",
+        lblLanguage: "Language",
+        lblLanguageSub: "App UI & transcription language",
+        lblLanguageVal: "English"
+      },
+      es: {
+        welcomeTitleSub: "Asistente de Baile con IA",
+        welcomeIntro: `<strong>¡Hola a todos!</strong> Muchas gracias por probar Zoutty conmigo, ¡realmente lo aprecio mucho!<br><br>Desarrollé esto para ayudarnos a gestionar mejor las clases: organizar alumnos, grabar comentarios en vivo, guardar videos de referencia y generar informes limpios de cada sesión.<br><br>Te lo enseño en <strong>60 segundos</strong> antes de que lo instales. 👇`, btnStartText: "Iniciar el Tour",
+        ctaTitle: "¡Todo listo!",
+        ctaSub: "Ahora ya conoces el funcionamiento. Instala Zoutty en tu pantalla de inicio y comienza a registrar tu primera clase real.",
+        btnInstallText: "Instalar Zoutty",
+        btnBack: "Atrás",
+        iosTitle: "Instalar en iPhone",
+        iosStep1: `Toca el botón <strong>Compartir</strong> <svg style="display:inline;vertical-align:middle;width:18px;height:18px;fill:var(--brand);" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><polyline points="16 6 12 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="2" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg> en la barra de herramientas de Safari.`,
+        iosStep2: `Desplázate por la hoja de compartir y toca <strong>"Agregar a la pantalla de inicio"</strong>.`,
+        iosStep3: `Toca <strong>Agregar</strong> en la esquina superior derecha.`,
+        iosGotIt: "¡Entendido!",
+
+        // Dynamic feedback strings
+        feedbackClipTitle: "Clip de Comentarios 1",
+        feedbackClipDate: (sec) => `Hoy · ${sec}s`,
+        feedbackTranscript: "…mantén el marco, lateral, adelante, usa más el hombro derecho antes de la preparación, recuerda sostener por un segundo…",
+
+        // Dynamic AI report content
+        lblAiReportTitle: "Informe de Sesión con IA",
+        reportTech1: "Peso hacia adelante en el tiempo 1 durante el lateral — conexión talón-metatarso antes de la preparación.",
+        reportTech2: "La preparación lineal debe llegar antes de que inicie el movimiento de cabeza — el marco permanece conectado.",
+        reportTech3: "Mantén el hombro interno ligeramente hacia adelante para mantener la posición de contra-cuerpo.",
+        reportDrill: "5 min de lateral individual con secuencia deliberada de talón-metatarso al 50% del tempo.",
+        reportHw: "Graba 3 repeticiones de la preparación en casa — compara el tiempo de inicio de la cabeza.",
+
+        // Step tooltips
+        step0_text: "Comienza creando una <strong>carpeta para tu estudiante</strong>. En la aplicación real, cada estudiante o grupo tiene su propia carpeta. Toca <strong>Nueva Carpeta</strong> arriba.",
+        step1_text: "Tu carpeta está abierta. Ahora toca <strong>Nueva Sesión</strong> para registrar la clase de hoy dentro de ella.",
+        step2_text: "Estás dentro de una sesión. Toca el <strong>botón de micrófono turquesa</strong> en la parte inferior para grabar comentarios en vivo durante la clase, luego toca nuevamente para guardar.",
+        step2_text_recording: "¡Bien! Toca el <strong>botón rojo Detener</strong> para guardar el clip de audio.",
+        step3_text: "Toca el <strong>botón morado de galería</strong> para adjuntar videos o fotos de referencia a esta sesión. Se quedan vinculados permanentemente.",
+        step3_attached: "🎬 1 video adjunto a esta sesión",
+        step4_text: "Toca el <strong>botón de varita</strong> para pedirle a la IA de Gemini que consolide todos tus clips de audio en un informe de sesión limpio y estructurado de forma automática.",
+        step4_consolidating: "La IA de Gemini está consolidando tu sesión…",
+        step5_text: "Regresa a la pantalla de inicio y toca el <strong>engranaje de Ajustes</strong> arriba a la derecha. Allí puedes conectar tu almacenamiento en la nube para asegurar que nada se pierda.",
+        step6_text: "Toca <strong>Copia en la Nube</strong> aquí para conectar tu Google Drive o iCloud. Una vez conectado, Zoutty realiza copias de seguridad automáticas.",
+        step_progress: (current, total) => `Paso ${current} de ${total}`,
+
+        // App text
+        btnNewSession: "Nueva Sesión",
+        btnNewFolder: "Nueva Carpeta",
+        lblFolders: "CARPETAS",
+        lblSessions: "SESIONES",
+        noFolders: "No hay carpetas aún — toca Nueva Carpeta para crear una.",
+        noSessions: "No hay sesiones aún.",
+        lblSessionsInFolder: "SESIONES EN ESTA CARPETA",
+        noFolderSessions: "No hay sesiones aún en esta carpeta.",
+        lblAutoDetect: "Auto Detectar",
+        lblAddSubtitle: "Añadir un subtítulo…",
+        lblTechnicalNotes: "Notas Técnicas",
+        lblDrillsHomework: "Ejercicios y Tareas",
+        lblAppSettings: "AJUSTES DE LA APP",
+        lblCloudBackup: "Copia en la Nube",
+        lblCloudBackupSub: "Google Drive / iCloud — No conectado",
+        lblCloudBackupSubConnected: "Google Drive — Copia automática activada",
+        lblCloudStatusDisconnected: "Desconectado",
+        lblCloudStatusConnected: "Conectado",
+        lblLanguage: "Idioma",
+        lblLanguageSub: "Idioma de la interfaz y transcripción",
+        lblLanguageVal: "Español"
+      }
+    };
+
+    /* ─── Tour step definitions ─── */
+    const steps = [
+      { id: 'folder', emoji: '📁', action: 'tapNewFolder', targetId: 'btn-new-folder', position: 'bottom' },
+      { id: 'session', emoji: '💃', action: 'tapNewSessionInFolder', targetId: 'btn-new-session-in-folder', position: 'bottom' },
+      { id: 'record', emoji: '🎙️', action: 'tapRecord', targetId: 'record-btn', position: 'top' },
+      { id: 'gallery', emoji: '🎬', action: 'tapGalleryBtn', targetId: 'gallery-btn', position: 'bottom-fixed' },
+      { id: 'consolidate', emoji: '✨', action: 'tapConsolidate', targetId: 'consolidate-btn', position: 'top' },
+      { id: 'settings', emoji: '⚙️', action: 'tapHeaderSettings', targetId: 'header-settings-btn', position: 'bottom' },
+      { id: 'cloud', emoji: '☁️', action: 'tapConnectCloud', targetId: 'cloud-option', position: 'bottom' }
+    ];
+
+    /* ─── Dynamic positioning of tooltips to avoid covering action targets ─── */
+    function positionTooltip(targetEl, position) {
+      const bubble = document.getElementById('tooltip-bubble');
+      bubble.style.top = 'auto';
+      bubble.style.bottom = 'auto';
+      bubble.style.position = 'fixed';
+      bubble.style.left = '50%';
+      bubble.style.transform = 'translateX(-50%)';
+
+      if (position === 'bottom-fixed') {
+        bubble.style.bottom = '155px';
+        return;
+      }
+
+      if (!targetEl) {
+        if (position === 'top') {
+          bubble.style.bottom = '155px';
+        } else {
+          bubble.style.top = '110px';
+        }
+        return;
+      }
+
+      const rect = targetEl.getBoundingClientRect();
+      if (position === 'top') {
+        // Position bubble above the target element
+        const bottomVal = window.innerHeight - rect.top + 36;
+        bubble.style.bottom = `${bottomVal}px`;
+      } else {
+        // Position bubble below the target element
+        const topVal = rect.bottom + 16;
+        bubble.style.top = `${topVal}px`;
+      }
+    }
+
+    /* ─── UI Language Switcher ─── */
+    function switchLanguage(lang) {
+      currentLang = lang;
+
+      // Toggle active state on EN/ES switcher buttons
+      document.querySelectorAll('.lang-switch-welcome .lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+      });
+
+      updateUIForLanguage();
+    }
+
+    function updateUIForLanguage() {
+      const t = translations[currentLang];
+
+      // Welcome Screen
+      document.getElementById('welcome-logo-sub').textContent = t.welcomeTitleSub;
+      document.getElementById('welcome-bubble').innerHTML = t.welcomeIntro;
+      document.getElementById('btn-start-text').textContent = t.btnStartText;
+
+      // CTA Screen
+      document.getElementById('cta-title').textContent = t.ctaTitle;
+      document.getElementById('cta-sub').textContent = t.ctaSub;
+      document.getElementById('btn-install-text').textContent = t.btnInstallText;
+
+      // iOS Guide
+      document.getElementById('ios-title-text').textContent = t.iosTitle;
+      document.getElementById('ios-step1-text').innerHTML = t.iosStep1;
+      document.getElementById('ios-step2-text').innerHTML = t.iosStep2;
+      document.getElementById('ios-step3-text').innerHTML = t.iosStep3;
+      document.getElementById('ios-got-it-btn').textContent = t.iosGotIt;
+
+      // Main screen buttons and labels (keeping SVG icons)
+      document.getElementById('btn-new-session-text').textContent = t.btnNewSession;
+      document.getElementById('btn-new-folder-text').textContent = t.btnNewFolder;
+      document.getElementById('lbl-folders').textContent = t.lblFolders;
+      document.getElementById('lbl-sessions').textContent = t.lblSessions;
+
+      const noFolders = document.getElementById('no-folders');
+      if (noFolders) noFolders.textContent = t.noFolders;
+      const noSessions = document.getElementById('no-sessions');
+      if (noSessions) noSessions.textContent = t.noSessions;
+
+      // Folder screen
+      document.getElementById('btn-new-session-in-folder-text').textContent = t.btnNewSession;
+      document.getElementById('lbl-sessions-in-folder').textContent = t.lblSessionsInFolder;
+      const noFolderSessions = document.getElementById('no-folder-sessions');
+      if (noFolderSessions) noFolderSessions.textContent = t.noFolderSessions;
+
+      // Session detail screen
+      document.getElementById('lbl-auto-detect').textContent = t.lblAutoDetect;
+      document.getElementById('lbl-add-subtitle').textContent = t.lblAddSubtitle;
+
+      // AI report content
+      renderAiReport();
+
+      // Settings screen
+      document.getElementById('lbl-app-settings').textContent = t.lblAppSettings;
+      const lblSyncSec = document.getElementById('lbl-cloud-sync-section');
+      if (lblSyncSec) lblSyncSec.textContent = t.cloudSyncSection;
+      const lblSyncTag = document.getElementById('lbl-cloud-sync-tagline');
+      if (lblSyncTag) lblSyncTag.textContent = t.cloudSyncTagline;
+      renderCloudSyncContent();
+
+      document.getElementById('lbl-language').textContent = t.lblLanguage;
+      document.getElementById('lbl-language-sub').textContent = t.lblLanguageSub;
+      document.getElementById('lbl-language-val').textContent = t.lblLanguageVal;
+
+      const backBtn = document.getElementById('tooltip-back-btn');
+      if (backBtn) {
+        backBtn.textContent = t.btnBack || (currentLang === 'en' ? 'Back' : 'Atrás');
+      }
+
+      // Update folder card dynamic labels if exists
+      const fCardSub = document.querySelector('#sarah-folder-card .folder-info p');
+      if (fCardSub) {
+        fCardSub.textContent = sessionCreated ?
+          (currentLang === 'en' ? '1 session' : '1 sesión') :
+          (currentLang === 'en' ? '0 sessions' : '0 sesiones');
+      }
+
+      // Update active tooltip text
+      if (document.getElementById('tooltip-overlay').classList.contains('active')) {
+        showTooltip(currentStepIndex);
+      }
+    }
+
+    function renderAiReport() {
+      const t = translations[currentLang];
+      document.getElementById('lbl-ai-report-title').textContent = t.lblAiReportTitle;
+
+      const techItems = document.getElementById('report-tech-items');
+      if (techItems) {
+        techItems.innerHTML = `
+        <div class="report-item"><div class="report-dot"></div>${t.reportTech1}</div>
+        <div class="report-item"><div class="report-dot"></div>${t.reportTech2}</div>
+        <div class="report-item"><div class="report-dot"></div>${t.reportTech3}</div>
+      `;
+      }
+
+      const drillsItems = document.getElementById('report-drills-items');
+      if (drillsItems) {
+        drillsItems.innerHTML = `
+        <div class="report-item drill"><div class="report-dot"></div>${t.reportDrill}</div>
+        <div class="report-item hw"><div class="report-dot"></div>${t.reportHw}</div>
+      `;
+      }
+    }
+
+    /* ─── Screen navigator ─── */
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+
+      const bottomControls = document.getElementById('bottom-controls');
+      const recordingBadge = document.getElementById('recording-badge');
+
+      if (id === 'screen-detail') {
+        bottomControls.style.display = 'flex';
+      } else {
+        bottomControls.style.display = 'none';
+        if (isRecording) stopRecordingSimulation();
+        recordingBadge.classList.remove('visible');
+      }
+    }
+
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ─── Build progress dots ─── */
+    function renderDots() {
+      const container = document.getElementById('progress-dots');
+      container.innerHTML = '';
+      for (let i = 0; i < TOTAL_STEPS; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'progress-dot' + (i === currentStepIndex ? ' active' : (i < currentStepIndex ? ' done' : ''));
+        dot.style.cursor = 'pointer';
+        dot.title = currentLang === 'en' ? `Go to step ${i + 1}` : `Ir al paso ${i + 1}`;
+        dot.onclick = () => goToStep(i);
+        container.appendChild(dot);
+      }
+    }
+
+    /* ─── Show tooltip ─── */
+    function showTooltip(stepIndex) {
+      const step = steps[stepIndex];
+      if (!step) return;
+
+      if (step.id === 'settings') {
+        window.scrollTo(0, 0);
+      }
+
+      document.getElementById('tooltip-emoji').textContent = step.emoji;
+
+      // Get text dynamically
+      const stepTextKey = `step${stepIndex}_text`;
+      let text = translations[currentLang][stepTextKey];
+      if (stepIndex === 2 && recordingPhase === 'recording') {
+        text = translations[currentLang].step2_text_recording;
+      }
+
+      document.getElementById('tooltip-text').innerHTML = text;
+      document.getElementById('tooltip-steps').textContent = translations[currentLang].step_progress(stepIndex + 1, TOTAL_STEPS);
+      renderDots();
+
+      // Ensure Back button is visible
+      const backBtn = document.getElementById('tooltip-back-btn');
+      if (backBtn) {
+        backBtn.style.visibility = 'visible';
+      }
+
+      // Highlight target element
+      document.querySelectorAll('.highlight-target').forEach(el => el.classList.remove('highlight-target'));
+
+      // Clear any dimmed state in bottom controls first
+      const bottomControls = document.getElementById('bottom-controls');
+      if (bottomControls) {
+        bottomControls.querySelectorAll('.ctrl-btn').forEach(btn => btn.classList.remove('tour-dimmed'));
+      }
+
+      // Reset cloud sync container styling
+      const cloudContainer = document.getElementById('cloud-sync-container');
+      if (cloudContainer) {
+        cloudContainer.style.position = '';
+        cloudContainer.style.zIndex = '';
+      }
+
+      const target = document.getElementById(step.targetId);
+      if (target) {
+        target.classList.add('highlight-target');
+
+        // Lift bottom controls container above the backdrop overlay if the target button is inside it
+        if (bottomControls && bottomControls.contains(target)) {
+          bottomControls.style.zIndex = '110';
+          // Dim other buttons in bottom controls to focus on the target
+          bottomControls.querySelectorAll('.ctrl-btn').forEach(btn => {
+            if (btn !== target) {
+              btn.classList.add('tour-dimmed');
+            }
+          });
+        } else if (bottomControls) {
+          bottomControls.style.zIndex = '30';
+        }
+
+        // Stacking context fix for Cloud Sync card (backdrop blur trap)
+        if (step.id === 'cloud' && cloudContainer) {
+          cloudContainer.style.position = 'relative';
+          cloudContainer.style.zIndex = '110';
+        }
+      }
+
+      // Position tooltip dynamically to avoid overlaps
+      positionTooltip(target, step.position);
+
+      const overlay = document.getElementById('tooltip-overlay');
+      overlay.classList.add('active');
+
+      // Trigger re-animation of bubble
+      const bubble = document.getElementById('tooltip-bubble');
+      bubble.style.animation = 'none';
+      bubble.offsetHeight; // reflow
+      bubble.style.animation = '';
+    }
+
+    function hideTooltip() {
+      document.getElementById('tooltip-overlay').classList.remove('active');
+      document.querySelectorAll('.highlight-target').forEach(el => el.classList.remove('highlight-target'));
+
+      const bottomControls = document.getElementById('bottom-controls');
+      if (bottomControls) {
+        bottomControls.style.zIndex = '30'; // Reset z-index
+        bottomControls.querySelectorAll('.ctrl-btn').forEach(btn => btn.classList.remove('tour-dimmed'));
+      }
+
+      const cloudContainer = document.getElementById('cloud-sync-container');
+      if (cloudContainer) {
+        cloudContainer.style.position = '';
+        cloudContainer.style.zIndex = '';
+      }
+    }
+
+    /* ─── Tour advance ─── */
+    function advanceStep() {
+      currentStepIndex++;
+      if (currentStepIndex >= TOTAL_STEPS) {
+        finishTour();
+      } else {
+        showTooltip(currentStepIndex);
+      }
+    }
+
+    /* ─── Start tour ─── */
+    function startTour() {
+      document.getElementById('welcome-overlay').style.display = 'none';
+      currentStepIndex = 0;
+      showScreen('screen-home');
+      history.pushState({ stepIndex: 0 }, '', '#step-0');
+      showTooltip(0);
+    }
+
+    function goToPreviousStep() {
+      if (currentStepIndex === 0) {
+        document.getElementById('welcome-overlay').style.display = 'flex';
+        hideTooltip();
+        showScreen('screen-home');
+        history.pushState(null, '', window.location.pathname);
+      } else {
+        goToStep(currentStepIndex - 1);
+      }
+    }
+
+    function ensureFolderCardExists() {
+      if (document.getElementById('sarah-folder-card')) return;
+      document.getElementById('no-folders').style.display = 'none';
+      const foldersList = document.getElementById('folders-list');
+      const card = document.createElement('div');
+      card.className = 'folder-card';
+      card.id = 'sarah-folder-card';
+      card.onclick = () => { };
+      const subLabel = currentLang === 'en' ? '1 session' : '1 sesión';
+      card.innerHTML = `
+      <div class="folder-icon"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="#60a5fa" stroke-width="2" fill="none"/></svg></div>
+      <div class="folder-info"><h3>Sarah (Zouk)</h3><p>${subLabel}</p></div>
+      <div class="folder-actions">
+        <button class="folder-action-btn edit"><svg viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke="rgba(255,255,255,0.6)" stroke-width="2" fill="none"/></svg></button>
+        <button class="folder-action-btn del"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" stroke="#f87171" stroke-width="2" fill="none"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#f87171" stroke-width="2" fill="none"/></svg></button>
+      </div>
+    `;
+      foldersList.appendChild(card);
+    }
+
+    function ensureSessionCardExists() {
+      if (document.querySelector('.session-card')) return;
+      const noSess = document.getElementById('no-folder-sessions');
+      if (noSess) noSess.style.display = 'none';
+      const list = document.getElementById('folder-sessions-list');
+      const card = document.createElement('div');
+      card.className = 'session-card';
+      card.innerHTML = `
+      <div class="icon-box"><svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:var(--brand);"><path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM21 16c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z" stroke="var(--brand)" stroke-width="2" fill="none"/></svg></div>
+      <div class="info"><h3>Fri 06/06/25</h3><p>Sarah (Zouk)</p></div>
+      <div class="actions">
+        <button class="move-btn"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="rgba(255,255,255,0.6)" stroke-width="2" fill="none"/></svg></button>
+        <button class="del-btn"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" stroke="#f87171" stroke-width="2" fill="none"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#f87171" stroke-width="2" fill="none"/></svg></button>
+      </div>
+    `;
+      list.appendChild(card);
+    }
+
+    function goToStep(stepIndex, pushHistory = true) {
+      if (stepIndex < 0 || stepIndex >= TOTAL_STEPS) return;
+
+      // Stop active recordings when leaving step 2
+      if (currentStepIndex === 2 && stepIndex !== 2 && isRecording) {
+        stopRecordingSimulation();
+      }
+
+      currentStepIndex = stepIndex;
+      const step = steps[stepIndex];
+
+      // Set correct screen and mock state
+      if (step.id === 'folder') {
+        showScreen('screen-home');
+      } else if (step.id === 'session') {
+        folderCreated = true;
+        ensureFolderCardExists();
+        showScreen('screen-folder');
+      } else if (step.id === 'record' || step.id === 'gallery' || step.id === 'consolidate') {
+        folderCreated = true;
+        sessionCreated = true;
+        ensureFolderCardExists();
+        ensureSessionCardExists();
+        showScreen('screen-detail');
+      } else if (step.id === 'settings') {
+        folderCreated = true;
+        sessionCreated = true;
+        ensureFolderCardExists();
+        ensureSessionCardExists();
+        showScreen('screen-home');
+      } else if (step.id === 'cloud') {
+        folderCreated = true;
+        sessionCreated = true;
+        ensureFolderCardExists();
+        ensureSessionCardExists();
+        showScreen('screen-settings');
+      }
+
+      // Navigation cleanups
+      if (stepIndex <= 2) {
+        const btn = document.getElementById('gallery-btn');
+        if (btn) {
+          btn.style.background = '';
+          btn.style.borderColor = '';
+        }
+        const audList = document.getElementById('audio-clips-list');
+        if (audList) {
+          const audTextNode = Array.from(audList.childNodes).find(n => n.textContent && n.textContent.includes('🎬'));
+          if (audTextNode) audTextNode.remove();
+        }
+      }
+      if (stepIndex <= 3) {
+        const reportContainer = document.getElementById('ai-report-container');
+        if (reportContainer) reportContainer.style.display = 'none';
+        const consolidateBtn = document.getElementById('consolidate-btn');
+        if (consolidateBtn) {
+          consolidateBtn.disabled = false;
+          consolidateBtn.style.opacity = '1';
+        }
+      }
+      if (stepIndex <= 5) {
+        cloudConnected = false;
+        renderCloudSyncContent();
+      }
+
+      if (pushHistory) {
+        history.pushState({ stepIndex: stepIndex }, '', `#step-${stepIndex}`);
+      }
+
+      showTooltip(stepIndex);
+    }
+
+    // Handle browser back/forward history navigation
+    window.addEventListener('popstate', (event) => {
+      if (event.state && typeof event.state.stepIndex === 'number') {
+        goToStep(event.state.stepIndex, false);
+      } else {
+        document.getElementById('welcome-overlay').style.display = 'flex';
+        hideTooltip();
+        showScreen('screen-home');
+      }
+    });
+
+    /* ─── Tap handlers — each does the action AND advances the tooltip ─── */
+    function tapNewFolder() {
+      if (currentStepIndex !== 0) return;
+
+      // Create folder visually
+      folderCreated = true;
+      document.getElementById('no-folders').style.display = 'none';
+      const foldersList = document.getElementById('folders-list');
+
+      const card = document.createElement('div');
+      card.className = 'folder-card';
+      card.id = 'sarah-folder-card';
+      card.onclick = () => { }; // disabled during tour
+
+      const subLabel = currentLang === 'en' ? '0 sessions' : '0 sesiones';
+      card.innerHTML = `
+      <div class="folder-icon"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="#60a5fa" stroke-width="2" fill="none"/></svg></div>
+      <div class="folder-info"><h3>Sarah (Zouk)</h3><p>${subLabel}</p></div>
+      <div class="folder-actions">
+        <button class="folder-action-btn edit"><svg viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke="rgba(255,255,255,0.6)" stroke-width="2" fill="none"/></svg></button>
+        <button class="folder-action-btn del"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" stroke="#f87171" stroke-width="2" fill="none"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#f87171" stroke-width="2" fill="none"/></svg></button>
+      </div>
+    `;
+      foldersList.appendChild(card);
+
+      // Navigate into folder
+      setTimeout(() => {
+        document.getElementById('folder-breadcrumb-name').textContent = 'Sarah (Zouk)';
+        showScreen('screen-folder');
+        scrollToTop();
+        advanceStep(); // move to step 1 (session)
+      }, 350);
+    }
+
+    function tapNewSessionInFolder() {
+      if (currentStepIndex !== 1) return;
+
+      sessionCreated = true;
+
+      // Update folder count
+      const folderCard = document.getElementById('sarah-folder-card');
+      if (folderCard) {
+        folderCard.querySelector('.folder-info p').textContent = currentLang === 'en' ? '1 session' : '1 sesión';
+      }
+
+      // Show session in folder list
+      document.getElementById('no-folder-sessions').style.display = 'none';
+      const list = document.getElementById('folder-sessions-list');
+      const card = document.createElement('div');
+      card.className = 'session-card';
+      card.style.animation = 'slide-up 0.35s both';
+      card.innerHTML = `
+      <div class="icon-box"><svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:var(--brand);"><path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM21 16c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z" stroke="var(--brand)" stroke-width="2" fill="none"/></svg></div>
+      <div class="info"><h3>Fri 06/06/25</h3><p>Sarah (Zouk)</p></div>
+      <div class="actions">
+        <button class="move-btn"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="rgba(255,255,255,0.6)" stroke-width="2" fill="none"/></svg></button>
+        <button class="del-btn"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" stroke="#f87171" stroke-width="2" fill="none"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#f87171" stroke-width="2" fill="none"/></svg></button>
+      </div>
+    `;
+      list.appendChild(card);
+
+      setTimeout(() => {
+        showScreen('screen-detail');
+        scrollToTop();
+        advanceStep(); // move to step 2 (record)
+      }, 350);
+    }
+
+    /* ─── Recording simulation ─── */
+    let recordingPhase = 'idle'; // idle → recording → done
+
+    function tapRecord() {
+      if (currentStepIndex !== 2) return;
+
+      if (recordingPhase === 'idle') {
+        // Start recording
+        recordingPhase = 'recording';
+        isRecording = true;
+        const btn = document.getElementById('record-btn');
+        btn.className = 'ctrl-btn record-active';
+        btn.innerHTML = `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor"/></svg>`;
+        btn.style.animation = 'recording-pulse 1.5s infinite';
+
+        document.getElementById('recording-badge').classList.add('visible');
+
+        recordingSeconds = 0;
+        recordingInterval = setInterval(() => {
+          recordingSeconds++;
+          const m = String(Math.floor(recordingSeconds / 60)).padStart(2, '0');
+          const s = String(recordingSeconds % 60).padStart(2, '0');
+          document.getElementById('record-timer-display').textContent = `${m}:${s}`;
+
+          // Update tooltip after 3s to prompt them to stop
+          if (recordingSeconds === 3) {
+            document.getElementById('tooltip-text').innerHTML = translations[currentLang].step2_text_recording;
+          }
+        }, 1000);
+
+      } else if (recordingPhase === 'recording') {
+        // Stop recording
+        stopRecordingSimulation();
+      }
+    }
+
+    function stopRecordingSimulation() {
+      isRecording = false;
+      recordingPhase = 'done';
+      clearInterval(recordingInterval);
+
+      const btn = document.getElementById('record-btn');
+      btn.className = 'ctrl-btn record-idle';
+      btn.style.animation = '';
+      btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="currentColor"/><path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="23" x2="16" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+      document.getElementById('recording-badge').classList.remove('visible');
+
+      // Add the audio clip to the list
+      audioAdded = true;
+      const clips = document.getElementById('audio-clips-list');
+      const card = document.createElement('div');
+      card.className = 'audio-card';
+
+      const title = translations[currentLang].feedbackClipTitle;
+      const dateStr = translations[currentLang].feedbackClipDate(recordingSeconds);
+      const transcript = translations[currentLang].feedbackTranscript;
+
+      card.innerHTML = `
+      <div class="audio-card-header">
+        <div class="audio-icon-box"><svg viewBox="0 0 24 24" style="fill:var(--brand);width:18px;height:18px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="var(--brand)" stroke-width="2" fill="none"/></svg></div>
+        <div class="audio-meta">
+          <div class="audio-filename">${title}</div>
+          <div class="audio-date">${dateStr}</div>
+        </div>
+        <div class="audio-actions">
+          <button class="audio-btn neutral"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="rgba(255,255,255,0.5)"/></svg></button>
+          <button class="audio-btn del"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" stroke="#f87171" stroke-width="2" fill="none"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#f87171" stroke-width="2" fill="none"/></svg></button>
+        </div>
+      </div>
+      <div class="transcript-box">
+        "${transcript}"
+      </div>
+    `;
+      clips.appendChild(card);
+
+      setTimeout(() => {
+        advanceStep(); // step 3 (gallery)
+      }, 500);
+    }
+
+    function tapGalleryBtn() {
+      if (currentStepIndex !== 3) return;
+
+      // Visually mark the gallery button as active (has media)
+      const btn = document.getElementById('gallery-btn');
+      btn.style.background = 'rgba(168,85,247,0.2)';
+      btn.style.borderColor = 'rgba(168,85,247,0.4)';
+
+      // Show a little "media added" toast-like text
+      const info = document.createElement('div');
+      info.style.cssText = 'margin-top:12px;font-size:12px;color:rgba(168,85,247,0.8);font-weight:600;animation:slide-up 0.3s both;';
+      info.textContent = translations[currentLang].step3_attached;
+      document.getElementById('audio-clips-list').appendChild(info);
+
+      setTimeout(() => advanceStep(), 400); // step 4 (consolidate)
+    }
+
+    function tapConsolidate() {
+      if (currentStepIndex !== 4) return;
+
+      const btn = document.getElementById('consolidate-btn');
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+
+      // Show a loading indicator
+      const loader = document.createElement('div');
+      loader.id = 'consolidate-loader';
+      loader.style.cssText = 'margin-top:24px;display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,0.5);';
+      loader.innerHTML = `
+      <div style="width:16px;height:16px;border:2px solid rgba(168,85,247,0.2);border-top-color:#a855f7;border-radius:50%;animation:spin-slow 0.8s linear infinite;"></div>
+      ${translations[currentLang].step4_consolidating}
+    `;
+      document.getElementById('audio-clips-list').appendChild(loader);
+
+      setTimeout(() => {
+        loader.remove();
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        reportShown = true;
+
+        const reportContainer = document.getElementById('ai-report-container');
+        reportContainer.style.display = 'block';
+        reportContainer.style.animation = 'slide-up 0.4s both';
+        reportContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(() => advanceStep(), 600); // step 5 (settings)
+      }, 1600);
+    }
+
+    function tapHeaderSettings() {
+      if (currentStepIndex !== 5) return;
+
+      showScreen('screen-settings');
+      scrollToTop();
+      setTimeout(() => advanceStep(), 300); // step 6 (cloud)
+    }
+
+    function tapConnectCloud() {
+      if (currentStepIndex !== 6) return;
+
+      cloudConnected = true;
+      renderCloudSyncContent();
+
+      setTimeout(() => finishTour(), 900);
+    }
+
+    function renderCloudSyncContent() {
+      const container = document.getElementById('cloud-sync-content');
+      if (!container) return;
+      const t = translations[currentLang];
+
+      if (cloudConnected) {
+        container.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 12px; animation: slide-up 0.35s both;">
+          <!-- Account pill -->
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 1px solid rgba(52,211,153,0.2); background: rgba(52,211,153,0.05);">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(45,212,191,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <span style="color: var(--brand); font-size: 12px; font-weight: bold;">T</span>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <p style="font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">${t.lblCloudSyncConnectedAs || 'Connected as'}</p>
+              <p style="font-size: 12px; font-weight: 600; color: #fff; margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">test-dancer@gmail.com</p>
+            </div>
+            <button
+              id="driveDisconnectBtn"
+              style="background: none; border: none; font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 600; cursor: pointer; transition: color 0.2s;"
+              onmouseover="this.style.color='#f87171'"
+              onmouseout="this.style.color='rgba(255,255,255,0.3)'"
+            >
+              ${t.lblCloudSyncDisconnect || 'Disconnect'}
+            </button>
+          </div>
+
+          <!-- Backup + Restore buttons -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button
+              id="driveBackupBtn"
+              style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); cursor: pointer;"
+            >
+              <svg style="width: 20px; height: 20px; fill: none; stroke: #34d399; stroke-width: 2;" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span style="font-size: 11px; font-weight: 700;">${t.lblCloudSyncBackupNow || 'Backup Now'}</span>
+            </button>
+            <button
+              id="driveRestoreBtn"
+              style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); cursor: pointer;"
+            >
+              <svg style="width: 20px; height: 20px; fill: none; stroke: #60a5fa; stroke-width: 2;" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span style="font-size: 11px; font-weight: 700;">${t.lblCloudSyncRestore || 'Restore from Drive'}</span>
+            </button>
+          </div>
+          <p style="font-size: 10px; color: rgba(255,255,255,0.3); text-align: center; margin: 0; line-height: 1.4;">${t.lblCloudSyncAutoNote || 'You can also back up manually at any time.'}</p>
+        </div>
+      `;
+      } else {
+        container.innerHTML = `
+        <button
+          id="cloud-option"
+          style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; border-radius: 12px; border: 1px solid rgba(45, 212, 191, 0.3); background: rgba(45, 212, 191, 0.1); color: #fff; cursor: pointer; transition: all 0.2s; font-size: 14px; font-weight: 700;"
+          onclick="tapConnectCloud()"
+        >
+          <svg style="width: 16px; height: 16px; flex-shrink: 0;" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84z"/>
+          </svg>
+          <span id="lbl-cloud-connect-btn">${t.lblCloudSyncConnectBtn || 'Connect Google Drive'}</span>
+        </button>
+      `;
+      }
+    }
+
+    function tapSessionSettings() {
+      // Not a tour step — just a non-blocking UI element, do nothing
+    }
+
+    /* ─── Finish tour ─── */
+    function finishTour() {
+      hideTooltip();
+      const cta = document.getElementById('cta-screen');
+      cta.classList.add('active');
+
+      const canvas = document.getElementById('confetti-canvas');
+      canvas.style.display = 'block';
+      triggerConfetti();
+    }
+
+    /* ─── PWA install ─── */
+    function triggerInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(r => {
+          if (r.outcome === 'accepted') deferredPrompt = null;
+        });
+      } else {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+          document.getElementById('ios-guide').classList.add('active');
+        } else {
+          window.location.href = '/';
+        }
+      }
+    }
+
+    function closeIos() {
+      document.getElementById('ios-guide').classList.remove('active');
+    }
+
+    /* ─── Confetti ─── */
+    function triggerConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const colors = ['#2DD4BF', '#a855f7', '#38bdf8', '#fbbf24', '#f472b6'];
+      const particles = Array.from({ length: 140 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        r: Math.random() * 5 + 3,
+        d: Math.random() * canvas.height,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        tilt: 0,
+        tiltAngleInc: Math.random() * 0.07 + 0.01,
+        tiltAngle: 0
+      }));
+
+      let raf;
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let alive = false;
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.tiltAngle += p.tiltAngleInc;
+          p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
+          p.x += Math.sin(p.tiltAngle);
+          p.tilt = Math.sin(p.tiltAngle - i / 3) * 15;
+          if (p.y < canvas.height) alive = true;
+          ctx.beginPath();
+          ctx.lineWidth = p.r;
+          ctx.strokeStyle = p.color;
+          ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+          ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+          ctx.stroke();
+        }
+        if (alive) raf = requestAnimationFrame(draw);
+      }
+      draw();
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      });
+    }
+
+    // Initialize the page in English
+    switchLanguage('en');
+  </script>
+</body>
+
+</html>

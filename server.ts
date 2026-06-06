@@ -27,12 +27,28 @@ const MAX_REQUESTS_PER_MINUTE = 10;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Auto-detect production mode if running from the compiled dist-server directory
+if (__dirname.includes('dist-server') || __dirname.includes('dist_server')) {
+    process.env.NODE_ENV = 'production';
+}
+
 // Body parsing — MUST come before routes
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve the built React frontend from the dist folder
-app.use(express.static(path.join(__dirname, '../dist')));
+// Serve frontend assets
+if (process.env.NODE_ENV !== 'production') {
+    console.log('[server] Running in development mode. Mounting Vite dev middleware...');
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa'
+    });
+    app.use(vite.middlewares);
+} else {
+    console.log('[server] Running in production mode. Serving static files from dist...');
+    app.use(express.static(path.join(__dirname, '../dist')));
+}
 
 // Basic health route
 app.get('/api/health', (req, res) => {
@@ -566,10 +582,12 @@ app.get('/api/share/:shareId', (req, res) => {
     }
 });
 
-// Fallback route: all non-API routes return dist/index.html
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
-});
+// Fallback route: in production, all non-API routes return dist/index.html
+if (process.env.NODE_ENV === 'production') {
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '../dist/index.html'));
+    });
+}
 
 app.listen(PORT, () => {
     console.log(`[server] Running on port ${PORT}`);
