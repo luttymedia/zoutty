@@ -9,7 +9,9 @@
  */
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
-const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+// openid + email + profile ensures Google includes an id_token JWT in the
+// OAuth response, letting us read the user's email without any extra API call.
+const SCOPE = 'https://www.googleapis.com/auth/drive.appdata openid email profile';
 const BACKUP_FILENAME = 'zoutty_backup.json';
 
 const TOKEN_KEY = 'zoutty_gdrive_token';
@@ -62,6 +64,34 @@ export function isDriveConnected(): boolean {
   return getStoredToken() !== null;
 }
 
+// ─── Account info helper ─────────────────────────────────────────────────────
+
+/**
+ * Fetches the user's profile from Google's userinfo endpoint using the
+ * access token. Works because we request 'openid email profile' scopes,
+ * which authorise this endpoint.
+ */
+async function fetchAndSaveAccount(token: string): Promise<void> {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const p = await res.json();
+      const account: DriveAccount = {
+        email: p.email || '',
+        name: p.name || p.email || '',
+        picture: p.picture,
+      };
+      localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
+    } else {
+      console.warn('[Drive] userinfo returned', res.status);
+    }
+  } catch (e) {
+    console.warn('[Drive] Failed to fetch user profile:', e);
+  }
+}
+
 // ─── GIS script loader ────────────────────────────────────────────────────────
 
 function waitForGIS(): Promise<void> {
@@ -108,25 +138,7 @@ export async function requestDriveToken(): Promise<string> {
         const token: string = response.access_token;
         const expiresIn: number = Number(response.expires_in) || 3600;
         saveToken(token, expiresIn);
-
-        // Fetch & cache the user's Google profile info
-        try {
-          const me = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (me.ok) {
-            const profile = await me.json();
-            const account: DriveAccount = {
-              email: profile.email || '',
-              name: profile.name || profile.email || '',
-              picture: profile.picture,
-            };
-            localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
-          }
-        } catch {
-          // Non-fatal – profile info is cosmetic only
-        }
-
+        await fetchAndSaveAccount(token);
         resolve(token);
       },
     });
@@ -155,25 +167,7 @@ export async function connectDriveAccount(): Promise<string> {
         const token: string = response.access_token;
         const expiresIn: number = Number(response.expires_in) || 3600;
         saveToken(token, expiresIn);
-
-        // Fetch & cache the user's Google profile info
-        try {
-          const me = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (me.ok) {
-            const profile = await me.json();
-            const account: DriveAccount = {
-              email: profile.email || '',
-              name: profile.name || profile.email || '',
-              picture: profile.picture,
-            };
-            localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
-          }
-        } catch {
-          // Non-fatal
-        }
-
+        await fetchAndSaveAccount(token);
         resolve(token);
       },
     });
