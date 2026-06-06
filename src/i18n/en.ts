@@ -320,7 +320,7 @@ const en = {
     beforeWeStart: 'Before we start',
     permissionsDesc: 'Zoutty works entirely on your device. To make that possible, we need a couple of permissions.',
     micAccess: 'Microphone Access',
-    micDesc: 'Required to record the concepts, feedback, and notes from your lessons. Audio is never sent to the cloud.',
+    micDesc: 'Required to record the concepts, feedback, and notes from your lessons. Audio remains private and is only uploaded if you connect your Google Drive backup.',
     localStorage: 'Local Storage',
     storageDesc: 'Required to save your sessions and link video files. Everything stays on your phone.',
     cloudBackup: 'Cloud Backup',
@@ -353,6 +353,7 @@ const en = {
     hintBackupTitle: 'Keep your data safe!',
     hintBackupMsg: 'Your Zoutty data lives only on this device. Connect Google Drive in Settings for automatic cloud backups - or download a manual backup as a fallback.',
     hintBackupBtn: 'Open Settings',
+    hintBackupDismissBtn: 'Got it!',
   },
 };
 

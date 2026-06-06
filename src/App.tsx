@@ -720,7 +720,7 @@ export default function App() {
 
     setSessions(prev => {
       const next = [newSession, ...prev];
-      if (next.length >= 5 && !localStorage.getItem('hasShownBackupHint')) {
+      if (next.length >= 5 && !localStorage.getItem('hasShownBackupHint') && !isDriveConnected()) {
         localStorage.setItem('hasShownBackupHint', 'true');
         setTimeout(() => setShowBackupReminderModal(true), 1000);
       }
@@ -1425,10 +1425,16 @@ export default function App() {
             <p className="text-white/70 leading-relaxed">
               {t('onboarding.hintBackupMsg')}
             </p>
-            <div className="flex justify-center mt-6">
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button 
+                onClick={() => setShowBackupReminderModal(false)} 
+                className="flex-1 px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm text-white"
+              >
+                {t('onboarding.hintBackupDismissBtn')}
+              </button>
               <button 
                 onClick={() => { setShowBackupReminderModal(false); setShowAppSettings(true); }} 
-                className="w-full px-5 py-3 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px]"
+                className="flex-1 px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/20 text-black min-h-[44px] text-sm"
               >
                 {t('onboarding.hintBackupBtn')}
               </button>
