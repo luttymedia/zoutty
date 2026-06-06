@@ -18,7 +18,11 @@ const es: Translations = {
     newSession: 'Sesión',
     newFolder: 'Carpeta',
     folderBreadcrumb: 'Carpeta: {name}',
+    saveSession: 'Guardar',
+    sessionSaved: 'Sesión guardada',
     noSessionsInFolder: 'No hay sesiones en esta carpeta.',
+    emptyHomeTitle: '¿Listo para la próxima clase?',
+    emptyHomeDesc: 'Toca el botón \'+ Sesión\' para configurar una nueva sesión.',
     sortBy: 'Ordenar por:',
     sortRecent: 'Reciente',
     sortName: 'Nombre',
@@ -171,8 +175,10 @@ const es: Translations = {
     reprocessClip: 'Reprocesar clip',
     liveType: 'En vivo',
     clipType: 'Clip',
-    waitingForContent: 'Esperando generación de contenido...',
-    noDataYet: 'Aún no hay datos estructurados disponibles para esta sesión.',
+    noDataYet: 'Aún no hay audios en esta sesión.',
+    emptySessionTitle: 'Esta sesión está vacía',
+    emptySessionDesc: 'Toca el micrófono para capturar conceptos clave, combinaciones o comentarios de la clase de hoy.',
+    waitingForContent: 'Esperando a que se extraiga el contenido...',
     // Notes card
     notesHeading: 'Notas',
     addNote: '+ Añadir nota',
@@ -315,6 +321,8 @@ const es: Translations = {
     demoTooltipReprocess: '💡 En una sesión real, esto vuelve a transcribir el audio y extrae el contenido original.',
     demoTooltipReorder: '💡 En una sesión real, puedes reordenar los elementos de esta sesión.',
     demoTooltipNotes: '💡 En una sesión real, puedes añadir notas personales a tu sesión aquí.',
+    hintConsolidation: '💡 ¡Zoutty está listo! Toca \'Generar reporte\' para consolidar tus grabaciones.',
+    hintBackup: '💡 ¡Mantén tus datos seguros! Ve a Configuración para descargar una copia de seguridad local.',
   },
 };
 

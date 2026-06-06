@@ -72,7 +72,6 @@ export function WelcomeModal({
                   value={currentLanguage}
                   onChange={setLanguage}
                   options={Object.entries(UI_LANGUAGE_NAMES).map(([val, label]) => ({ value: val, label }))}
-                  icon={<Sparkles className="w-4 h-4" />}
                 />
               </div>
 

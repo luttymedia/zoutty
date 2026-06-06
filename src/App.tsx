@@ -180,12 +180,12 @@ export default function App() {
   const [groups, setGroups] = useState<SessionGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [glossaries, setGlossaries] = useState<DanceGlossary[]>([]);
-  
+
   const [folderModal, setFolderModal] = useState<{ type: 'create' | 'rename', id?: string, name: string } | null>(null);
   const [deleteFolderModal, setDeleteFolderModal] = useState<{ id: string, name: string } | null>(null);
   const [deleteFolderAlsoSessions, setDeleteFolderAlsoSessions] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
-  
+
   const [shareModal, setShareModal] = useState<{
     sessionId: string;
     shareReport: boolean;
@@ -369,7 +369,7 @@ export default function App() {
         // Seed default/system glossaries if needed
         const existingGlossaries = await db.getGlossaries();
         const defaultIds = DEFAULT_GLOSSARIES.map(g => g.id);
-        
+
         // Clean up system glossaries that are no longer supported
         for (const existing of existingGlossaries) {
           if (existing.isSystem && !defaultIds.includes(existing.id)) {
@@ -592,7 +592,13 @@ export default function App() {
 
     await db.saveSession(newSession);
 
-    setSessions(prev => [newSession, ...prev]);
+    setSessions(prev => {
+      const next = [newSession, ...prev];
+      if (next.length === 5) {
+        setTimeout(() => showToast(t('onboarding.hintBackup'), false), 1000);
+      }
+      return next;
+    });
     navigateTo('detail', newSession.id, selectedGroupId);
   };
 
@@ -820,7 +826,7 @@ export default function App() {
       });
       if (!res.ok) throw new Error('Share request failed');
       const { shareId } = await res.json();
-      
+
       if (shareId !== selectedSession.shareId) {
         await updateSession(selectedSession.id, { shareId });
       }
@@ -919,7 +925,13 @@ export default function App() {
     // Save to IndexedDB and update UI
     await db.saveAudioEntry(newEntry);
     setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
-    showToast(filename ? t('toast.fileAdded', { filename }) : t('toast.audioAdded'));
+    const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === sessionId);
+    if (sessionEntries.length === 1) {
+      // Show the hint instead of the default toast
+      showToast(t('onboarding.hintConsolidation'), false);
+    } else {
+      showToast(filename ? t('toast.fileAdded', { filename }) : t('toast.audioAdded'));
+    }
   };
 
   const handleProcessEntry = async (entryId: string) => {
@@ -1126,7 +1138,7 @@ export default function App() {
       filename: t('onboarding.demoAudioFilename'),
     };
     await db.saveAudioEntry(mockAudio);
-    
+
     const mockReport = {
       id: "demo-report-1",
       sessionId: demoSessionId,
@@ -1146,12 +1158,12 @@ export default function App() {
     const loadedSessions = await db.getSessions();
     loadedSessions.sort((a, b) => b.date - a.date);
     setSessions(loadedSessions);
-    
+
     const loadedAudios = await db.getAudioEntries();
     const audioRecord: Record<string, any> = {};
     loadedAudios.forEach(a => audioRecord[a.id] = a);
     setAudioEntries(audioRecord);
-    
+
     // Auto navigate to the demo session list view (Homepage)
     navigateTo('list', null, null, 'push');
   };
@@ -1560,7 +1572,7 @@ export default function App() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <p className="text-xs text-white/60 font-sans">
               {t('modals.moveSessionDesc')}
             </p>
@@ -1573,11 +1585,10 @@ export default function App() {
                   showToast(t('toast.sessionMovedToRoot'));
                   setMoveSessionModal(null);
                 }}
-                className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${
-                  !moveSessionModal.currentGroupId
-                    ? 'bg-brand/20 border-brand text-brand font-semibold'
-                    : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
-                }`}
+                className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${!moveSessionModal.currentGroupId
+                  ? 'bg-brand/20 border-brand text-brand font-semibold'
+                  : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
+                  }`}
               >
                 <Folder className="w-5 h-5 opacity-60 text-brand" />
                 <div className="flex-1 text-sm">{t('modals.moveSessionRoot')}</div>
@@ -1593,11 +1604,10 @@ export default function App() {
                     showToast(t('toast.sessionMovedToFolder', { name: group.name }));
                     setMoveSessionModal(null);
                   }}
-                  className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${
-                    moveSessionModal.currentGroupId === group.id
-                      ? 'bg-blue-500/20 border-blue-500 text-blue-400 font-semibold'
-                      : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
-                  }`}
+                  className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${moveSessionModal.currentGroupId === group.id
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-400 font-semibold'
+                    : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
+                    }`}
                 >
                   <Folder className="w-5 h-5 opacity-60 text-blue-400" />
                   <div className="flex-1 text-sm truncate">{group.name}</div>
@@ -1605,7 +1615,7 @@ export default function App() {
                 </button>
               ))}
             </div>
-            
+
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setMoveSessionModal(null)}
@@ -1626,7 +1636,7 @@ export default function App() {
               <Share2 className="w-6 h-6 text-brand" />
               {t('modals.shareSession')}
             </h3>
-            
+
             {!shareModal.generatedLink ? (
               <>
                 <p className="text-white/70 text-sm">
@@ -1690,7 +1700,7 @@ export default function App() {
                           </button>
                         </div>
                       )}
-                      
+
                       <CustomCheckbox
                         disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableStrictSummary}
                         checked={shareModal.shareStrictSummary}
@@ -1756,7 +1766,7 @@ export default function App() {
                       className="px-2 py-1.5"
                     />
                   </div>
-                </div>                
+                </div>
                 <div className="flex gap-3 justify-end items-center">
                   <button onClick={() => setShareModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
                   <button
@@ -1819,7 +1829,7 @@ export default function App() {
               {t('modals.sharedSession')}
             </h3>
             <p className="text-white/80 text-sm font-sans">{t('modals.sharedSessionDesc')}</p>
-            
+
             <div className="bg-black/30 p-5 rounded-2xl border border-white/10 space-y-3.5">
               <div>
                 <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedTitle')}</span>
@@ -1982,7 +1992,7 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
                   <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('home.foldersHeading')}</h2>
-                  
+
                   {/* Folder Sorting controls bar */}
                   <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
                     <span className="hidden sm:inline">{t('home.sortBy')}</span>
@@ -2055,7 +2065,7 @@ export default function App() {
                 <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">
                   {selectedGroupId ? t('home.sessionsInFolderHeading') : t('home.sessionsHeading')}
                 </h2>
-                
+
                 {/* Sorting controls bar */}
                 <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
                   <span className="hidden sm:inline">{t('home.sortBy')}</span>
@@ -2086,10 +2096,21 @@ export default function App() {
               </div>
 
               {sessions.filter(s => selectedGroupId ? s.groupId === selectedGroupId : !s.groupId).length === 0 ? (
-                <div className="glass p-12 text-center text-white/20">
-                  <FileAudio className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>{t('home.noSessionsInFolder')}</p>
-                </div>
+                !selectedGroupId ? (
+                  <div className="flex flex-col items-center justify-center p-12 sm:p-20 text-center animate-in fade-in zoom-in duration-500">
+                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-6">
+                      <div className="absolute inset-0 bg-brand/20 blur-3xl rounded-full animate-pulse" />
+                      <Sparkles className="w-full h-full text-brand/60 drop-shadow-[0_0_15px_rgba(45,212,191,0.5)] animate-pulse" style={{ animationDuration: '3s' }} />
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 tracking-tight">{t('home.emptyHomeTitle')}</h3>
+                    <p className="text-sm sm:text-base text-white/50 max-w-sm leading-relaxed">{t('home.emptyHomeDesc')}</p>
+                  </div>
+                ) : (
+                  <div className="glass p-12 text-center text-white/20">
+                    <Folder className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                    <p>{t('home.noSessionsInFolder')}</p>
+                  </div>
+                )
               ) : (
                 <div className="grid grid-cols-1 gap-4">
                   {sortSessions(
@@ -2100,7 +2121,7 @@ export default function App() {
                       onClick={() => {
                         navigateTo('detail', session.id, selectedGroupId);
                       }}
-                      className={`glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer rounded-2xl border ${session.isDemo ? 'border-brand/50 shadow-[0_0_20px_rgba(45,212,191,0.2)] animate-pulse hover:border-brand/70' : 'border-white/5 hover:border-brand/25'}`}
+                      className={`glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer rounded-2xl border ${session.isDemo && sessions.length === 1 ? 'border-brand/50 shadow-[0_0_20px_rgba(45,212,191,0.2)] animate-pulse hover:border-brand/70' : 'border-white/5 hover:border-brand/25'}`}
                     >
                       <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
                         <FileAudio className="w-6 h-6 text-brand" />
@@ -2148,7 +2169,13 @@ export default function App() {
             onUpdateSession={(changes) => updateSession(selectedSession.id, changes)}
             onUpdateEntry={(id, changes) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipEdit'), false) : updateAudioEntry(id, changes)}
             onDeleteEntry={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipDelete'), false) : requestDeleteAudio(id, 'Audio Entry')}
-            onProcessEntry={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipConsolidate'), false) : handleProcessEntry(id)}
+            onProcessEntry={async (id) => {
+              if (selectedSession.isDemo) {
+                showToast(t('onboarding.demoTooltipConsolidate'), false);
+              } else {
+                await handleProcessEntry(id);
+              }
+            }}
             onRequestReprocess={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipReprocess'), false) : setReprocessModal(id)}
             showToast={showToast}
             groups={groups}
@@ -2158,7 +2185,7 @@ export default function App() {
               const hasReport = !!selectedSession.summary && !!report;
               const hasNotes = !!selectedSession.notes;
               const hasTranscripts = Object.values(audioEntries).some(e => e.sessionId === selectedSession.id && !!e.transcript);
-              
+
               const hasStrictSummary = hasReport && !!report.report?.strictSummary && report.report.strictSummary.length > 0;
               const hasDrills = hasReport && !!report.report?.expandedInsights?.drills && report.report.expandedInsights.drills.length > 0;
               const hasHomework = hasReport && !!report.report?.expandedInsights?.homework && report.report.expandedInsights.homework.length > 0;
@@ -2335,7 +2362,7 @@ function SessionDetail({
         setIsAddingMedia(false);
       } catch (err: any) {
         setIsAddingMedia(false);
-        if (err?.name !== 'AbortError') onError(t('session.galleryFailedAttach'));
+        if (err?.name !== 'AbortError') showToast(t('session.galleryFailedAttach'), true);
       }
     } else {
       // Blob Mode: standard file input for Safari/iOS/Firefox
@@ -2362,20 +2389,20 @@ function SessionDetail({
       for (const file of files) {
         // Validate type
         if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-          onError(t('session.galleryUnsupportedType'));
+          showToast(t('session.galleryUnsupportedType'), true);
           continue;
         }
         // Hard cap
         if (file.size > MAX_BLOB_SIZE) {
-          onError(t('session.galleryFileTooLarge', { size: formatBytes(file.size) }));
+          showToast(t('session.galleryFileTooLarge', { size: formatBytes(file.size) }), true);
           continue;
         }
         // Storage warning
         if (availableBytes !== null && availableBytes < LOW_STORAGE_THRESHOLD) {
-          onError(t('session.galleryStorageWarning', {
+          showToast(t('session.galleryStorageWarning', {
             available: formatBytes(availableBytes),
             size: formatBytes(file.size)
-          }));
+          }), true);
         }
 
         let blobToStore: Blob = file;
@@ -2407,7 +2434,7 @@ function SessionDetail({
       if (newItems.length > 0) onMediaChange([...mediaItems, ...newItems]);
     } catch (err) {
       console.error('[Gallery] Failed to attach media:', err);
-      onError(t('session.galleryFailedAttach'));
+      showToast(t('session.galleryFailedAttach'), true);
     } finally {
       setIsAddingMedia(false);
       e.target.value = '';
@@ -2530,13 +2557,13 @@ function SessionDetail({
         console.log('[MediaRecorder] Total chunks:', audioChunks.current.length);
         const audioBlob = new Blob(audioChunks.current, { type: blobType });
         console.log('[MediaRecorder] Blob size:', audioBlob.size, 'type:', audioBlob.type);
-        
+
         if (isCancelledRef.current) {
           console.log('[MediaRecorder] Recording cancelled, discarding chunks.');
         } else {
           onRecording(audioBlob, language);
         }
-        
+
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -2549,7 +2576,7 @@ function SessionDetail({
       }, 1000);
     } catch (err) {
       console.error('Error accessing microphone:', err);
-      onError(t('toast.micDenied'));
+      showToast(t('toast.micDenied'), true);
     }
   };
 
@@ -2692,11 +2719,10 @@ function SessionDetail({
                     onShare();
                   }
                 }}
-                className={`p-2 rounded-xl border transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] ${
-                  session.shareId
-                    ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20'
-                    : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'
-                }`}
+                className={`p-2 rounded-xl border transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] ${session.shareId
+                  ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20'
+                  : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'
+                  }`}
                 title={t('session.shareSession')}
               >
                 <Share2 className={`w-4 h-4 ${session.shareId ? '' : 'text-brand'}`} />
@@ -2722,11 +2748,10 @@ function SessionDetail({
                     setIsGalleryOpen(true);
                   }
                 }}
-                className={`p-2 rounded-xl border transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] ${
-                  mediaItems.length > 0
-                    ? 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-sm'
-                    : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'
-                }`}
+                className={`p-2 rounded-xl border transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] ${mediaItems.length > 0
+                  ? 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-sm'
+                  : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'
+                  }`}
                 title={t('session.openGallery')}
               >
                 <Images className={`w-4 h-4 ${mediaItems.length > 0 ? '' : 'text-brand'}`} />
@@ -2773,8 +2798,11 @@ function SessionDetail({
         />
       </div>
 
+      {/* Spacer to ensure scrolling past the floating bottom controls */}
+      <div className="h-32 shrink-0 w-full" />
+
       {/* Controls - Floating at bottom */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 glass p-4 rounded-full flex items-center justify-center gap-4 sm:gap-6 shadow-2xl z-40 border border-white/10 bg-black/60 backdrop-blur-md">
+      <div className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 glass p-4 rounded-full flex items-center justify-center gap-4 sm:gap-6 shadow-2xl z-40 border border-white/10 bg-black/60 backdrop-blur-md">
 
         {isRecording && (
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-600/90 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg border border-red-500/30 backdrop-blur-md animate-in slide-in-from-bottom-2 duration-300">
@@ -2979,11 +3007,10 @@ function SessionDetail({
                 {mediaItems.length > 0 && (
                   <button
                     onClick={() => setIsDeleteMode(!isDeleteMode)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                      isDeleteMode
-                        ? 'bg-red-500/20 border-red-500/40 text-red-300'
-                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${isDeleteMode
+                      ? 'bg-red-500/20 border-red-500/40 text-red-300'
+                      : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                      }`}
                   >
                     {isDeleteMode ? t('session.galleryDoneBtn') : t('session.galleryEditBtn')}
                   </button>
@@ -3007,7 +3034,7 @@ function SessionDetail({
             </div>
 
             {/* Content */}
-            <div 
+            <div
               className="flex-1 overflow-y-auto space-y-3 pr-1"
               onClick={() => {
                 if (isDeleteMode) setIsDeleteMode(false);
@@ -3027,11 +3054,10 @@ function SessionDetail({
                     return (
                       <div
                         key={item.id}
-                        className={`relative group rounded-xl overflow-hidden border bg-black/30 aspect-square transition-all ${
-                          isDeleteMode
-                            ? 'animate-wiggle border-red-500/40 shadow-lg shadow-red-500/10'
-                            : 'border-white/10'
-                        }`}
+                        className={`relative group rounded-xl overflow-hidden border bg-black/30 aspect-square transition-all ${isDeleteMode
+                          ? 'animate-wiggle border-red-500/40 shadow-lg shadow-red-500/10'
+                          : 'border-white/10'
+                          }`}
                       >
                         {broken ? (
                           <button
@@ -3082,9 +3108,8 @@ function SessionDetail({
                             e.stopPropagation();
                             setMediaToDelete(item);
                           }}
-                          className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-600 border border-red-500 text-white transition-all flex items-center justify-center z-10 ${
-                            isDeleteMode ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'
-                          }`}
+                          className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-600 border border-red-500 text-white transition-all flex items-center justify-center z-10 ${isDeleteMode ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'
+                            }`}
                           title={t('session.galleryDeleteItem')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -3148,7 +3173,7 @@ function SessionDetail({
             </button>
             {url && (
               isVideo ? (
-                <div 
+                <div
                   className="relative w-full h-full max-w-4xl max-h-[80vh] flex items-center justify-center"
                   onClick={e => e.stopPropagation()}
                 >
@@ -3658,10 +3683,10 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
           placeholder={t('session.notesPlaceholder')}
           value={sessionNotes || ''}
           onClick={(e) => {
-             if (sessionId === 'demo-session' && showToast) {
-               e.preventDefault();
-               showToast(t('onboarding.demoTooltipNotes'), false);
-             }
+            if (sessionId === 'demo-session' && showToast) {
+              e.preventDefault();
+              showToast(t('onboarding.demoTooltipNotes'), false);
+            }
           }}
           readOnly={sessionId === 'demo-session'}
           onChange={(e) => {
@@ -3754,8 +3779,15 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
       </DndContext>
 
       {!hasConsolidated && entries.length === 0 && (
-        <div className="p-8 text-center text-white/40 text-sm border border-white/10 border-dashed rounded-xl glass">
-          <p>{t('session.noDataYet')}</p>
+        <div className="flex flex-col items-center justify-center pt-2 pb-16 sm:pb-24 text-center px-4 animate-in fade-in duration-500">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-6">
+            <div className="absolute inset-0 bg-brand/10 blur-xl rounded-full animate-pulse" style={{ animationDuration: '3s' }} />
+            <div className="absolute inset-0 rounded-full border-2 border-dashed border-brand/30 animate-[spin_8s_linear_infinite]" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand/80 animate-spin" style={{ animationDuration: '3s' }} />
+            <Mic className="w-full h-full p-5 text-brand/60 drop-shadow-[0_0_10px_rgba(45,212,191,0.5)] relative z-10" />
+          </div>
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{t('session.emptySessionTitle')}</h3>
+          <p className="text-sm text-white/40 max-w-md leading-relaxed">{t('session.emptySessionDesc')}</p>
         </div>
       )}
     </div>
@@ -3881,16 +3913,16 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
             <audio controls src={audioUrl} className="w-full h-10 opacity-90 rounded-xl bg-black/20" />
           ) : audio.sessionId === 'demo-session' ? (
             <div className="w-full h-10 flex items-center gap-3 bg-black/20 rounded-xl px-4 overflow-hidden relative cursor-not-allowed">
-               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
-               <div className="w-4 h-4 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
-                 <div className="w-1.5 h-1.5 bg-black rounded-full ml-[2px]"></div>
-               </div>
-               <div className="flex-1 flex items-center justify-between gap-[3px] opacity-50 overflow-hidden px-2">
-                 {[12,24,18,10,14,22,20,12,10,16,24,18,12,14,20,24,16,10,14,22,18,12,14,20,16,10,12,22,18,14].map((h, i) => (
-                   <div key={i} className="w-1.5 rounded-full bg-brand/60" style={{ height: `${h}px` }}></div>
-                 ))}
-               </div>
-               <span className="text-[10px] text-brand/50 font-mono tracking-widest">00:45</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
+              <div className="w-4 h-4 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
+                <div className="w-1.5 h-1.5 bg-black rounded-full ml-[2px]"></div>
+              </div>
+              <div className="flex-1 flex items-center justify-between gap-[3px] opacity-50 overflow-hidden px-2">
+                {[12, 24, 18, 10, 14, 22, 20, 12, 10, 16, 24, 18, 12, 14, 20, 24, 16, 10, 14, 22, 18, 12, 14, 20, 16, 10, 12, 22, 18, 14].map((h, i) => (
+                  <div key={i} className="w-1.5 rounded-full bg-brand/60" style={{ height: `${h}px` }}></div>
+                ))}
+              </div>
+              <span className="text-[10px] text-brand/50 font-mono tracking-widest">00:45</span>
             </div>
           ) : null}
 

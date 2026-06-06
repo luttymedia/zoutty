@@ -16,7 +16,11 @@ const en = {
     newSession: 'Session',
     newFolder: 'Folder',
     folderBreadcrumb: 'Folder: {name}',
+    saveSession: 'Save',
+    sessionSaved: 'Session saved',
     noSessionsInFolder: 'No sessions in this folder.',
+    emptyHomeTitle: 'Ready for the next lesson?',
+    emptyHomeDesc: 'Tap the \'+ Session\' button to set up a new session.',
     sortBy: 'Sort by:',
     sortRecent: 'Recent',
     sortName: 'Name',
@@ -169,8 +173,10 @@ const en = {
     reprocessClip: 'Reprocess Clip',
     liveType: 'Live',
     clipType: 'Clip',
-    waitingForContent: 'Waiting for content generation...',
-    noDataYet: 'No structured data available for this session yet.',
+    noDataYet: 'No audio entries in this session yet.',
+    emptySessionTitle: 'This session is empty',
+    emptySessionDesc: "Tap the microphone to capture key concepts, combinations, or feedback from today's lesson.",
+    waitingForContent: 'Waiting for content to be extracted...',
     // Notes card
     notesHeading: 'Notes',
     addNote: '+ Add note',
@@ -313,6 +319,8 @@ const en = {
     demoTooltipReprocess: '💡 In a real session, this re-transcribes the audio and extracts the raw content again.',
     demoTooltipReorder: '💡 In a real session, you can reorder the items in this session.',
     demoTooltipNotes: '💡 In a real session, you can add personal written notes to your session here.',
+    hintConsolidation: '💡 Zoutty is ready! Tap \'Generate Report\' to consolidate your recordings.',
+    hintBackup: '💡 Keep your data safe! Go to Settings to download a local backup.',
   },
 };
 
