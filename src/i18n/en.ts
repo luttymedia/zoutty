@@ -54,6 +54,22 @@ const en = {
     resetDesc: 'Wipe all folders, sessions, settings, and audio recordings from this device.',
     resetWarning: 'Warning: This action is permanent and cannot be undone.',
     resetBtn: 'Reset App Data',
+    // Cloud Sync (Google Drive)
+    cloudSyncSection: 'Cloud Sync',
+    cloudSyncTagline: 'Recommended',
+    cloudSyncWhyTitle: 'Why back up to Google Drive?',
+    cloudSyncWhyPrivacy: 'Your data stays 100% yours — Zoutty has no server.',
+    cloudSyncWhySafety: 'Mobile browsers can wipe local storage when your phone runs low on space.',
+    cloudSyncWhyMultiDevice: 'Restore your sessions, folders, and glossaries on any device instantly.',
+    cloudSyncWhySandbox: 'We only request access to a private app folder — we cannot see any other file in your Google Drive.',
+    cloudSyncWhyAutoBackup: 'Auto-backs up silently every time you consolidate a session.',
+    cloudSyncConnectBtn: 'Connect Google Drive',
+    cloudSyncConnectedAs: 'Connected as',
+    cloudSyncDisconnectBtn: 'Disconnect',
+    cloudSyncBackupBtn: 'Backup Now',
+    cloudSyncRestoreBtn: 'Restore from Drive',
+    cloudSyncLastBackupNone: 'No backup found in your Drive yet.',
+    cloudSyncAutoNote: 'You can also back up manually at any time by clicking the button above.',
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -99,6 +115,10 @@ const en = {
     restoreMsg: 'Are you sure you want to restore the backup file "{filename}"?',
     restoreWarningMsg: 'This will overwrite and delete all your current local sessions, folders, settings, and audio recordings. This action cannot be undone.',
     restoreBtn: 'Restore',
+    // Drive disconnect
+    confirmDriveDisconnect: 'Disconnect Google Drive?',
+    driveDisconnectMsg: 'Your backup file will remain safely stored in your Google Drive. You can reconnect at any time.',
+    driveDisconnectBtn: 'Disconnect',
     // Reset
     confirmReset: 'Confirm Reset',
     resetMsg: 'Are you sure you want to reset the app?',
@@ -268,6 +288,14 @@ const en = {
     aiDetectedStyleOnly: '[AI] Detected style "{style}".',
     linkCopied: 'Link copied to clipboard!',
     sessionImportedSuffix: ' (Imported)',
+    driveConnected: 'Google Drive connected!',
+    driveDisconnected: 'Google Drive disconnected.',
+    driveBackupSuccess: 'Backup saved to Google Drive!',
+    driveBackupFailed: 'Failed to back up to Google Drive.',
+    driveRestoreSuccess: 'Restore from Google Drive successful! Reloading...',
+    driveRestoreFailed: 'Failed to restore from Google Drive.',
+    driveNoBackup: 'No backup found in your Google Drive.',
+    driveConnectFailed: 'Failed to connect Google Drive. Please try again.',
   },
 
   // ─── Language Names ──────────────────────────────────────────────────────────
@@ -321,8 +349,8 @@ const en = {
     demoTooltipNotes: '💡 In a real session, you can add personal written notes to your session here.',
     hintConsolidation: '💡 Zoutty is ready! Tap the \'Generate Report\' (🪄) button at the end of your session to consolidate your recordings.',
     hintBackupTitle: 'Keep your data safe!',
-    hintBackupMsg: 'Your Zoutty data is stored locally on this device. We strongly recommend going to Settings periodically to download a backup file of all your sessions.',
-    hintBackupBtn: 'Got it',
+    hintBackupMsg: 'Your Zoutty data lives only on this device. Connect Google Drive in Settings for automatic cloud backups — or download a manual backup as a fallback.',
+    hintBackupBtn: 'Open Settings',
   },
 };
 

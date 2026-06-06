@@ -56,6 +56,22 @@ const es: Translations = {
     resetDesc: 'Elimina todas las carpetas, sesiones, ajustes y grabaciones de audio de este dispositivo.',
     resetWarning: 'Advertencia: Esta acción es permanente y no se puede deshacer.',
     resetBtn: 'Restablecer datos',
+    // Cloud Sync (Google Drive)
+    cloudSyncSection: 'Sincronización en la nube',
+    cloudSyncTagline: 'Recomendado',
+    cloudSyncWhyTitle: '¿Por qué hacer copia en Google Drive?',
+    cloudSyncWhyPrivacy: 'Tus datos son 100% tuyos — Zoutty no tiene servidor propio.',
+    cloudSyncWhySafety: 'Los navegadores móviles pueden borrar el almacenamiento local cuando el teléfono se queda sin espacio.',
+    cloudSyncWhyMultiDevice: 'Restaura tus sesiones, carpetas y glosarios en cualquier dispositivo al instante.',
+    cloudSyncWhySandbox: 'Solo solicitamos acceso a una carpeta privada de la app — no podemos ver ningún otro archivo de tu Google Drive.',
+    cloudSyncWhyAutoBackup: 'Hace una copia automática y silenciosa cada vez que consolidas una sesión.',
+    cloudSyncConnectBtn: 'Conectar Google Drive',
+    cloudSyncConnectedAs: 'Conectado como',
+    cloudSyncDisconnectBtn: 'Desconectar',
+    cloudSyncBackupBtn: 'Hacer copia ahora',
+    cloudSyncRestoreBtn: 'Restaurar desde Drive',
+    cloudSyncLastBackupNone: 'Aún no hay ninguna copia en tu Drive.',
+    cloudSyncAutoNote: 'También puedes hacer una copia manual en cualquier momento haciendo clic en el botón de arriba.',
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -101,6 +117,10 @@ const es: Translations = {
     restoreMsg: '¿Seguro que quieres restaurar el archivo de copia "{filename}"?',
     restoreWarningMsg: 'Esto sobreescribirá y eliminará todas tus sesiones, carpetas, ajustes y grabaciones actuales. Esta acción no se puede deshacer.',
     restoreBtn: 'Restaurar',
+    // Drive disconnect
+    confirmDriveDisconnect: '¿Desconectar Google Drive?',
+    driveDisconnectMsg: 'Tu copia de seguridad permanecerá guardada de forma segura en tu Google Drive. Puedes volver a conectarte en cualquier momento.',
+    driveDisconnectBtn: 'Desconectar',
     // Reset
     confirmReset: 'Confirmar restablecimiento',
     resetMsg: '¿Seguro que quieres restablecer la app?',
@@ -270,6 +290,14 @@ const es: Translations = {
     aiDetectedStyleOnly: '[IA] Estilo detectado: "{style}".',
     linkCopied: '¡Enlace copiado al portapapeles!',
     sessionImportedSuffix: ' (Importada)',
+    driveConnected: '¡Google Drive conectado!',
+    driveDisconnected: 'Google Drive desconectado.',
+    driveBackupSuccess: '¡Copia guardada en Google Drive!',
+    driveBackupFailed: 'Error al hacer la copia en Google Drive.',
+    driveRestoreSuccess: '¡Restauración desde Google Drive completada! Recargando...',
+    driveRestoreFailed: 'Error al restaurar desde Google Drive.',
+    driveNoBackup: 'No se encontró ninguna copia en tu Google Drive.',
+    driveConnectFailed: 'Error al conectar Google Drive. Por favor, inténtalo de nuevo.',
   },
 
   // ─── Language Names ──────────────────────────────────────────────────────────
@@ -323,8 +351,8 @@ const es: Translations = {
     demoTooltipNotes: '💡 En una sesión real, puedes añadir notas personales a tu sesión aquí.',
     hintConsolidation: '💡 ¡Zoutty está listo! Toca el botón de \'Generar informe\' (🪄) al final de tu sesión para consolidar tus grabaciones.',
     hintBackupTitle: '¡Mantén tus datos seguros!',
-    hintBackupMsg: 'Tus datos de Zoutty se almacenan localmente en este dispositivo. Te recomendamos ir a Configuración periódicamente para descargar una copia de seguridad de todas tus sesiones.',
-    hintBackupBtn: 'Entendido',
+    hintBackupMsg: 'Tus datos de Zoutty viven solo en este dispositivo. Conecta Google Drive en Ajustes para copias automáticas en la nube — o descarga una copia manual como alternativa.',
+    hintBackupBtn: 'Abrir Ajustes',
   },
 };
 
