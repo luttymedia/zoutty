@@ -308,8 +308,8 @@ const es: Translations = {
     demoReportDrill: '10 minutos de paso básico solo',
     demoReportHomework: 'Revisar el video de la combinación',
     // Demo Tooltips
-    demoTooltipConsolidate: '💡 En una sesión real, este botón genera un reporte estructurado usando IA a partir de tus clips.',
-    demoTooltipRecord: '💡 En una sesión real, toca aquí para grabar un audio en directo.',
+    demoTooltipConsolidate: '💡 En una sesión real, este botón genera un informe estructurado usando IA a partir de tus clips.',
+    demoTooltipRecord: '💡 En una sesión real, toca aquí para grabar un audio en directo. Recomendamos mantener los clips por debajo de los 90 segundos.',
     demoTooltipUpload: '💡 En una sesión real, toca aquí para subir un archivo de audio.',
     demoTooltipEdit: '💡 En una sesión real, puedes editar este texto directamente.',
     demoTooltipDelete: '💡 En una sesión real, esto elimina el elemento.',
@@ -317,12 +317,14 @@ const es: Translations = {
     demoTooltipExport: '💡 En una sesión real, puedes exportar esta sesión a un documento de Word.',
     demoTooltipGallery: '💡 En una sesión real, puedes adjuntar fotos y videos a la sesión aquí.',
     demoTooltipSettings: '💡 En una sesión real, puedes configurar el estilo de baile y el idioma de los audios aquí.',
-    demoTooltipGlossary: '💡 En una sesión real, esto detecta el estilo de baile automáticamente y aplica la terminología (glosario) correcta al reporte.',
+    demoTooltipGlossary: '💡 En una sesión real, esto detecta el estilo de baile automáticamente y aplica la terminología (glosario) correcta al informe.',
     demoTooltipReprocess: '💡 En una sesión real, esto vuelve a transcribir el audio y extrae el contenido original.',
     demoTooltipReorder: '💡 En una sesión real, puedes reordenar los elementos de esta sesión.',
     demoTooltipNotes: '💡 En una sesión real, puedes añadir notas personales a tu sesión aquí.',
-    hintConsolidation: '💡 ¡Zoutty está listo! Toca \'Generar reporte\' para consolidar tus grabaciones.',
-    hintBackup: '💡 ¡Mantén tus datos seguros! Ve a Configuración para descargar una copia de seguridad local.',
+    hintConsolidation: '💡 ¡Zoutty está listo! Toca el botón de \'Generar informe\' (🪄) al final de tu sesión para consolidar tus grabaciones.',
+    hintBackupTitle: '¡Mantén tus datos seguros!',
+    hintBackupMsg: 'Tus datos de Zoutty se almacenan localmente en este dispositivo. Te recomendamos ir a Configuración periódicamente para descargar una copia de seguridad de todas tus sesiones.',
+    hintBackupBtn: 'Entendido',
   },
 };
 

@@ -30,7 +30,9 @@ import {
   Music,
   Images,
   AlertTriangle,
-  LinkIcon
+  LinkIcon,
+  AudioLines,
+  Play
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -86,14 +88,48 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 };
 
 // --- Toast & Spinner Components ---
-function Toast({ message, isError, actionText, onAction, onClose }: { message: string, isError: boolean, actionText?: string, onAction?: () => void, onClose: () => void }) {
+function Toast({ message, isError, actionText, onAction, onClose, duration = 5000 }: { message: string, isError: boolean, actionText?: string, onAction?: () => void, onClose: () => void, duration?: number }) {
+  const [offset, setOffset] = useState(0);
+  const touchStart = useRef<number | null>(null);
+
   useEffect(() => {
-    const timer = setTimeout(onClose, 5000); // 5s for undo
+    const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [onClose, duration]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart.current === null) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - touchStart.current;
+    setOffset(diff);
+  };
+
+  const handleTouchEnd = () => {
+    if (Math.abs(offset) > 100) {
+      onClose();
+    } else {
+      setOffset(0);
+    }
+    touchStart.current = null;
+  };
+
+  const isDragging = touchStart.current !== null;
 
   return (
-    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] md:w-auto max-w-md md:max-w-lg px-5 py-3.5 rounded-2xl text-white font-medium text-sm z-[60] shadow-lg flex items-center gap-3 transition-all animate-in slide-in-from-bottom-5 ${isError ? 'bg-red-600' : 'bg-green-600'}`}>
+    <div 
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{ 
+        transform: `translateX(calc(-50% + ${offset}px))`, 
+        opacity: 1 - Math.abs(offset) / 200,
+        transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.2s ease-out'
+      }}
+      className={`fixed bottom-6 left-1/2 w-[90%] md:w-auto max-w-md md:max-w-lg px-5 py-3.5 rounded-2xl text-white font-medium text-sm z-[60] shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 ${isError ? 'bg-red-600' : 'bg-green-600'}`}>
       <span className="flex-1">{message}</span>
       {actionText && onAction && (
         <button onClick={() => { onAction(); onClose(); }} className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shrink-0">
@@ -163,12 +199,13 @@ export default function App() {
   const [audioEntries, setAudioEntries] = useState<Record<string, AudioEntry>>({});
   const [sessionMedia, setSessionMedia] = useState<SessionMedia[]>([]);
 
-  const [toastMessage, setToastMessage] = useState<{ text: string, isError: boolean, actionText?: string, onAction?: () => void } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string, isError: boolean, actionText?: string, onAction?: () => void, duration?: number } | null>(null);
   const [spinnerText, setSpinnerText] = useState<string | null>(null);
 
   const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
   const [reprocessModal, setReprocessModal] = useState<string | null>(null);
   const [showVersionModal, setShowVersionModal] = useState(false);
+  const [showBackupReminderModal, setShowBackupReminderModal] = useState(false);
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -429,7 +466,7 @@ export default function App() {
     checkImport();
   }, []);
 
-  const showToast = (text: string, isError = false, actionText?: string, onAction?: () => void) => setToastMessage({ text, isError, actionText, onAction });
+  const showToast = (text: string, isError = false, actionText?: string, onAction?: () => void, duration?: number) => setToastMessage({ text, isError, actionText, onAction, duration });
   const showSpinner = (text: string) => setSpinnerText(text);
   const hideSpinner = () => setSpinnerText(null);
 
@@ -594,8 +631,9 @@ export default function App() {
 
     setSessions(prev => {
       const next = [newSession, ...prev];
-      if (next.length === 5) {
-        setTimeout(() => showToast(t('onboarding.hintBackup'), false), 1000);
+      if (next.length >= 5 && !localStorage.getItem('hasShownBackupHint')) {
+        localStorage.setItem('hasShownBackupHint', 'true');
+        setTimeout(() => setShowBackupReminderModal(true), 1000);
       }
       return next;
     });
@@ -926,9 +964,10 @@ export default function App() {
     await db.saveAudioEntry(newEntry);
     setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
     const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === sessionId);
-    if (sessionEntries.length === 1) {
+    if (sessionEntries.length === 1 && !localStorage.getItem('hasShownConsolidationHint')) {
+      localStorage.setItem('hasShownConsolidationHint', 'true');
       // Show the hint instead of the default toast
-      showToast(t('onboarding.hintConsolidation'), false);
+      showToast(t('onboarding.hintConsolidation'), false, undefined, undefined, 10000);
     } else {
       showToast(filename ? t('toast.fileAdded', { filename }) : t('toast.audioAdded'));
     }
@@ -1188,7 +1227,7 @@ export default function App() {
   return (
     <div className="min-h-screen font-sans selection:bg-brand/30">
       {spinnerText && <Spinner text={spinnerText} />}
-      {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.onAction} onClose={() => setToastMessage(null)} />}
+      {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.onAction} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
 
       {/* Delete Modal */}
       {deleteModal && (
@@ -1263,6 +1302,31 @@ export default function App() {
             <div className="flex gap-3 justify-end items-center mt-6">
               <button onClick={() => setReprocessModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
               <button onClick={confirmReprocess} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px]">{t('modals.reprocessBtn')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backup Reminder Modal */}
+      {showBackupReminderModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 text-center">
+            <div className="w-16 h-16 bg-brand/20 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Download className="w-8 h-8 text-brand" />
+            </div>
+            <h3 className="text-xl font-bold">
+              {t('onboarding.hintBackupTitle')}
+            </h3>
+            <p className="text-white/70 leading-relaxed">
+              {t('onboarding.hintBackupMsg')}
+            </p>
+            <div className="flex justify-center mt-6">
+              <button 
+                onClick={() => setShowBackupReminderModal(false)} 
+                className="w-full px-5 py-3 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px]"
+              >
+                {t('onboarding.hintBackupBtn')}
+              </button>
             </div>
           </div>
         </div>
@@ -3784,7 +3848,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
             <div className="absolute inset-0 bg-brand/10 blur-xl rounded-full animate-pulse" style={{ animationDuration: '3s' }} />
             <div className="absolute inset-0 rounded-full border-2 border-dashed border-brand/30 animate-[spin_8s_linear_infinite]" />
             <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand/80 animate-spin" style={{ animationDuration: '3s' }} />
-            <Mic className="w-full h-full p-5 text-brand/60 drop-shadow-[0_0_10px_rgba(45,212,191,0.5)] relative z-10" />
+            <AudioLines className="w-full h-full p-5 text-brand/60 drop-shadow-[0_0_10px_rgba(45,212,191,0.5)] relative z-10" />
           </div>
           <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{t('session.emptySessionTitle')}</h3>
           <p className="text-sm text-white/40 max-w-md leading-relaxed">{t('session.emptySessionDesc')}</p>
@@ -3914,8 +3978,8 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
           ) : audio.sessionId === 'demo-session' ? (
             <div className="w-full h-10 flex items-center gap-3 bg-black/20 rounded-xl px-4 overflow-hidden relative cursor-not-allowed">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
-              <div className="w-4 h-4 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
-                <div className="w-1.5 h-1.5 bg-black rounded-full ml-[2px]"></div>
+              <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
+                <Play className="w-3 h-3 text-black fill-black ml-[1.5px]" />
               </div>
               <div className="flex-1 flex items-center justify-between gap-[3px] opacity-50 overflow-hidden px-2">
                 {[12, 24, 18, 10, 14, 22, 20, 12, 10, 16, 24, 18, 12, 14, 20, 24, 16, 10, 14, 22, 18, 12, 14, 20, 16, 10, 12, 22, 18, 14].map((h, i) => (

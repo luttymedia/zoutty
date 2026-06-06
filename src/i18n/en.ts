@@ -307,7 +307,7 @@ const en = {
     demoReportHomework: 'Review the combo video',
     // Demo Tooltips
     demoTooltipConsolidate: '💡 In a real session, this button generates a structured AI report from all your clips.',
-    demoTooltipRecord: '💡  In a real session, tap here to record a live audio.',
+    demoTooltipRecord: '💡 In a real session, tap here to record a live audio. We recommend keeping clips under 90 seconds.',
     demoTooltipUpload: '💡 In a real session, tap here to upload an audio file.',
     demoTooltipEdit: '💡 In a real session, you can edit this text directly.',
     demoTooltipDelete: '💡 In a real session, this deletes the item.',
@@ -319,8 +319,10 @@ const en = {
     demoTooltipReprocess: '💡 In a real session, this re-transcribes the audio and extracts the raw content again.',
     demoTooltipReorder: '💡 In a real session, you can reorder the items in this session.',
     demoTooltipNotes: '💡 In a real session, you can add personal written notes to your session here.',
-    hintConsolidation: '💡 Zoutty is ready! Tap \'Generate Report\' to consolidate your recordings.',
-    hintBackup: '💡 Keep your data safe! Go to Settings to download a local backup.',
+    hintConsolidation: '💡 Zoutty is ready! Tap the \'Generate Report\' (🪄) button at the end of your session to consolidate your recordings.',
+    hintBackupTitle: 'Keep your data safe!',
+    hintBackupMsg: 'Your Zoutty data is stored locally on this device. We strongly recommend going to Settings periodically to download a backup file of all your sessions.',
+    hintBackupBtn: 'Got it',
   },
 };
 
