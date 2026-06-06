@@ -1313,6 +1313,11 @@ export default function App() {
     seedDemoSession();
   };
 
+  const folders = groups.filter(g => g.id !== 'root');
+  const hasFolders = folders.length > 0;
+  const hasOrphanSessions = sessions.some(s => !s.groupId);
+  const showSessionsSection = selectedGroupId ? true : (!hasFolders || hasOrphanSessions);
+
   if (!hasCompletedOnboarding) {
     return (
       <WelcomeModal
@@ -1442,10 +1447,10 @@ export default function App() {
           />
           {/* Drawer Panel */}
           <div
-            className="fixed top-0 bottom-0 right-0 w-full sm:w-96 bg-[#1e1e22]/95 border-l border-white/10 backdrop-blur-md p-6 z-50 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-right duration-300"
+            className="fixed top-0 bottom-0 right-0 w-full sm:w-96 bg-[#1e1e22]/95 border-l border-white/10 backdrop-blur-md pt-6 pb-6 pl-6 pr-0 z-50 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-right duration-300"
           >
             {/* Drawer Header */}
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 pr-6">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Settings className="w-5 h-5 text-brand" />
                 {t('appSettings.drawerTitle')}
@@ -1459,7 +1464,7 @@ export default function App() {
             </div>
 
             {/* Drawer Content */}
-            <div className="flex-1 overflow-y-auto space-y-8 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-8 pr-6">
 
               {/* Language Section */}
               <div className="space-y-3">
@@ -1683,7 +1688,7 @@ export default function App() {
             </div>
 
             {/* Drawer Footer / Version Info */}
-            <div className="border-t border-white/5 pt-4 text-center mt-auto">
+            <div className="border-t border-white/5 pt-4 text-center mt-auto pr-6">
               <p className="text-[10px] text-white/30 tracking-widest font-mono">
                 ZOUTTY v{version}
               </p>
@@ -2377,103 +2382,105 @@ export default function App() {
               </div>
             )}
 
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
-                <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">
-                  {selectedGroupId ? t('home.sessionsInFolderHeading') : t('home.sessionsHeading')}
-                </h2>
+            {showSessionsSection && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">
+                    {selectedGroupId ? t('home.sessionsInFolderHeading') : t('home.sessionsHeading')}
+                  </h2>
 
-                {/* Sorting controls bar */}
-                <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
-                  <span className="hidden sm:inline">{t('home.sortBy')}</span>
-                  <div className="flex gap-3.5">
-                    <button
-                      onClick={() => handleSessionSortClick('date')}
-                      className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'date' ? 'text-brand font-bold' : ''}`}
-                    >
-                      {t('home.sortRecent')}
-                      {sessionSortBy === 'date' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
-                    </button>
-                    <button
-                      onClick={() => handleSessionSortClick('name')}
-                      className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'name' ? 'text-brand font-bold' : ''}`}
-                    >
-                      {t('home.sortName')}
-                      {sessionSortBy === 'name' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
-                    </button>
-                    <button
-                      onClick={() => handleSessionSortClick('created')}
-                      className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'created' ? 'text-brand font-bold' : ''}`}
-                    >
-                      {t('home.sortCreated')}
-                      {sessionSortBy === 'created' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
-                    </button>
+                  {/* Sorting controls bar */}
+                  <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
+                    <span className="hidden sm:inline">{t('home.sortBy')}</span>
+                    <div className="flex gap-3.5">
+                      <button
+                        onClick={() => handleSessionSortClick('date')}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'date' ? 'text-brand font-bold' : ''}`}
+                      >
+                        {t('home.sortRecent')}
+                        {sessionSortBy === 'date' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
+                      </button>
+                      <button
+                        onClick={() => handleSessionSortClick('name')}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'name' ? 'text-brand font-bold' : ''}`}
+                      >
+                        {t('home.sortName')}
+                        {sessionSortBy === 'name' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
+                      </button>
+                      <button
+                        onClick={() => handleSessionSortClick('created')}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'created' ? 'text-brand font-bold' : ''}`}
+                      >
+                        {t('home.sortCreated')}
+                        {sessionSortBy === 'created' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {sessions.filter(s => selectedGroupId ? s.groupId === selectedGroupId : !s.groupId).length === 0 ? (
-                !selectedGroupId ? (
-                  <div className="flex flex-col items-center justify-center p-12 sm:p-20 text-center animate-in fade-in zoom-in duration-500">
-                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-6">
-                      <div className="absolute inset-0 bg-brand/20 blur-3xl rounded-full animate-pulse" />
-                      <Sparkles className="w-full h-full text-brand/60 drop-shadow-[0_0_15px_rgba(45,212,191,0.5)] animate-pulse" style={{ animationDuration: '3s' }} />
+                {sessions.filter(s => selectedGroupId ? s.groupId === selectedGroupId : !s.groupId).length === 0 ? (
+                  !selectedGroupId ? (
+                    <div className="flex flex-col items-center justify-center p-12 sm:p-20 text-center animate-in fade-in zoom-in duration-500">
+                      <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-6">
+                        <div className="absolute inset-0 bg-brand/20 blur-3xl rounded-full animate-pulse" />
+                        <Sparkles className="w-full h-full text-brand/60 drop-shadow-[0_0_15px_rgba(45,212,191,0.5)] animate-pulse" style={{ animationDuration: '3s' }} />
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 tracking-tight">{t('home.emptyHomeTitle')}</h3>
+                      <p className="text-sm sm:text-base text-white/50 max-w-sm leading-relaxed">{t('home.emptyHomeDesc')}</p>
                     </div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 tracking-tight">{t('home.emptyHomeTitle')}</h3>
-                    <p className="text-sm sm:text-base text-white/50 max-w-sm leading-relaxed">{t('home.emptyHomeDesc')}</p>
-                  </div>
+                  ) : (
+                    <div className="glass p-12 text-center text-white/20">
+                      <Folder className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                      <p>{t('home.noSessionsInFolder')}</p>
+                    </div>
+                  )
                 ) : (
-                  <div className="glass p-12 text-center text-white/20">
-                    <Folder className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    <p>{t('home.noSessionsInFolder')}</p>
+                  <div className="grid grid-cols-1 gap-4">
+                    {sortSessions(
+                      sessions.filter(s => selectedGroupId ? s.groupId === selectedGroupId : !s.groupId)
+                    ).map(session => (
+                      <div
+                        key={session.id}
+                        onClick={() => {
+                          navigateTo('detail', session.id, selectedGroupId);
+                        }}
+                        className={`glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer rounded-2xl border ${session.isDemo && sessions.length === 1 ? 'border-brand/50 shadow-[0_0_20px_rgba(45,212,191,0.2)] animate-pulse hover:border-brand/70' : 'border-white/5 hover:border-brand/25'}`}
+                      >
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
+                          <FileAudio className="w-6 h-6 text-brand" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-semibold truncate text-white">{session.title}</h3>
+                          <p className="text-xs text-white/40 mt-1 truncate">{session.subtitle || t('home.sessionDefaultSubtitle')}</p>
+                        </div>
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMoveSessionModal({ sessionId: session.id, currentGroupId: session.groupId });
+                            }}
+                            className="p-3 bg-white/5 text-white/60 hover:text-brand hover:bg-white/10 rounded-xl transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
+                            title={t('home.moveToFolder')}
+                          >
+                            <Folder className="w-5 h-5 shrink-0" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              requestDeleteSession(session.id, session.title);
+                            }}
+                            className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
+                            title={t('home.deleteSession')}
+                          >
+                            <Trash2 className="w-5 h-5 shrink-0" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {sortSessions(
-                    sessions.filter(s => selectedGroupId ? s.groupId === selectedGroupId : !s.groupId)
-                  ).map(session => (
-                    <div
-                      key={session.id}
-                      onClick={() => {
-                        navigateTo('detail', session.id, selectedGroupId);
-                      }}
-                      className={`glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer rounded-2xl border ${session.isDemo && sessions.length === 1 ? 'border-brand/50 shadow-[0_0_20px_rgba(45,212,191,0.2)] animate-pulse hover:border-brand/70' : 'border-white/5 hover:border-brand/25'}`}
-                    >
-                      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
-                        <FileAudio className="w-6 h-6 text-brand" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold truncate text-white">{session.title}</h3>
-                        <p className="text-xs text-white/40 mt-1 truncate">{session.subtitle || t('home.sessionDefaultSubtitle')}</p>
-                      </div>
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMoveSessionModal({ sessionId: session.id, currentGroupId: session.groupId });
-                          }}
-                          className="p-3 bg-white/5 text-white/60 hover:text-brand hover:bg-white/10 rounded-xl transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                          title={t('home.moveToFolder')}
-                        >
-                          <Folder className="w-5 h-5 shrink-0" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            requestDeleteSession(session.id, session.title);
-                          }}
-                          className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                          title={t('home.deleteSession')}
-                        >
-                          <Trash2 className="w-5 h-5 shrink-0" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         ) : selectedSession && (
           <SessionDetail
