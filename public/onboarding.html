@@ -9,6 +9,8 @@
   <title>Welcome to Zoutty</title>
   <link rel="apple-touch-icon" href="/icons/192x192.png">
   <meta name="theme-color" content="#2DD4BF">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <script src="/registerSW.js"></script>
 
   <!-- Google Font — exactly what the app uses -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1167,6 +1169,35 @@
       fill: #000;
     }
 
+    .btn-install.disabled-look {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: rgba(255, 255, 255, 0.3) !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+    }
+    .btn-install.disabled-look::after {
+      display: none !important;
+    }
+    .btn-install.disabled-look svg {
+      fill: rgba(255, 255, 255, 0.3) !important;
+      stroke: rgba(255, 255, 255, 0.3) !important;
+    }
+    .btn-install.loading-look {
+      opacity: 0.6 !important;
+      cursor: wait !important;
+    }
+    .btn-install.loading-look::after {
+      display: none !important;
+    }
+    .install-platform-hint {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 16px;
+      text-align: center;
+      max-width: 320px;
+      line-height: 1.4;
+    }
+
     .btn-open-web {
       margin-top: 16px;
       font-family: inherit;
@@ -1995,6 +2026,7 @@
       </svg>
       <span id="btn-install-text">Install Zoutty</span>
     </button>
+    <p class="install-platform-hint" id="install-platform-hint"></p>
     <button id="link-back-to-tour" class="simple-link" onclick="backToTourAnimated()">Back to the tour</button>
   </div>
 
@@ -2038,10 +2070,61 @@
   <script>
     /* ─── PWA Install intercept ─── */
     let deferredPrompt = null;
+
+    // Platform detection flags
+    const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const _isAndroid = /Android/i.test(navigator.userAgent);
+    const _isMobile = _isIOS || _isAndroid || /Mobi|Tablet|iPad|iPhone|Android/i.test(navigator.userAgent);
+    const _isIOSSafari = _isIOS && /Safari/i.test(navigator.userAgent) && !/CriOS/i.test(navigator.userAgent) && !/FxiOS/i.test(navigator.userAgent) && !/OPiOS/i.test(navigator.userAgent) && !/EdgiOS/i.test(navigator.userAgent);
+    const _isIOSNonSafari = _isIOS && !_isIOSSafari;
+    const _isDesktop = !_isMobile;
+
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPrompt = e;
+      updateInstallButton();
     });
+
+    function updateInstallButton() {
+      const btn = document.getElementById('install-btn');
+      const btnText = document.getElementById('btn-install-text');
+      const hintText = document.getElementById('install-platform-hint');
+      if (!btn || !btnText || !hintText) return;
+
+      const t = translations[currentLang];
+
+      // Reset styles and state
+      btn.classList.remove('disabled-look', 'loading-look');
+      btn.disabled = false;
+      hintText.innerHTML = '';
+
+      if (_isDesktop) {
+        btnText.textContent = t.btnInstallDesktop || "Use your phone";
+        btn.classList.add('disabled-look');
+        btn.disabled = true;
+        hintText.textContent = t.btnInstallDesktopHint || "Install Zoutty on your mobile device for the best recording experience.";
+      } else if (_isIOSNonSafari) {
+        btnText.textContent = t.btnInstallSafari || "Open in Safari";
+        btn.classList.add('disabled-look');
+        btn.disabled = true;
+        hintText.textContent = t.btnInstallSafariHint || "To install Zoutty, open this page in Safari.";
+      } else if (_isIOSSafari) {
+        btnText.textContent = t.btnInstallText || "Install Zoutty";
+        hintText.innerHTML = t.btnInstallIOSHint || "Add Zoutty to your Home Screen from the Safari share menu.";
+      } else if (_isAndroid) {
+        btnText.textContent = t.btnInstallText || "Install Zoutty";
+        if (deferredPrompt) {
+          // Ready to prompt
+          hintText.innerHTML = '';
+        } else {
+          // Loading prompt
+          btn.classList.add('loading-look');
+          hintText.textContent = t.btnInstallPreparingHint || "Preparing installation...";
+        }
+      } else {
+        btnText.textContent = t.btnInstallText || "Install Zoutty";
+      }
+    }
 
     /* ─── Tour state ─── */
     const TOTAL_STEPS = 7;
@@ -2129,7 +2212,13 @@
         lblCloudSyncRestore: "Restore from Drive",
         lblCloudSyncAutoNote: "You can also back up manually at any time.",
         skipTour: "Skip the tour",
-        backToTour: "Back to the tour"
+        backToTour: "Back to the tour",
+        btnInstallDesktop: "Use your phone",
+        btnInstallDesktopHint: "Install Zoutty on your mobile device for the best recording experience.",
+        btnInstallSafari: "Open in Safari",
+        btnInstallSafariHint: "To install Zoutty, open this page in Safari.",
+        btnInstallIOSHint: "Add Zoutty to your Home Screen from the Safari share menu.",
+        btnInstallPreparingHint: "Preparing installation..."
       },
       es: {
         welcomeTitleSub: "Compañero de Clases Privadas",
@@ -2194,7 +2283,13 @@
         lblLanguageSub: "Idioma de la interfaz y transcripción",
         lblLanguageVal: "Español",
         skipTour: "Saltar tour",
-        backToTour: "Volver al tour"
+        backToTour: "Volver al tour",
+        btnInstallDesktop: "Usa tu teléfono",
+        btnInstallDesktopHint: "Instala Zoutty en tu dispositivo móvil para la mejor experiencia de grabación.",
+        btnInstallSafari: "Abrir en Safari",
+        btnInstallSafariHint: "Para instalar Zoutty, abre esta página en Safari.",
+        btnInstallIOSHint: "Agrega Zoutty a tu pantalla de inicio desde el menú compartir de Safari.",
+        btnInstallPreparingHint: "Preparando instalación..."
       }
     };
 
@@ -2271,7 +2366,7 @@
       // CTA Screen
       document.getElementById('cta-title').textContent = t.ctaTitle;
       document.getElementById('cta-sub').textContent = t.ctaSub;
-      document.getElementById('btn-install-text').textContent = t.btnInstallText;
+      updateInstallButton();
       document.getElementById('link-back-to-tour').textContent = t.backToTour;
 
       // iOS Guide
@@ -2929,6 +3024,7 @@
     /* ─── Finish tour ─── */
     function finishTour() {
       hideTooltip();
+      updateInstallButton();
       const cta = document.getElementById('cta-screen');
       cta.classList.add('active');
 
@@ -2939,17 +3035,20 @@
 
     /* ─── PWA install ─── */
     function triggerInstall() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(r => {
-          if (r.outcome === 'accepted') deferredPrompt = null;
-        });
-      } else {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS) {
-          document.getElementById('ios-guide').classList.add('active');
-        } else {
-          window.location.href = '/';
+      if (_isDesktop || _isIOSNonSafari) {
+        return;
+      }
+      if (_isIOSSafari) {
+        document.getElementById('ios-guide').classList.add('active');
+      } else if (_isAndroid) {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(r => {
+            if (r.outcome === 'accepted') {
+              deferredPrompt = null;
+              updateInstallButton();
+            }
+          });
         }
       }
     }
