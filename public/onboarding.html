@@ -2068,8 +2068,14 @@
      TOUR LOGIC
 ══════════════════════════════════════════════════════════ -->
   <script>
+    // Safeguard: If running inside the installed PWA (standalone mode), redirect to the main app homepage immediately.
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      window.location.href = '/';
+    }
+
     /* ─── PWA Install intercept ─── */
     let deferredPrompt = null;
+    let installState = 'idle'; // 'idle', 'ready', 'prompting', 'accepted', 'dismissed', 'installed'
 
     // Platform detection flags
     const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -2079,9 +2085,24 @@
     const _isIOSNonSafari = _isIOS && !_isIOSSafari;
     const _isDesktop = !_isMobile;
 
+    // Detect if already running as standalone
+    const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (_isStandalone) {
+      installState = 'installed';
+    }
+
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPrompt = e;
+      if (installState === 'idle') {
+        installState = 'ready';
+      }
+      updateInstallButton();
+    });
+
+    window.addEventListener('appinstalled', e => {
+      deferredPrompt = null;
+      installState = 'installed';
       updateInstallButton();
     });
 
@@ -2098,6 +2119,14 @@
       btn.disabled = false;
       hintText.innerHTML = '';
 
+      if (installState === 'installed') {
+        btnText.textContent = t.btnInstalled || "Installed";
+        btn.classList.add('disabled-look');
+        btn.disabled = true;
+        hintText.textContent = t.btnInstalledHint || "Zoutty is installed and ready on your home screen.";
+        return;
+      }
+
       if (_isDesktop) {
         btnText.textContent = t.btnInstallDesktop || "Use your phone";
         btn.classList.add('disabled-look');
@@ -2112,12 +2141,20 @@
         btnText.textContent = t.btnInstallText || "Install Zoutty";
         hintText.innerHTML = t.btnInstallIOSHint || "Add Zoutty to your Home Screen from the Safari share menu.";
       } else if (_isAndroid) {
-        btnText.textContent = t.btnInstallText || "Install Zoutty";
-        if (deferredPrompt) {
-          // Ready to prompt
+        if (installState === 'accepted') {
+          btnText.textContent = t.btnInstallInstalling || "Installing...";
+          btn.classList.add('loading-look');
+          hintText.textContent = t.btnInstallInstallingHint || "Adding Zoutty to your device...";
+        } else if (installState === 'dismissed') {
+          btnText.textContent = t.btnInstallText || "Install Zoutty";
+          btn.classList.add('disabled-look');
+          btn.disabled = true;
+          hintText.textContent = t.btnInstallDismissedHint || "Installation cancelled. Please refresh the page to try again.";
+        } else if (installState === 'ready') {
+          btnText.textContent = t.btnInstallText || "Install Zoutty";
           hintText.innerHTML = '';
-        } else {
-          // Loading prompt
+        } else { // 'idle' or 'prompting'
+          btnText.textContent = t.btnInstallText || "Install Zoutty";
           btn.classList.add('loading-look');
           hintText.textContent = t.btnInstallPreparingHint || "Preparing installation...";
         }
@@ -2218,7 +2255,13 @@
         btnInstallSafari: "Open in Safari",
         btnInstallSafariHint: "To install Zoutty, open this page in Safari.",
         btnInstallIOSHint: "Add Zoutty to your Home Screen from the Safari share menu.",
-        btnInstallPreparingHint: "Preparing installation..."
+        btnInstallPreparingHint: "Preparing installation...",
+        btnInstalled: "Installed",
+        btnInstalledHint: "Zoutty is installed and ready on your home screen.",
+        btnInstallInstalling: "Installing...",
+        btnInstallInstallingHint: "Adding Zoutty to your device...",
+        btnInstallDismissed: "Dismissed",
+        btnInstallDismissedHint: "Installation cancelled. Please refresh the page to try again."
       },
       es: {
         welcomeTitleSub: "Compañero de Clases Privadas",
@@ -2289,7 +2332,13 @@
         btnInstallSafari: "Abrir en Safari",
         btnInstallSafariHint: "Para instalar Zoutty, abre esta página en Safari.",
         btnInstallIOSHint: "Agrega Zoutty a tu pantalla de inicio desde el menú compartir de Safari.",
-        btnInstallPreparingHint: "Preparando instalación..."
+        btnInstallPreparingHint: "Preparando instalación...",
+        btnInstalled: "Instalado",
+        btnInstalledHint: "Zoutty ya está instalado en tu pantalla de inicio.",
+        btnInstallInstalling: "Instalando...",
+        btnInstallInstallingHint: "Añadiendo Zoutty a tu dispositivo...",
+        btnInstallDismissed: "Cancelado",
+        btnInstallDismissedHint: "Instalación cancelada. Por favor, recarga la página para intentar de nuevo."
       }
     };
 
@@ -3035,19 +3084,24 @@
 
     /* ─── PWA install ─── */
     function triggerInstall() {
-      if (_isDesktop || _isIOSNonSafari) {
+      if (_isDesktop || _isIOSNonSafari || installState === 'installed' || installState === 'dismissed') {
         return;
       }
       if (_isIOSSafari) {
         document.getElementById('ios-guide').classList.add('active');
       } else if (_isAndroid) {
         if (deferredPrompt) {
+          installState = 'prompting';
+          updateInstallButton();
           deferredPrompt.prompt();
           deferredPrompt.userChoice.then(r => {
             if (r.outcome === 'accepted') {
               deferredPrompt = null;
-              updateInstallButton();
+              installState = 'accepted';
+            } else {
+              installState = 'dismissed';
             }
+            updateInstallButton();
           });
         }
       }
