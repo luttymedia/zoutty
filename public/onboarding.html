@@ -1519,6 +1519,90 @@
         width: calc(100vw - 32px);
       }
     }
+
+    /* --- Slide Animations for Quick Onboarding Skip/Back --- */
+    .slide-out-left-fast {
+      animation: slideOutLeftFast 0.15s forwards ease-in-out;
+    }
+
+    .slide-in-right-fast {
+      animation: slideInRightFast 0.15s forwards ease-in-out;
+    }
+
+    .slide-out-right-fast {
+      animation: slideOutRightFast 0.15s forwards ease-in-out;
+    }
+
+    .slide-in-left-fast {
+      animation: slideInLeftFast 0.15s forwards ease-in-out;
+    }
+
+    @keyframes slideOutLeftFast {
+      0% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+    }
+
+    @keyframes slideInRightFast {
+      0% {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOutRightFast {
+      0% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+
+    @keyframes slideInLeftFast {
+      0% {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .simple-link {
+      background: none;
+      border: none;
+      color: #fff;
+      opacity: 0.5;
+      font-size: 14px;
+      font-weight: 400;
+      /* text-decoration: underline; */
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 16px;
+      transition: opacity 0.2s;
+      display: inline-block;
+    }
+
+    .simple-link:hover {
+      opacity: 0.85;
+    }
   </style>
 </head>
 
@@ -1571,6 +1655,7 @@
           stroke-linejoin="round" fill="none" />
       </svg>
     </button>
+    <button id="link-skip-tour" class="simple-link" onclick="skipTourAnimated()">Skip the tour</button>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
@@ -1910,6 +1995,7 @@
       </svg>
       <span id="btn-install-text">Install Zoutty</span>
     </button>
+    <button id="link-back-to-tour" class="simple-link" onclick="backToTourAnimated()">Back to the tour</button>
   </div>
 
   <!-- iOS install guide -->
@@ -2041,7 +2127,9 @@
         lblCloudSyncDisconnect: "Disconnect",
         lblCloudSyncBackupNow: "Backup Now",
         lblCloudSyncRestore: "Restore from Drive",
-        lblCloudSyncAutoNote: "You can also back up manually at any time."
+        lblCloudSyncAutoNote: "You can also back up manually at any time.",
+        skipTour: "Skip the tour",
+        backToTour: "Back to the tour"
       },
       es: {
         welcomeTitleSub: "Compañero de Clases Privadas",
@@ -2104,7 +2192,9 @@
         lblCloudStatusConnected: "Conectado",
         lblLanguage: "Idioma",
         lblLanguageSub: "Idioma de la interfaz y transcripción",
-        lblLanguageVal: "Español"
+        lblLanguageVal: "Español",
+        skipTour: "Saltar tour",
+        backToTour: "Volver al tour"
       }
     };
 
@@ -2176,11 +2266,13 @@
       document.getElementById('welcome-logo-sub').textContent = t.welcomeTitleSub;
       document.getElementById('welcome-bubble').innerHTML = t.welcomeIntro;
       document.getElementById('btn-start-text').textContent = t.btnStartText;
+      document.getElementById('link-skip-tour').textContent = t.skipTour;
 
       // CTA Screen
       document.getElementById('cta-title').textContent = t.ctaTitle;
       document.getElementById('cta-sub').textContent = t.ctaSub;
       document.getElementById('btn-install-text').textContent = t.btnInstallText;
+      document.getElementById('link-back-to-tour').textContent = t.backToTour;
 
       // iOS Guide
       document.getElementById('ios-title-text').textContent = t.iosTitle;
@@ -2910,6 +3002,213 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
       });
+    }
+
+    /* ─── Animated skip and back controls ─── */
+    function skipTourAnimated() {
+      hideTooltip();
+
+      // Setup final tour mock data immediately
+      folderCreated = true;
+      sessionCreated = true;
+      audioAdded = true;
+      reportShown = true;
+      cloudConnected = true;
+
+      ensureFolderCardExists();
+      ensureSessionCardExists();
+
+      // Add audio clip if not exists
+      if (!document.querySelector('.audio-card')) {
+        const clips = document.getElementById('audio-clips-list');
+        const card = document.createElement('div');
+        card.className = 'audio-card';
+        const title = translations[currentLang].feedbackClipTitle;
+        const dateStr = translations[currentLang].feedbackClipDate(12);
+        const transcript = translations[currentLang].feedbackTranscript;
+        card.innerHTML = `
+          <div class="audio-card-header">
+            <div class="audio-icon-box"><svg viewBox="0 0 24 24" style="fill:var(--brand);width:18px;height:18px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="var(--brand)" stroke-width="2" fill="none"/></svg></div>
+            <div class="audio-meta">
+              <div class="audio-filename">${title}</div>
+              <div class="audio-date">${dateStr}</div>
+            </div>
+          </div>
+          <div class="transcript-box">
+            "${transcript}"
+          </div>
+        `;
+        clips.appendChild(card);
+      }
+
+      // Add video info if not exists
+      const audList = document.getElementById('audio-clips-list');
+      if (audList && !Array.from(audList.childNodes).some(n => n.textContent && n.textContent.includes('🎬'))) {
+        const info = document.createElement('div');
+        info.style.cssText = 'margin-top:12px;font-size:12px;color:rgba(168,85,247,0.8);font-weight:600;';
+        info.textContent = translations[currentLang].step3_attached;
+        audList.appendChild(info);
+      }
+
+      // Show AI report
+      const reportContainer = document.getElementById('ai-report-container');
+      if (reportContainer) {
+        reportContainer.style.display = 'block';
+        renderAiReport();
+      }
+
+      // Render cloud connected content
+      renderCloudSyncContent();
+
+      // Transition Sequence
+      // 1. Welcome out, Home in
+      const welcome = document.getElementById('welcome-overlay');
+      welcome.className = 'slide-out-left-fast';
+
+      showScreen('screen-home');
+      document.getElementById('screen-home').className = 'screen active slide-in-right-fast';
+
+      // 2. Home -> Folder (t = 200ms)
+      setTimeout(() => {
+        document.getElementById('screen-home').className = 'screen slide-out-left-fast';
+        showScreen('screen-folder');
+        document.getElementById('screen-folder').className = 'screen active slide-in-right-fast';
+      }, 200);
+
+      // 3. Folder -> Detail (t = 400ms)
+      setTimeout(() => {
+        document.getElementById('screen-folder').className = 'screen slide-out-left-fast';
+        showScreen('screen-detail');
+        document.getElementById('screen-detail').className = 'screen active slide-in-right-fast';
+      }, 400);
+
+      // 4. Detail -> Settings (t = 600ms)
+      setTimeout(() => {
+        document.getElementById('screen-detail').className = 'screen slide-out-left-fast';
+        showScreen('screen-settings');
+        document.getElementById('screen-settings').className = 'screen active slide-in-right-fast';
+      }, 600);
+
+      // 5. Settings -> CTA Screen (t = 800ms)
+      setTimeout(() => {
+        document.getElementById('screen-settings').className = 'screen slide-out-left-fast';
+
+        const cta = document.getElementById('cta-screen');
+        cta.style.display = 'flex';
+        cta.className = 'slide-in-right-fast';
+
+        // Make sure welcome overlay is hidden
+        welcome.style.display = 'none';
+
+        finishTour();
+      }, 800);
+
+      // Clean up animation classes (t = 1000ms)
+      setTimeout(() => {
+        document.getElementById('welcome-overlay').className = '';
+        const cta = document.getElementById('cta-screen');
+        cta.className = 'active';
+
+        document.querySelectorAll('.screen').forEach(s => {
+          s.className = s.classList.contains('active') ? 'screen active' : 'screen';
+        });
+      }, 1000);
+    }
+
+    function backToTourAnimated() {
+      hideTooltip();
+
+      // Transition Sequence back to welcome
+      // 1. CTA out, Settings in
+      const cta = document.getElementById('cta-screen');
+      cta.className = 'slide-out-right-fast';
+
+      showScreen('screen-settings');
+      document.getElementById('screen-settings').className = 'screen active slide-in-left-fast';
+
+      // 2. Settings -> Detail (t = 200ms)
+      setTimeout(() => {
+        document.getElementById('screen-settings').className = 'screen slide-out-right-fast';
+        showScreen('screen-detail');
+        document.getElementById('screen-detail').className = 'screen active slide-in-left-fast';
+      }, 200);
+
+      // 3. Detail -> Folder (t = 400ms)
+      setTimeout(() => {
+        document.getElementById('screen-detail').className = 'screen slide-out-right-fast';
+        showScreen('screen-folder');
+        document.getElementById('screen-folder').className = 'screen active slide-in-left-fast';
+      }, 400);
+
+      // 4. Folder -> Home (t = 600ms)
+      setTimeout(() => {
+        document.getElementById('screen-folder').className = 'screen slide-out-right-fast';
+        showScreen('screen-home');
+        document.getElementById('screen-home').className = 'screen active slide-in-left-fast';
+      }, 600);
+
+      // 5. Home -> Welcome (t = 800ms)
+      setTimeout(() => {
+        document.getElementById('screen-home').className = 'screen slide-out-right-fast';
+
+        const welcome = document.getElementById('welcome-overlay');
+        welcome.style.display = 'flex';
+        welcome.className = 'slide-in-left-fast';
+
+        cta.style.display = 'none';
+        cta.className = '';
+      }, 800);
+
+      // Clean up & Reset data (t = 1000ms)
+      setTimeout(() => {
+        document.getElementById('welcome-overlay').className = '';
+
+        document.querySelectorAll('.screen').forEach(s => {
+          s.className = s.classList.contains('active') ? 'screen active' : 'screen';
+        });
+
+        resetTourData();
+        currentStepIndex = 0;
+      }, 1000);
+    }
+
+    function resetTourData() {
+      folderCreated = false;
+      sessionCreated = false;
+      audioAdded = false;
+      reportShown = false;
+      cloudConnected = false;
+      recordingPhase = 'idle';
+      isRecording = false;
+      if (recordingInterval) clearInterval(recordingInterval);
+
+      // Clear lists
+      document.getElementById('folders-list').innerHTML = '';
+      document.getElementById('folder-sessions-list').innerHTML = '';
+      document.getElementById('audio-clips-list').innerHTML = '';
+
+      // Show no-content messages
+      document.getElementById('no-folders').style.display = 'block';
+      const noSess = document.getElementById('no-folder-sessions');
+      if (noSess) noSess.style.display = 'block';
+
+      // Hide AI report
+      document.getElementById('ai-report-container').style.display = 'none';
+
+      // Reset Cloud Sync container styling and contents
+      const cloudContainer = document.getElementById('cloud-sync-container');
+      if (cloudContainer) {
+        cloudContainer.style.position = '';
+        cloudContainer.style.zIndex = '';
+      }
+      renderCloudSyncContent();
+
+      // Reset gallery button styling
+      const galleryBtn = document.getElementById('gallery-btn');
+      if (galleryBtn) {
+        galleryBtn.style.background = '';
+        galleryBtn.style.borderColor = '';
+      }
     }
 
     // Initialize the page in English
