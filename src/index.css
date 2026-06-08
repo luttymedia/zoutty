@@ -130,6 +130,9 @@ input::placeholder {
   .print-hide-icon {
     display: none !important;
   }
+  body.no-print-transcripts .print-transcript {
+    display: none !important;
+  }
 }
 
 

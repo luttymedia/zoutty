@@ -109,6 +109,8 @@ const es: Translations = {
     // Export Session
     confirmExport: 'Exportar Sesión',
     exportMsg: 'Estás a punto de descargar esta sesión (incluyendo todas las transcripciones, informes de resumen y tareas).',
+    exportIncludeTranscriptsLabel: 'Incluir Datos',
+    exportIncludeTranscripts: 'Incluir Transcripciones de Audio',
     exportFormatLabel: 'Formato',
     exportFormatDocx: 'Documento de Word (.docx)',
     exportFormatPdf: 'Documento PDF (.pdf)',

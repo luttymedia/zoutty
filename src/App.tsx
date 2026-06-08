@@ -242,6 +242,7 @@ export default function App() {
   const [deleteFolderAlsoSessions, setDeleteFolderAlsoSessions] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [exportFormat, setExportFormat] = useState<'docx' | 'pdf'>('docx');
+  const [exportIncludeAudioTranscripts, setExportIncludeAudioTranscripts] = useState(true);
 
   const [shareModal, setShareModal] = useState<{
     sessionId: string;
@@ -1364,6 +1365,24 @@ export default function App() {
             </p>
             
             <div className="space-y-3">
+              <label className="text-xs font-bold text-white/40 uppercase tracking-wider">{t('modals.exportIncludeTranscriptsLabel', 'Include Data')}</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={exportIncludeAudioTranscripts}
+                  onClick={() => setExportIncludeAudioTranscripts(!exportIncludeAudioTranscripts)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${exportIncludeAudioTranscripts ? 'bg-brand' : 'bg-white/20'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${exportIncludeAudioTranscripts ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span className="text-sm text-white/80 font-medium">
+                  {t('modals.exportIncludeTranscripts', 'Include Audio Transcripts')}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
               <label className="text-xs font-bold text-white/40 uppercase tracking-wider">{t('modals.exportFormatLabel')}</label>
               <div className="flex flex-col gap-2">
                 <button
@@ -1407,6 +1426,9 @@ export default function App() {
                 onClick={async () => {
                   setShowExportConfirm(false);
                   if (exportFormat === 'pdf') {
+                    if (!exportIncludeAudioTranscripts) {
+                      document.body.classList.add('no-print-transcripts');
+                    }
                     const dateStr = format(new Date(selectedSession.date), "yyyy-MM-dd");
                     let fileName = `Zoutty_${dateStr}`;
                     if (selectedSession.title) {
@@ -1418,13 +1440,16 @@ export default function App() {
                     setTimeout(() => {
                       window.print();
                       document.title = originalTitle;
+                      if (!exportIncludeAudioTranscripts) {
+                        document.body.classList.remove('no-print-transcripts');
+                      }
                     }, 100);
                   } else {
                     showSpinner(t('toast.generatingDoc'));
                     try {
                       const report = await db.getSessionFinalReport(selectedSession.id);
                       const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp);
-                      await exportDocx(selectedSession, sessionEntries, report, t);
+                      await exportDocx(selectedSession, sessionEntries, report, t, { includeTranscripts: exportIncludeAudioTranscripts });
                       showToast(t('toast.docExported'));
                     } catch (err) {
                       console.error(err);
@@ -3781,7 +3806,7 @@ function TranscriptBlock({ text, onChange, onIntercept }: { text: string, onChan
   const [open, setOpen] = useState(false);
   if (!text) return null;
   return (
-    <div className="border border-white/10 rounded-2xl overflow-hidden">
+    <div className="border border-white/10 rounded-2xl overflow-hidden print-transcript">
       <button onClick={() => setOpen(!open)} className="w-full px-5 py-3 cursor-pointer flex items-center gap-3 bg-white/5 hover:bg-white/8 transition-colors text-left print-show-flex">
         <FileAudio className="w-4 h-4 text-white/40 shrink-0" />
         <span className="font-bold text-white/50 text-sm">{t('session.viewTranscript')}</span>
@@ -4314,22 +4339,24 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
           ) : (
             <>
               {Object.keys(legacyContent).length > 0 ? (
-                <StructuredBullets contentObj={legacyContent} onIntercept={interceptProp} onChange={(newObj) => {
-                  if ((audio as any).processedData) {
-                    onUpdateContent({ processedData: { ...(audio as any).processedData, ...newObj } } as any);
-                  } else if (audio.transcript && typeof legacyContent === 'object') {
-                    try {
-                      onUpdateContent({ transcript: JSON.stringify({ ...JSON.parse(audio.transcript), ...newObj }) });
-                    } catch (e) { }
-                  } else {
-                    onUpdateContent(newObj as any);
-                  }
-                }} />
+                <div className="print-transcript">
+                  <StructuredBullets contentObj={legacyContent} onIntercept={interceptProp} onChange={(newObj) => {
+                    if ((audio as any).processedData) {
+                      onUpdateContent({ processedData: { ...(audio as any).processedData, ...newObj } } as any);
+                    } else if (audio.transcript && typeof legacyContent === 'object') {
+                      try {
+                        onUpdateContent({ transcript: JSON.stringify({ ...JSON.parse(audio.transcript), ...newObj }) });
+                      } catch (e) { }
+                    } else {
+                      onUpdateContent(newObj as any);
+                    }
+                  }} />
+                </div>
               ) : isProcessing ? (
                 <p className="text-white/40 italic text-sm">{t('session.waitingForContent')}</p>
               ) : null}
               {audio.transcript && !hasNewShape && (
-                <div className="mt-4 pt-4 border-t border-white/5 text-sm">
+                <div className="mt-4 pt-4 border-t border-white/5 text-sm print-transcript">
                   <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">{t('session.rawTranscript')}</span>
                   <EditableText value={audio.transcript} onChange={(t) => onUpdateContent({ transcript: t })} multiline className="text-white/60 italic leading-relaxed whitespace-pre-wrap block" onIntercept={interceptProp} />
                 </div>

@@ -107,6 +107,8 @@ const en = {
     // Export Session
     confirmExport: 'Export Session',
     exportMsg: 'You are about to download this session (including all transcriptions, summary reports, and homework).',
+    exportIncludeTranscriptsLabel: 'Include Data',
+    exportIncludeTranscripts: 'Include Audio Transcripts',
     exportFormatLabel: 'Format',
     exportFormatDocx: 'Word Document (.docx)',
     exportFormatPdf: 'PDF Document (.pdf)',

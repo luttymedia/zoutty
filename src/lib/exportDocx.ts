@@ -4,7 +4,11 @@ import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import { Session, AudioEntry } from '../types';
 
-export const exportDocx = async (session: Session, entries: AudioEntry[], reportDetails: any, t?: (key: string, vars?: any) => string) => {
+export interface ExportOptions {
+    includeTranscripts?: boolean;
+}
+
+export const exportDocx = async (session: Session, entries: AudioEntry[], reportDetails: any, t?: (key: string, vars?: any) => string, options?: ExportOptions) => {
     let logoBytes: Uint8Array | null = null;
     try {
         const binaryString = window.atob(ZOUTTY_LOGO_B64);
@@ -202,27 +206,29 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
 
 
         // Transcripts in Consolidated Report
-        let consolidatedTranscripts = null;
-        if (r.transcripts && Array.isArray(r.transcripts)) {
-            consolidatedTranscripts = r.transcripts.map((t: any) => t.text || '').join('\n\n---\n\n');
-        }
-        if (consolidatedTranscripts) {
-            children.push(
-                new Paragraph({
-                    text: translate('session.rawTranscript', 'Raw Transcript'),
-                    heading: HeadingLevel.HEADING_2,
-                    spacing: { before: 300, after: 200 }
-                })
-            );
-
-            const lines = consolidatedTranscripts.split('\n');
-            for (const line of lines) {
+        if (options?.includeTranscripts !== false) {
+            let consolidatedTranscripts = null;
+            if (r.transcripts && Array.isArray(r.transcripts)) {
+                consolidatedTranscripts = r.transcripts.map((t: any) => t.text || '').join('\n\n---\n\n');
+            }
+            if (consolidatedTranscripts) {
                 children.push(
                     new Paragraph({
-                        children: [new TextRun({ text: line, italics: true, color: "666666" })],
-                        spacing: { after: 120 }
+                        text: translate('session.rawTranscript', 'Raw Transcript'),
+                        heading: HeadingLevel.HEADING_2,
+                        spacing: { before: 300, after: 200 }
                     })
                 );
+
+                const lines = consolidatedTranscripts.split('\n');
+                for (const line of lines) {
+                    children.push(
+                        new Paragraph({
+                            children: [new TextRun({ text: line, italics: true, color: "666666" })],
+                            spacing: { after: 120 }
+                        })
+                    );
+                }
             }
         }
     }
@@ -296,7 +302,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
                 }
             }
 
-            if (audio.transcript) {
+            if (audio.transcript && options?.includeTranscripts !== false) {
                 children.push(
                     new Paragraph({
                         text: translate('session.rawTranscript', 'Raw Transcript'),
