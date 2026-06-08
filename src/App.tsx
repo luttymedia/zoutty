@@ -1008,7 +1008,7 @@ export default function App() {
             strictSummary: t.strictSummary,
             expandedInsights: t.expandedInsights,
             type: 'recording',
-            filename: t.filename || 'Imported clip',
+            filename: t.filename,
             audioBlob: emptyBlob
           };
           await db.saveAudioEntry(newAudio);
