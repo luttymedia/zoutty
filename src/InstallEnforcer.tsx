@@ -42,7 +42,6 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
     const handleAppInstalled = () => {
       setDeferredPrompt(null);
       setInstallState('installed');
-      setIsStandalone(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
