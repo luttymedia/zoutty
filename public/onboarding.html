@@ -1175,20 +1175,25 @@
       cursor: not-allowed !important;
       box-shadow: none !important;
     }
+
     .btn-install.disabled-look::after {
       display: none !important;
     }
+
     .btn-install.disabled-look svg {
       fill: rgba(255, 255, 255, 0.3) !important;
       stroke: rgba(255, 255, 255, 0.3) !important;
     }
+
     .btn-install.loading-look {
       opacity: 0.6 !important;
       cursor: wait !important;
     }
+
     .btn-install.loading-look::after {
       display: none !important;
     }
+
     .install-platform-hint {
       font-size: 13px;
       color: rgba(255, 255, 255, 0.4);
@@ -1623,7 +1628,7 @@
       opacity: 0.5;
       font-size: 14px;
       font-weight: 400;
-      /* text-decoration: underline; */
+      text-decoration: none;
       cursor: pointer;
       font-family: inherit;
       margin-top: 16px;
@@ -2005,6 +2010,9 @@
         <span class="tooltip-steps" id="tooltip-steps">Step 1 of 7</span>
       </div>
     </div>
+    <button id="overlay-skip-tour" class="simple-link"
+      style="position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 102; margin: 0; font-size: 13px; pointer-events: auto;"
+      onclick="skipTourAnimated()">Skip the tour</button>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
@@ -2411,6 +2419,8 @@
       document.getElementById('welcome-bubble').innerHTML = t.welcomeIntro;
       document.getElementById('btn-start-text').textContent = t.btnStartText;
       document.getElementById('link-skip-tour').textContent = t.skipTour;
+      const overlaySkip = document.getElementById('overlay-skip-tour');
+      if (overlaySkip) overlaySkip.textContent = t.skipTour;
 
       // CTA Screen
       document.getElementById('cta-title').textContent = t.ctaTitle;
@@ -2743,6 +2753,7 @@
 
       // Navigation cleanups
       if (stepIndex <= 2) {
+        recordingPhase = 'idle';
         const btn = document.getElementById('gallery-btn');
         if (btn) {
           btn.style.background = '';
@@ -3214,58 +3225,56 @@
       renderCloudSyncContent();
 
       // Transition Sequence
-      // 1. Welcome out, Home in
+      const screens = ['screen-home', 'screen-folder', 'screen-detail', 'screen-settings', 'cta-screen'];
       const welcome = document.getElementById('welcome-overlay');
-      welcome.className = 'slide-out-left-fast';
 
-      showScreen('screen-home');
-      document.getElementById('screen-home').className = 'screen active slide-in-right-fast';
+      let startIndex = -1;
+      if (welcome.style.display === 'none') {
+        const currentScreenId = steps[currentStepIndex] ? steps[currentStepIndex].screen : 'screen-home';
+        startIndex = screens.indexOf(currentScreenId);
+      }
 
-      // 2. Home -> Folder (t = 200ms)
+      let t = 0;
+
+      if (startIndex === -1) {
+        welcome.className = 'slide-out-left-fast';
+        showScreen(screens[0]);
+        document.getElementById(screens[0]).className = 'screen active slide-in-right-fast';
+        startIndex = 0;
+        t += 200;
+      }
+
+      for (let i = startIndex; i < screens.length - 1; i++) {
+        setTimeout(() => {
+          const currentId = screens[i];
+          const nextId = screens[i + 1];
+          
+          document.getElementById(currentId).className = 'screen slide-out-left-fast';
+          
+          if (nextId === 'cta-screen') {
+            const cta = document.getElementById('cta-screen');
+            cta.style.display = 'flex';
+            cta.className = 'slide-in-right-fast';
+            welcome.style.display = 'none';
+            finishTour();
+          } else {
+            showScreen(nextId);
+            document.getElementById(nextId).className = 'screen active slide-in-right-fast';
+          }
+        }, t);
+        t += 200;
+      }
+
+      // Clean up animation classes
       setTimeout(() => {
-        document.getElementById('screen-home').className = 'screen slide-out-left-fast';
-        showScreen('screen-folder');
-        document.getElementById('screen-folder').className = 'screen active slide-in-right-fast';
-      }, 200);
-
-      // 3. Folder -> Detail (t = 400ms)
-      setTimeout(() => {
-        document.getElementById('screen-folder').className = 'screen slide-out-left-fast';
-        showScreen('screen-detail');
-        document.getElementById('screen-detail').className = 'screen active slide-in-right-fast';
-      }, 400);
-
-      // 4. Detail -> Settings (t = 600ms)
-      setTimeout(() => {
-        document.getElementById('screen-detail').className = 'screen slide-out-left-fast';
-        showScreen('screen-settings');
-        document.getElementById('screen-settings').className = 'screen active slide-in-right-fast';
-      }, 600);
-
-      // 5. Settings -> CTA Screen (t = 800ms)
-      setTimeout(() => {
-        document.getElementById('screen-settings').className = 'screen slide-out-left-fast';
-
-        const cta = document.getElementById('cta-screen');
-        cta.style.display = 'flex';
-        cta.className = 'slide-in-right-fast';
-
-        // Make sure welcome overlay is hidden
-        welcome.style.display = 'none';
-
-        finishTour();
-      }, 800);
-
-      // Clean up animation classes (t = 1000ms)
-      setTimeout(() => {
-        document.getElementById('welcome-overlay').className = '';
+        welcome.className = '';
         const cta = document.getElementById('cta-screen');
         cta.className = 'active';
 
         document.querySelectorAll('.screen').forEach(s => {
           s.className = s.classList.contains('active') ? 'screen active' : 'screen';
         });
-      }, 1000);
+      }, t + 200);
     }
 
     function backToTourAnimated() {
