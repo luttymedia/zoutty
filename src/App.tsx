@@ -2229,14 +2229,15 @@ export default function App() {
                     showToast(t('toast.invalidCodeLength'), true);
                     return;
                   }
+                  const codeToFetch = importCodeValue;
                   setShowImportCodeModal(false);
+                  setImportCodeValue('');
                   showSpinner(t('toast.retrievingSession'));
                   try {
-                    const res = await fetch(`/api/share/${importCodeValue}`);
+                    const res = await fetch(`/api/share/${codeToFetch}`);
                     if (!res.ok) throw new Error('Shared session not found');
                     const data = await res.json();
                     setImportPreview(data);
-                    setImportCodeValue('');
                   } catch (e: any) {
                     console.error(e);
                     showToast(t('toast.failedRetrieveShared'), true);
