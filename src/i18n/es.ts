@@ -169,8 +169,9 @@ const es: Translations = {
     generateShareLink: 'Generar Código',
     updateShareLink: 'Actualizar Copia',
     shareResyncBtn: 'Actualizar',
-    shareLinkReady: '¡Tu enlace está listo! Envía esta URL a otro usuario para compartir la sesión:',
+    shareLinkReady: '¡Tu enlace para compartir está listo! Envía esta URL a otro usuario para compartir esta sesión:',
     shareLinkExpiry: 'Nota: Este enlace expirará automáticamente en 30 días.',
+    shareLinkExpiryCountdown: 'Nota: Este enlace expirará automáticamente en {days} días.',
     // Import session
     sharedSession: 'Sesión compartida',
     sharedSessionDesc: 'Alguien ha compartido una sesión de clase de baile contigo:',

@@ -168,7 +168,8 @@ const en = {
     updateShareLink: 'Update Copy',
     shareResyncBtn: 'Update',
     shareLinkReady: 'Your shareable link is ready! Send this URL to another user to share this session:',
-    shareLinkExpiry: 'Note: This link will automatically expire in 30 days.',
+    shareLinkExpiry: 'This link will automatically expire in 30 days',
+    shareLinkExpiryCountdown: 'This link will automatically expire in {days} days',
     // Import session
     sharedSession: 'Shared Session',
     sharedSessionDesc: 'Someone shared a dance lesson session with you:',
@@ -183,7 +184,7 @@ const en = {
     importSessionBtn: 'Import Session',
     shareCodeReady: 'Your Share Code is ready!',
     shareInstructions: 'Give this 6-character code to another Zoutty user. They can import it by tapping the Import icon next to the Folder button on their Home screen.',
-    shareMessageTemplate: 'Import my session in Zoutty using code: {code}',
+    shareMessageTemplate: 'Import my session in Zoutty using the code: {code}',
     shareCodeLabel: 'Share Code',
     shareCodeBtn: 'Share Code',
     importCodeTitle: 'Import Session',

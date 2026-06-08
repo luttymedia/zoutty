@@ -256,6 +256,7 @@ export default function App() {
     shareEmotional: boolean;
     generatedLink?: string;
     shareCode?: string;
+    shareTimestamp?: number;
     availableReport: boolean;
     availableNotes: boolean;
     availableTranscripts: boolean;
@@ -937,12 +938,13 @@ export default function App() {
       });
       if (!res.ok) throw new Error('Share request failed');
       const { shareId } = await res.json();
+      const shareTimestamp = Date.now();
 
-      if (shareId !== selectedSession.shareId) {
-        await updateSession(selectedSession.id, { shareId });
+      if (shareId !== selectedSession.shareId || selectedSession.shareTimestamp !== shareTimestamp) {
+        await updateSession(selectedSession.id, { shareId, shareTimestamp });
       }
 
-      setShareModal(prev => prev ? { ...prev, generatedLink: shareId, shareCode: shareId } : null);
+      setShareModal(prev => prev ? { ...prev, generatedLink: shareId, shareCode: shareId, shareTimestamp } : null);
       showToast(isUpdating ? t('toast.shareCodeUpdated') : t('toast.shareCodeGenerated'));
     } catch (e) {
       console.error(e);
@@ -2144,7 +2146,11 @@ export default function App() {
                   </div>
 
                   <p className="text-white/70 text-xs leading-relaxed">{t('modals.shareInstructions')}</p>
-                  <p className="text-white/40 text-[10px] italic">{t('modals.shareLinkExpiry')}</p>
+                  <p className="text-white/40 text-[10px] italic">
+                    {shareModal.shareTimestamp
+                      ? t('modals.shareLinkExpiryCountdown', { days: Math.max(1, 30 - Math.floor((Date.now() - shareModal.shareTimestamp) / (1000 * 60 * 60 * 24))) })
+                      : t('modals.shareLinkExpiry')}
+                  </p>
                   
                   <button
                     onClick={async () => {
@@ -2394,7 +2400,8 @@ export default function App() {
                       availableTechnical: hasTechnical,
                       availableEmotional: hasEmotional,
                       generatedLink: selectedSession.shareId ? selectedSession.shareId : undefined,
-                      shareCode: selectedSession.shareId ? selectedSession.shareId : undefined
+                      shareCode: selectedSession.shareId ? selectedSession.shareId : undefined,
+                      shareTimestamp: selectedSession.shareTimestamp
                     });
                   }
                 }}
