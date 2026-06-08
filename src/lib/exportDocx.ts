@@ -1,9 +1,22 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Header, ImageRun, BorderStyle } from 'docx';
+import { ZOUTTY_LOGO_B64 } from './logoBase64';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import { Session, AudioEntry } from '../types';
 
 export const exportDocx = async (session: Session, entries: AudioEntry[], reportDetails: any, t?: (key: string, vars?: any) => string) => {
+    let logoBytes: Uint8Array | null = null;
+    try {
+        const binaryString = window.atob(ZOUTTY_LOGO_B64);
+        const len = binaryString.length;
+        logoBytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            logoBytes[i] = binaryString.charCodeAt(i);
+        }
+    } catch (e) {
+        console.warn('Failed to decode Zoutty base64 logo for export', e);
+    }
+
     const children: any[] = [];
 
     const translate = (key: string, fallback: string, vars?: any) => {
@@ -18,8 +31,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
     children.push(
         new Paragraph({
             text: session.title || translate('appSubtitle', 'Session Notes'),
-            heading: HeadingLevel.TITLE,
-            alignment: AlignmentType.CENTER,
+            heading: HeadingLevel.HEADING_1,
             spacing: { after: 200 }
         })
     );
@@ -28,8 +40,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
         children.push(
             new Paragraph({
                 text: session.subtitle,
-                heading: HeadingLevel.HEADING_2,
-                alignment: AlignmentType.CENTER,
+                heading: HeadingLevel.HEADING_4,
                 spacing: { after: 400 }
             })
         );
@@ -40,7 +51,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
         children.push(
             new Paragraph({
                 text: translate('session.notesHeading', 'Notes'),
-                heading: HeadingLevel.HEADING_1,
+                heading: HeadingLevel.HEADING_2,
                 spacing: { before: 400, after: 200 }
             })
         );
@@ -50,7 +61,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
             if (line.trim()) {
                 children.push(
                     new Paragraph({
-                        children: [new TextRun({ text: line, size: 22 })], // size is half-points, 24 = 12pt
+                        children: [new TextRun({ text: line, size: 20 })], // size is half-points, 20 = 10pt
                         spacing: { after: 120 }
                     })
                 );
@@ -64,7 +75,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
         children.push(
             new Paragraph({
                 text: translate('session.consolidatedReport', 'Consolidated Session Report'),
-                heading: HeadingLevel.HEADING_1,
+                heading: HeadingLevel.HEADING_2,
                 spacing: { before: 400, after: 200 }
             })
         );
@@ -84,7 +95,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
                 children.push(
                     new Paragraph({
                         text: item,
-                        bullet: { level: 0 },
+                        numbering: { reference: "small-bullets", level: 0 },
                         spacing: { after: 100 }
                     })
                 );
@@ -121,8 +132,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
                         children.push(
                             new Paragraph({
                                 text: item,
-                                bullet: { level: 0 },
-                                spacing: { after: 100 }
+                                style: "InsightSection"
                             })
                         );
                     }
@@ -152,7 +162,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
                         children.push(
                             new Paragraph({
                                 text: text,
-                                bullet: { level: 0 },
+                                numbering: { reference: "small-bullets", level: 0 },
                                 spacing: { after: 100 }
                             })
                         );
@@ -164,7 +174,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
                                 children.push(
                                     new Paragraph({
                                         text: `${subKey}: ${item}`,
-                                        bullet: { level: 0 },
+                                        numbering: { reference: "small-bullets", level: 0 },
                                         spacing: { after: 100 }
                                     })
                                 );
@@ -173,7 +183,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
                             children.push(
                                 new Paragraph({
                                     text: `${subKey}: ${subValue}`,
-                                    bullet: { level: 0 },
+                                    numbering: { reference: "small-bullets", level: 0 },
                                     spacing: { after: 100 }
                                 })
                             );
@@ -222,7 +232,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
         children.push(
             new Paragraph({
                 text: translate('home.sessionsHeading', 'Audio Entries'),
-                heading: HeadingLevel.HEADING_1,
+                heading: HeadingLevel.HEADING_2,
                 spacing: { before: 600, after: 200 }
             })
         );
@@ -235,8 +245,8 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
             children.push(
                 new Paragraph({
                     children: [
-                        new TextRun({ text: displayTitle, bold: true, size: 28 }),
-                        new TextRun({ text: `  |  ${time}h - ${typeLabel}`, color: "888888", size: 24 })
+                        new TextRun({ text: displayTitle, bold: true, size: 20 }),
+                        new TextRun({ text: `  |  ${time}h - ${typeLabel}`, color: "888888", size: 20 })
                     ],
                     spacing: { before: 400, after: 200 }
                 })
@@ -252,7 +262,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
                 );
                 for (const item of audio.strictSummary) {
                     children.push(
-                        new Paragraph({ text: item, bullet: { level: 0 }, spacing: { after: 100 } })
+                        new Paragraph({ text: item, numbering: { reference: "small-bullets", level: 0 }, spacing: { after: 100 } })
                     );
                 }
             }
@@ -278,8 +288,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
                             children.push(
                                 new Paragraph({
                                     text: item,
-                                    bullet: { level: 0 },
-                                    spacing: { after: 100 }
+                                    style: "InsightSection"
                                 })
                             );
                         }
@@ -312,7 +321,142 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
     }
 
     const doc = new Document({
+        numbering: {
+            config: [
+                {
+                    reference: "small-bullets",
+                    levels: [
+                        {
+                            level: 0,
+                            format: "bullet",
+                            text: "·",
+                            alignment: AlignmentType.LEFT,
+                            style: {
+                                paragraph: {
+                                    indent: { left: 360, hanging: 180 },
+                                    spacing: { line: 276 }
+                                },
+                                run: {
+                                    size: 20,
+                                    color: "1F2937",
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        styles: {
+            paragraphStyles: [
+                {
+                    id: "Normal",
+                    name: "Normal",
+                    basedOn: "Normal",
+                    next: "Normal",
+                    run: {
+                        font: "Inter",
+                        size: 20, // 10pt
+                        color: "1F2937", // Charcoal Gray
+                    },
+                    paragraph: {
+                        spacing: { line: 276 }, // 1.15 line height
+                        alignment: AlignmentType.LEFT
+                    }
+                },
+                {
+                    id: "Heading1",
+                    name: "Heading 1",
+                    basedOn: "Normal",
+                    next: "Normal",
+                    run: {
+                        font: "Inter",
+                        size: 28, // 14pt
+                        bold: true,
+                        color: "2DD4BF", // Teal
+                    },
+                    paragraph: {
+                        spacing: { before: 400, after: 200 },
+                    },
+                },
+                {
+                    id: "Heading2",
+                    name: "Heading 2",
+                    basedOn: "Normal",
+                    next: "Normal",
+                    run: {
+                        font: "Inter",
+                        size: 24, // 12pt
+                        bold: true,
+                        color: "2DD4BF", // Teal
+                    },
+                    paragraph: {
+                        spacing: { before: 300, after: 200 },
+                    },
+                },
+                {
+                    id: "Heading3",
+                    name: "Heading 3",
+                    basedOn: "Normal",
+                    next: "Normal",
+                    run: {
+                        font: "Inter",
+                        size: 22, // 11pt
+                        bold: true,
+                        color: "1F2937", // Charcoal Gray
+                    },
+                    paragraph: {
+                        spacing: { before: 200, after: 100 },
+                    },
+                },
+                {
+                    id: "Heading4",
+                    name: "Heading 4",
+                    basedOn: "Normal",
+                    next: "Normal",
+                    run: {
+                        font: "Inter",
+                        size: 22, // 11pt
+                        color: "1F2937", // Charcoal Gray
+                    },
+                    paragraph: {
+                        spacing: { before: 100, after: 100 },
+                    },
+                },
+                {
+                    id: "InsightSection",
+                    name: "Insight Section",
+                    basedOn: "Normal",
+                    next: "Normal",
+                    paragraph: {
+                        spacing: { before: 100, after: 100, line: 276 },
+                        indent: { left: 200 },
+                        border: {
+                            left: { color: "2DD4BF", space: 100, value: BorderStyle.SINGLE, size: 24 },
+                        }
+                    }
+                }
+            ]
+        },
         sections: [{
+            ...(logoBytes ? {
+                headers: {
+                    default: new Header({
+                        children: [
+                            new Paragraph({
+                                alignment: AlignmentType.CENTER,
+                                children: [
+                                    new ImageRun({
+                                        data: logoBytes,
+                                        transformation: { width: 160, height: 40 },
+                                        type: "png"
+                                    })
+                                ],
+                                spacing: { after: 400 }
+                            })
+                        ]
+                    })
+                }
+            } : {}),
             properties: {},
             children: children
         }]

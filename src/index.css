@@ -93,4 +93,43 @@ input::placeholder {
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
+/* Print styles for PDF Export */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  header, button, .print-hide {
+    display: none !important;
+  }
+  .glass, .glass-dark {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  * {
+    color: black !important;
+  }
+  .text-white, .text-white\/40, .text-white\/70, .text-brand {
+    color: black !important;
+    opacity: 1 !important;
+  }
+  .print-show-flex {
+    display: flex !important;
+  }
+  .print-expand {
+    display: block !important;
+  }
+  .print-hide-icon {
+    display: none !important;
+  }
+}
+
 

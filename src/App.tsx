@@ -241,6 +241,7 @@ export default function App() {
   const [deleteFolderModal, setDeleteFolderModal] = useState<{ id: string, name: string } | null>(null);
   const [deleteFolderAlsoSessions, setDeleteFolderAlsoSessions] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'docx' | 'pdf'>('docx');
 
   const [shareModal, setShareModal] = useState<{
     sessionId: string;
@@ -1361,6 +1362,40 @@ export default function App() {
             <p className="text-white/70 text-sm">
               {t('modals.exportMsg')}
             </p>
+            
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-white/40 uppercase tracking-wider">{t('modals.exportFormatLabel')}</label>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => setExportFormat('docx')}
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${exportFormat === 'docx' ? 'bg-brand/20 border-brand/50 text-brand' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${exportFormat === 'docx' ? 'border-brand' : 'border-white/30'}`}>
+                    {exportFormat === 'docx' && <div className="w-2 h-2 rounded-full bg-brand" />}
+                  </div>
+                  <span className="text-sm font-medium">{t('modals.exportFormatDocx')}</span>
+                </button>
+                <button
+                  onClick={() => setExportFormat('pdf')}
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${exportFormat === 'pdf' ? 'bg-brand/20 border-brand/50 text-brand' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${exportFormat === 'pdf' ? 'border-brand' : 'border-white/30'}`}>
+                    {exportFormat === 'pdf' && <div className="w-2 h-2 rounded-full bg-brand" />}
+                  </div>
+                  <span className="text-sm font-medium">{t('modals.exportFormatPdf')}</span>
+                </button>
+              </div>
+            </div>
+
+            {exportFormat === 'pdf' && (
+              <div className="bg-brand/10 border border-brand/20 p-3 rounded-xl flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-brand shrink-0 mt-0.5" />
+                <p className="text-xs text-brand/90 leading-relaxed">
+                  {t('modals.exportPdfInstructions')}
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3 justify-end items-center mt-6">
               <button
                 onClick={() => setShowExportConfirm(false)}
@@ -1371,17 +1406,32 @@ export default function App() {
               <button
                 onClick={async () => {
                   setShowExportConfirm(false);
-                  showSpinner(t('toast.generatingDoc'));
-                  try {
-                    const report = await db.getSessionFinalReport(selectedSession.id);
-                    const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp);
-                    await exportDocx(selectedSession, sessionEntries, report, t);
-                    showToast(t('toast.docExported'));
-                  } catch (err) {
-                    console.error(err);
-                    showToast(t('toast.failedExport'), true);
-                  } finally {
-                    hideSpinner();
+                  if (exportFormat === 'pdf') {
+                    const dateStr = format(new Date(selectedSession.date), "yyyy-MM-dd");
+                    let fileName = `Zoutty_${dateStr}`;
+                    if (selectedSession.title) {
+                        const safeTitle = selectedSession.title.replace(/[<>:"/\\|?*]/g, '_').trim();
+                        fileName = `Zoutty_${safeTitle}`;
+                    }
+                    const originalTitle = document.title;
+                    document.title = fileName;
+                    setTimeout(() => {
+                      window.print();
+                      document.title = originalTitle;
+                    }, 100);
+                  } else {
+                    showSpinner(t('toast.generatingDoc'));
+                    try {
+                      const report = await db.getSessionFinalReport(selectedSession.id);
+                      const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp);
+                      await exportDocx(selectedSession, sessionEntries, report, t);
+                      showToast(t('toast.docExported'));
+                    } catch (err) {
+                      console.error(err);
+                      showToast(t('toast.failedExport'), true);
+                    } finally {
+                      hideSpinner();
+                    }
                   }
                 }}
                 className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs"
@@ -2251,19 +2301,64 @@ export default function App() {
             </button>
           )}
           {view === 'detail' && selectedSession && (
-            <button
-              onClick={() => {
-                if (selectedSession.isDemo) {
-                  showToast(t('onboarding.demoTooltipExport'), false);
-                } else {
-                  setShowExportConfirm(true);
-                }
-              }}
-              className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
-              title={t('session.exportToWord')}
-            >
-              <Download className="w-5 h-5" />
-            </button>
+            <>
+              <button
+                onClick={async () => {
+                  if (selectedSession.isDemo) {
+                    showToast(t('onboarding.demoTooltipShare'), false);
+                  } else {
+                    const report = await db.getSessionFinalReport(selectedSession.id);
+                    const hasReport = !!selectedSession.summary && !!report;
+                    const hasNotes = !!selectedSession.notes;
+                    const hasTranscripts = Object.values(audioEntries).some(e => e.sessionId === selectedSession.id && !!e.transcript);
+
+                    const hasStrictSummary = hasReport && !!report.report?.strictSummary && report.report.strictSummary.length > 0;
+                    const hasDrills = hasReport && !!report.report?.expandedInsights?.drills && report.report.expandedInsights.drills.length > 0;
+                    const hasHomework = hasReport && !!report.report?.expandedInsights?.homework && report.report.expandedInsights.homework.length > 0;
+                    const hasTechnical = hasReport && !!report.report?.expandedInsights?.technicalExpansion && report.report.expandedInsights.technicalExpansion.length > 0;
+                    const hasEmotional = hasReport && !!report.report?.expandedInsights?.emotionalNotes && report.report.expandedInsights.emotionalNotes.length > 0;
+
+                    setShareModal({
+                      sessionId: selectedSession.id,
+                      shareReport: hasReport,
+                      shareNotes: hasNotes,
+                      shareTranscripts: hasTranscripts,
+                      shareStrictSummary: hasStrictSummary,
+                      shareDrills: hasDrills,
+                      shareHomework: hasHomework,
+                      shareTechnical: hasTechnical,
+                      shareEmotional: hasEmotional,
+                      availableReport: hasReport,
+                      availableNotes: hasNotes,
+                      availableTranscripts: hasTranscripts,
+                      availableStrictSummary: hasStrictSummary,
+                      availableDrills: hasDrills,
+                      availableHomework: hasHomework,
+                      availableTechnical: hasTechnical,
+                      availableEmotional: hasEmotional,
+                      generatedLink: selectedSession.shareId ? `${window.location.origin}/?import=${selectedSession.shareId}` : undefined
+                    });
+                  }
+                }}
+                className={`w-10 h-10 flex items-center justify-center glass rounded-full transition-colors ${selectedSession.shareId ? 'bg-brand/20 text-brand shadow-sm shadow-brand/20' : 'hover:bg-brand/20 text-brand'}`}
+                title={t('session.shareSession')}
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => {
+                  if (selectedSession.isDemo) {
+                    showToast(t('onboarding.demoTooltipExport'), false);
+                  } else {
+                    setShowExportConfirm(true);
+                  }
+                }}
+                className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
+                title={t('session.exportToWord')}
+              >
+                <Download className="w-5 h-5" />
+              </button>
+            </>
           )}
           {deferredPrompt && (
             <button
@@ -2510,39 +2605,6 @@ export default function App() {
             showToast={showToast}
             groups={groups}
             glossaries={glossaries}
-            onShare={async () => {
-              const report = await db.getSessionFinalReport(selectedSession.id);
-              const hasReport = !!selectedSession.summary && !!report;
-              const hasNotes = !!selectedSession.notes;
-              const hasTranscripts = Object.values(audioEntries).some(e => e.sessionId === selectedSession.id && !!e.transcript);
-
-              const hasStrictSummary = hasReport && !!report.report?.strictSummary && report.report.strictSummary.length > 0;
-              const hasDrills = hasReport && !!report.report?.expandedInsights?.drills && report.report.expandedInsights.drills.length > 0;
-              const hasHomework = hasReport && !!report.report?.expandedInsights?.homework && report.report.expandedInsights.homework.length > 0;
-              const hasTechnical = hasReport && !!report.report?.expandedInsights?.technicalExpansion && report.report.expandedInsights.technicalExpansion.length > 0;
-              const hasEmotional = hasReport && !!report.report?.expandedInsights?.emotionalNotes && report.report.expandedInsights.emotionalNotes.length > 0;
-
-              setShareModal({
-                sessionId: selectedSession.id,
-                shareReport: hasReport,
-                shareNotes: hasNotes,
-                shareTranscripts: hasTranscripts,
-                shareStrictSummary: hasStrictSummary,
-                shareDrills: hasDrills,
-                shareHomework: hasHomework,
-                shareTechnical: hasTechnical,
-                shareEmotional: hasEmotional,
-                availableReport: hasReport,
-                availableNotes: hasNotes,
-                availableTranscripts: hasTranscripts,
-                availableStrictSummary: hasStrictSummary,
-                availableDrills: hasDrills,
-                availableHomework: hasHomework,
-                availableTechnical: hasTechnical,
-                availableEmotional: hasEmotional,
-                generatedLink: selectedSession.shareId ? `${window.location.origin}/?import=${selectedSession.shareId}` : undefined
-              });
-            }}
             onDeleteSession={() => requestDeleteSession(selectedSession.id, selectedSession.title)}
             mediaItems={sessionMedia}
             onMediaChange={setSessionMedia}
@@ -2570,7 +2632,6 @@ function SessionDetail({
   showToast,
   groups,
   glossaries,
-  onShare,
   onDeleteSession,
   mediaItems,
   onMediaChange
@@ -2589,7 +2650,6 @@ function SessionDetail({
   showToast: (msg: string, isError?: boolean) => void;
   groups: SessionGroup[];
   glossaries: DanceGlossary[];
-  onShare: () => void;
   onDeleteSession: () => void;
   mediaItems: SessionMedia[];
   onMediaChange: (items: SessionMedia[]) => void;
@@ -2943,6 +3003,10 @@ function SessionDetail({
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Print-only Logo */}
+      <div className="hidden print:block text-center pb-4 border-b border-gray-200">
+        <img src="/zouttyLogoHoriz.png" alt="Zoutty" className="h-10 mx-auto" />
+      </div>
       {/* Session Header: date (white) + optional editable subtitle */}
       <div>
         <div className="flex items-center justify-between flex-wrap gap-2 mb-2.5">
@@ -3004,7 +3068,7 @@ function SessionDetail({
             title={t('session.editTitleHint')}
           >
             {session.title}
-            <Edit2 className="w-4 h-4 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0 cursor-pointer" />
+            <Edit2 className="w-4 h-4 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0 cursor-pointer print-hide-icon" />
           </p>
         )}
 
@@ -3031,32 +3095,16 @@ function SessionDetail({
                   setIsEditingSubtitle(true);
                 }
               }}
-              className="text-sm text-white/40 hover:text-white/60 transition-colors text-left flex items-center gap-2 group"
+              className="text-sm text-white/40 hover:text-white/60 transition-colors text-left flex items-center gap-2 group print-show-flex"
             >
               {session.subtitle ? (
                 <span>{session.subtitle}</span>
               ) : (
                 <span className="italic text-white/20 group-hover:text-white/40">{t('session.subtitlePlaceholder')}</span>
               )}
-              <Edit2 className="w-3.5 h-3.5 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0" />
+              <Edit2 className="w-3.5 h-3.5 text-brand opacity-0 group-hover:opacity-80 transition-opacity shrink-0 print-hide-icon" />
             </button>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  if (session.isDemo) {
-                    showToast(t('onboarding.demoTooltipShare'), false);
-                  } else {
-                    onShare();
-                  }
-                }}
-                className={`p-2 rounded-xl border transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] ${session.shareId
-                  ? 'bg-brand/20 border-brand text-brand shadow-sm shadow-brand/20'
-                  : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80'
-                  }`}
-                title={t('session.shareSession')}
-              >
-                <Share2 className={`w-4 h-4 ${session.shareId ? '' : 'text-brand'}`} />
-              </button>
               <button
                 onClick={() => {
                   if (session.isDemo) {
@@ -3132,7 +3180,7 @@ function SessionDetail({
       <div className="h-32 shrink-0 w-full" />
 
       {/* Controls - Floating at bottom */}
-      <div className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 glass p-4 rounded-full flex items-center justify-center gap-4 sm:gap-6 shadow-2xl z-40 border border-white/10 bg-black/60 backdrop-blur-md">
+      <div className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 glass p-4 rounded-full flex items-center justify-center gap-4 sm:gap-6 shadow-2xl z-40 border border-white/10 bg-black/60 backdrop-blur-md print-hide">
 
         {isRecording && (
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-600/90 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg border border-red-500/30 backdrop-blur-md animate-in slide-in-from-bottom-2 duration-300">
@@ -3635,7 +3683,7 @@ function EditableText({ value, onChange, className, multiline = false, onInterce
       title="Click to edit"
     >
       <div className="whitespace-pre-wrap w-full">{value}</div>
-      <Edit2 className="w-3.5 h-3.5 text-brand opacity-0 group-hover:opacity-60 absolute top-1 right-1" />
+      <Edit2 className="w-3.5 h-3.5 text-brand opacity-0 group-hover:opacity-60 absolute top-1 right-1 print-hide-icon" />
     </div>
   );
 }
@@ -3646,12 +3694,12 @@ function CollapsiblePanel({ title, children, defaultOpen = true, accent = false 
     <div className={`rounded-xl border overflow-hidden ${accent ? 'border-brand/30' : 'border-white/10'}`}>
       <button
         onClick={() => setOpen(o => !o)}
-        className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${accent ? 'bg-brand/10 hover:bg-brand/15' : 'bg-white/5 hover:bg-white/10'}`}
+        className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${accent ? 'bg-brand/10 hover:bg-brand/15' : 'bg-white/5 hover:bg-white/10'} print-show-flex`}
       >
         <span className={`text-xs font-bold uppercase tracking-widest ${accent ? 'text-brand' : 'text-white/50'}`}>{title}</span>
-        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${open ? '' : '-rotate-90'}`} />
+        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${open ? '' : '-rotate-90'} print-hide-icon`} />
       </button>
-      {open && <div className="px-4 pb-4 pt-2">{children}</div>}
+      <div className={`px-4 pb-4 pt-2 ${open ? 'block' : 'hidden'} print-expand`}>{children}</div>
     </div>
   );
 }
@@ -3709,44 +3757,43 @@ function ExpandedInsightsBlock({ data, onChange, onIntercept }: { data: Expanded
     if (onChange) onChange({ ...data, [key]: newItems });
   };
 
+  const [open, setOpen] = useState(false);
+
   return (
     <div className="border border-purple-500/20 rounded-2xl overflow-hidden">
-      <details>
-        <summary className="px-5 py-3 cursor-pointer flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/15 transition-colors list-none">
-          <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-          <span className="font-bold text-purple-300 text-sm">{t('session.expandedInsights')}</span>
-          <ChevronDown className="w-4 h-4 text-purple-400/50 ml-auto" />
-        </summary>
-        <div className="p-4 space-y-3 bg-black/20">
-          {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.drills')} defaultOpen={false}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
-          {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.homework')} defaultOpen={false}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
-          {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.technicalExpansion')} defaultOpen={false}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
-          {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.emotionalNotes')} defaultOpen={false}><BulletList items={data.emotionalNotes} onChange={onChange ? (arr) => handleChange('emotionalNotes', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
-        </div>
-      </details>
+      <button onClick={() => setOpen(!open)} className="w-full px-5 py-3 cursor-pointer flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/15 transition-colors text-left print-show-flex">
+        <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+        <span className="font-bold text-purple-300 text-sm">{t('session.expandedInsights')}</span>
+        <ChevronDown className={`w-4 h-4 text-purple-400/50 ml-auto transition-transform ${open ? 'rotate-180' : ''} print-hide-icon`} />
+      </button>
+      <div className={`p-4 space-y-3 bg-black/20 ${open ? 'block' : 'hidden'} print-expand`}>
+        {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.drills')} defaultOpen={false}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
+        {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.homework')} defaultOpen={false}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
+        {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.technicalExpansion')} defaultOpen={false}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
+        {(data.emotionalNotes?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.emotionalNotes')} defaultOpen={false}><BulletList items={data.emotionalNotes} onChange={onChange ? (arr) => handleChange('emotionalNotes', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
+      </div>
     </div>
   );
 }
 
 function TranscriptBlock({ text, onChange, onIntercept }: { text: string, onChange?: (newText: string) => void, onIntercept?: () => void }) {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
   if (!text) return null;
   return (
     <div className="border border-white/10 rounded-2xl overflow-hidden">
-      <details>
-        <summary className="px-5 py-3 cursor-pointer flex items-center gap-3 bg-white/5 hover:bg-white/8 transition-colors list-none">
-          <FileAudio className="w-4 h-4 text-white/40 shrink-0" />
-          <span className="font-bold text-white/50 text-sm">{t('session.viewTranscript')}</span>
-          <ChevronDown className="w-4 h-4 text-white/20 ml-auto" />
-        </summary>
-        <div className="p-4 bg-black/20 text-white/50 text-sm italic leading-relaxed">
-          {onChange ? (
-            <EditableText value={text} onChange={onChange} multiline={true} className="whitespace-pre-wrap block" onIntercept={onIntercept} />
-          ) : (
-            <span className="whitespace-pre-wrap">{text}</span>
-          )}
-        </div>
-      </details>
+      <button onClick={() => setOpen(!open)} className="w-full px-5 py-3 cursor-pointer flex items-center gap-3 bg-white/5 hover:bg-white/8 transition-colors text-left print-show-flex">
+        <FileAudio className="w-4 h-4 text-white/40 shrink-0" />
+        <span className="font-bold text-white/50 text-sm">{t('session.viewTranscript')}</span>
+        <ChevronDown className={`w-4 h-4 text-white/20 ml-auto transition-transform ${open ? 'rotate-180' : ''} print-hide-icon`} />
+      </button>
+      <div className={`p-4 bg-black/20 text-white/50 text-sm italic leading-relaxed ${open ? 'block' : 'hidden'} print-expand`}>
+        {onChange ? (
+          <EditableText value={text} onChange={onChange} multiline={true} className="whitespace-pre-wrap block" onIntercept={onIntercept} />
+        ) : (
+          <span className="whitespace-pre-wrap">{text}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -3918,8 +3965,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
             </span>
           )}
         </div>
-        {isConsolidatedOpen && (
-          <div className="p-4 space-y-4 bg-black/20 border-t border-brand/20">
+        <div className={`p-4 space-y-4 bg-black/20 border-t border-brand/20 ${isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
             {consolidatedStrictSummary && (
               <>
                 <div>
@@ -3935,7 +3981,6 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
               </>
             )}
           </div>
-        )}
       </div>
     ));
   }
@@ -4233,12 +4278,11 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
           >
             <Trash2 className="w-5 h-5 shrink-0" />
           </button>
-          <ChevronUp className={`w-5 h-5 text-white/40 transition-transform ${isOpen ? '' : 'rotate-180'}`} />
+          <ChevronUp className={`w-5 h-5 text-white/40 transition-transform ${isOpen ? '' : 'rotate-180'} print-hide-icon`} />
         </div>
       </div>
 
-      {isOpen && (
-        <div className="p-4 sm:p-5 bg-black/20 border-t border-white/5 space-y-4">
+      <div className={`p-4 sm:p-5 bg-black/20 border-t border-white/5 space-y-4 ${isOpen ? 'block' : 'hidden'} print-expand`}>
           {audioUrl ? (
             <audio controls src={audioUrl} className="w-full h-10 opacity-90 rounded-xl bg-black/20" />
           ) : audio.sessionId === 'demo-session' ? (
@@ -4308,7 +4352,6 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
             </div>
           )}
         </div>
-      )}
     </div>
   );
 }
@@ -4356,7 +4399,7 @@ function CollapsibleSection({ title, contentObj, isReport = false, isOpen, onTog
               <Trash2 className="w-5 h-5 shrink-0" />
             </button>
           )}
-          <ChevronUp className={`w-5 h-5 text-white/40 transition-transform ${isOpen ? '' : 'rotate-180'}`} />
+          <ChevronUp className={`w-5 h-5 text-white/40 transition-transform ${isOpen ? '' : 'rotate-180'} print-hide-icon`} />
         </div>
       </div>
 

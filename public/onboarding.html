@@ -2272,7 +2272,7 @@
         btnInstallDismissedHint: "Installation cancelled. Please refresh the page to try again."
       },
       es: {
-        welcomeTitleSub: "Compañero de Clases Privadas",
+        welcomeTitleSub: "Asistente de Clases Privadas",
         welcomeIntro: `<strong>¡Hola!</strong> Muchas gracias por ayudarme a probar Zoutty, ¡realmente lo aprecio!<br><br>Lo creé para que las clases privadas sean más fáciles de <strong>capturar, organizar y repasar</strong>. Graba puntos clave, guarda referencias y deja que la IA transforme tus notas en <strong>resúmenes, ejercicios e ideas claras</strong>.<br><br>Aquí tienes un recorrido rápido de <strong>60 segundos</strong> antes de instalar. 👇`,
         btnStartText: "Iniciar el Tour",
         ctaTitle: "¡Todo listo!",
@@ -3248,9 +3248,9 @@
         setTimeout(() => {
           const currentId = screens[i];
           const nextId = screens[i + 1];
-          
+
           document.getElementById(currentId).className = 'screen slide-out-left-fast';
-          
+
           if (nextId === 'cta-screen') {
             const cta = document.getElementById('cta-screen');
             cta.style.display = 'flex';
