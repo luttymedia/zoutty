@@ -327,6 +327,9 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
     }
 
     const doc = new Document({
+        creator: "Zoutty",
+        title: session.title || "Zoutty Session Export",
+        description: "Exported from Zoutty",
         numbering: {
             config: [
                 {
@@ -469,6 +472,7 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
     });
 
     const blob = await Packer.toBlob(doc);
+    const docxBlob = new Blob([blob], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
     const dateStr = format(new Date(session.date), "yyyy-MM-dd");
     let fileName = `Zoutty_${dateStr}`;
     if (session.title) {
@@ -477,5 +481,5 @@ export const exportDocx = async (session: Session, entries: AudioEntry[], report
         fileName = `Zoutty_${safeTitle}`;
     }
 
-    saveAs(blob, `${fileName}.docx`);
+    saveAs(docxBlob, `${fileName}.docx`);
 };
