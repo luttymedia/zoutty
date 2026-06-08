@@ -26,17 +26,8 @@ if (__dirname.includes('dist-server') || __dirname.includes('dist_server')) {
 // Body parsing — MUST come before routes
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-// Serve frontend assets
-if (process.env.NODE_ENV !== 'production') {
-    console.log('[server] Running in development mode. Mounting Vite dev middleware...');
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: 'spa'
-    });
-    app.use(vite.middlewares);
-}
-else {
+// Serve frontend assets (Production only)
+if (process.env.NODE_ENV === 'production') {
     console.log('[server] Running in production mode. Serving static files from dist...');
     app.use(express.static(path.join(__dirname, '../dist')));
 }
@@ -463,8 +454,35 @@ const SHARE_DIR = path.resolve(__dirname, '../shared');
 if (!fs.existsSync(SHARE_DIR)) {
     fs.mkdirSync(SHARE_DIR, { recursive: true });
 }
+// Cleanup shared files older than 30 days every hour
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+setInterval(() => {
+    try {
+        if (!fs.existsSync(SHARE_DIR))
+            return;
+        const now = Date.now();
+        const files = fs.readdirSync(SHARE_DIR);
+        for (const file of files) {
+            if (!file.endsWith('.json'))
+                continue;
+            const filePath = path.join(SHARE_DIR, file);
+            const stats = fs.statSync(filePath);
+            if (now - stats.mtimeMs > THIRTY_DAYS_MS) {
+                fs.unlinkSync(filePath);
+                console.log(`[server] Deleted expired shared session: ${file}`);
+            }
+        }
+    }
+    catch (e) {
+        console.error('[server] TTL cleanup failed:', e);
+    }
+}, 60 * 60 * 1000); // 1 hour
 app.post('/api/share', (req, res) => {
     try {
+        const contentLength = req.get('content-length');
+        if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) {
+            return res.status(413).json({ error: 'Payload too large. Maximum size is 2MB.' });
+        }
         const body = req.body;
         const sessionData = body.sessionData || body;
         let shareId = body.shareId;
@@ -515,6 +533,16 @@ app.get('/api/share/:shareId', (req, res) => {
         res.status(500).json({ error: 'Failed to retrieve shared session', details: e.message });
     }
 });
+// Serve frontend assets (Development mode)
+if (process.env.NODE_ENV !== 'production') {
+    console.log('[server] Mounting Vite dev middleware...');
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa'
+    });
+    app.use(vite.middlewares);
+}
 // Fallback route: in production, all non-API routes return dist/index.html
 if (process.env.NODE_ENV === 'production') {
     app.get('*', (req, res) => {

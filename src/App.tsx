@@ -25,6 +25,7 @@ import {
   FolderOpen,
   Share2,
   Copy,
+  SlidersHorizontal,
   Settings,
   BookOpen,
   Music,
@@ -254,6 +255,7 @@ export default function App() {
     shareTechnical: boolean;
     shareEmotional: boolean;
     generatedLink?: string;
+    shareCode?: string;
     availableReport: boolean;
     availableNotes: boolean;
     availableTranscripts: boolean;
@@ -277,6 +279,8 @@ export default function App() {
     (localStorage.getItem('zoutty_folder_sort_order') as any) || 'desc'
   );
   const [importPreview, setImportPreview] = useState<any | null>(null);
+  const [showImportCodeModal, setShowImportCodeModal] = useState(false);
+  const [importCodeValue, setImportCodeValue] = useState('');
 
   // Browser History Navigation Sync
   const navigateTo = (newView: 'list' | 'detail', newSessionId: string | null, newGroupId: string | null, historyAction: 'push' | 'replace' | 'none' = 'push') => {
@@ -463,27 +467,6 @@ export default function App() {
       }
     };
     loadData();
-
-    // Check if URL has ?import=
-    const checkImport = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const importId = params.get('import');
-      if (importId) {
-        showSpinner('Retrieving shared session...');
-        try {
-          const res = await fetch(`/api/share/${importId}`);
-          if (!res.ok) throw new Error('Shared session not found');
-          const data = await res.json();
-          setImportPreview(data);
-        } catch (e: any) {
-          console.error(e);
-          showToast(t('toast.failedRetrieveShared'), true);
-        } finally {
-          hideSpinner();
-        }
-      }
-    };
-    checkImport();
   }, []);
 
   const showToast = (text: string, isError = false, actionText?: string, onAction?: () => void, duration?: number) => setToastMessage({ text, isError, actionText, onAction, duration });
@@ -959,9 +942,8 @@ export default function App() {
         await updateSession(selectedSession.id, { shareId });
       }
 
-      const link = `${window.location.origin}/?import=${shareId}`;
-      setShareModal(prev => prev ? { ...prev, generatedLink: link } : null);
-      showToast(isUpdating ? t('toast.shareLinkUpdated') : t('toast.shareLinkGenerated'));
+      setShareModal(prev => prev ? { ...prev, generatedLink: shareId, shareCode: shareId } : null);
+      showToast(isUpdating ? t('toast.shareCodeUpdated') : t('toast.shareCodeGenerated'));
     } catch (e) {
       console.error(e);
       showToast(t('toast.failedShareLink'), true);
@@ -2141,28 +2123,56 @@ export default function App() {
               </>
             ) : (
               <>
-                <div className="space-y-4">
-                  <p className="text-white/80 text-sm">{t('modals.shareLinkReady')}</p>
-                  <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl p-3">
-                    <input
-                      type="text"
-                      readOnly
-                      value={shareModal.generatedLink}
-                      className="bg-transparent text-xs text-white/80 outline-none flex-1 font-mono select-all"
-                    />
-                    <button
-                      onClick={() => {
-                        if (shareModal.generatedLink) {
-                          navigator.clipboard.writeText(shareModal.generatedLink);
-                          showToast(t('toast.linkCopied'));
-                        }
-                      }}
-                      className="p-2 bg-brand/20 hover:bg-brand/35 text-brand rounded-lg transition-colors flex items-center justify-center shrink-0"
-                      title="Copy link"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
+                <div className="space-y-4 font-sans">
+                  <h4 className="text-white font-bold text-sm">{t('modals.shareCodeReady')}</h4>
+                  
+                  <div className="flex flex-col items-center justify-center bg-black/40 border border-white/10 rounded-2xl p-6 space-y-2 relative">
+                    <span className="text-white/40 text-xs font-bold uppercase tracking-widest">{t('modals.shareCodeLabel')}</span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-brand text-3xl font-mono font-black tracking-widest select-all">{shareModal.shareCode}</span>
+                      <button 
+                        onClick={() => { 
+                          navigator.clipboard.writeText(shareModal.shareCode || ''); 
+                          showToast(t('toast.codeCopied')); 
+                        }} 
+                        className="p-2.5 bg-white/5 hover:bg-white/10 active:scale-95 rounded-xl text-white/60 transition-all shadow-sm"
+                        title="Copy code"
+                      >
+                        <Copy className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
+
+                  <p className="text-white/70 text-xs leading-relaxed">{t('modals.shareInstructions')}</p>
+                  <p className="text-white/40 text-[10px] italic">{t('modals.shareLinkExpiry')}</p>
+                  
+                  <button
+                    onClick={async () => {
+                      const shareCode = shareModal.shareCode || '';
+                      const shareMessage = t('modals.shareMessageTemplate', { code: shareCode });
+                      
+                      if (navigator.share) {
+                        try {
+                          await navigator.share({
+                            title: t('modals.shareSession'),
+                            text: shareMessage,
+                          });
+                          showToast(t('toast.shareSuccessful'));
+                        } catch (err) {
+                          console.log('Share sheet dismissed or failed, falling back to copy:', err);
+                          navigator.clipboard.writeText(shareMessage);
+                          showToast(t('toast.codeCopied'));
+                        }
+                      } else {
+                        navigator.clipboard.writeText(shareMessage);
+                        showToast(t('toast.codeCopied'));
+                      }
+                    }}
+                    className="w-full py-3 bg-brand text-bg-dark rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-[0.98] shadow-lg shadow-brand/20 min-h-[44px]"
+                  >
+                    <Share2 className="w-5 h-5" />
+                    <span>{t('modals.shareCodeBtn')}</span>
+                  </button>
                 </div>
                 <div className="flex justify-end gap-3 items-center">
                   <button
@@ -2180,6 +2190,69 @@ export default function App() {
       )}
 
 
+
+      {/* Import Code Modal */}
+      {showImportCodeModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+            <h3 className="text-xl font-bold text-brand flex items-center gap-2">
+              <Download className="w-6 h-6 shrink-0 text-brand" />
+              {t('modals.importCodeTitle')}
+            </h3>
+            <p className="text-white/80 text-sm font-sans">{t('modals.importCodeDesc')}</p>
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                maxLength={6}
+                value={importCodeValue}
+                onChange={(e) => setImportCodeValue(e.target.value.toUpperCase().trim())}
+                placeholder={t('modals.importCodePlaceholder')}
+                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-center text-lg font-mono font-bold tracking-widest text-white outline-none focus:border-brand transition-colors"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end items-center">
+              <button
+                onClick={() => {
+                  setShowImportCodeModal(false);
+                  setImportCodeValue('');
+                }}
+                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+              >
+                {t('modals.cancelBtn')}
+              </button>
+              <button
+                onClick={async () => {
+                  if (importCodeValue.length !== 6) {
+                    showToast(t('toast.invalidCodeLength'), true);
+                    return;
+                  }
+                  setShowImportCodeModal(false);
+                  showSpinner(t('toast.retrievingSession'));
+                  try {
+                    const res = await fetch(`/api/share/${importCodeValue}`);
+                    if (!res.ok) throw new Error('Shared session not found');
+                    const data = await res.json();
+                    setImportPreview(data);
+                    setImportCodeValue('');
+                  } catch (e: any) {
+                    console.error(e);
+                    showToast(t('toast.failedRetrieveShared'), true);
+                  } finally {
+                    hideSpinner();
+                  }
+                }}
+                disabled={importCodeValue.length !== 6}
+                className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
+              >
+                {t('modals.importSessionBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Import Preview Modal */}
       {importPreview && (
@@ -2319,7 +2392,8 @@ export default function App() {
                       availableHomework: hasHomework,
                       availableTechnical: hasTechnical,
                       availableEmotional: hasEmotional,
-                      generatedLink: selectedSession.shareId ? `${window.location.origin}/?import=${selectedSession.shareId}` : undefined
+                      generatedLink: selectedSession.shareId ? selectedSession.shareId : undefined,
+                      shareCode: selectedSession.shareId ? selectedSession.shareId : undefined
                     });
                   }
                 }}
@@ -2374,22 +2448,31 @@ export default function App() {
             )}
 
             {/* Action buttons - Compact same-line layout */}
-            <div className={selectedGroupId ? "" : "grid grid-cols-2 gap-4"}>
+            <div className="flex gap-4">
               <button
                 onClick={createSession}
-                className={`py-3.5 glass bg-brand/10 border-brand/20 text-brand font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand ${selectedGroupId ? 'w-full py-4 text-base' : ''}`}
+                className={`py-3.5 glass bg-brand/10 border-brand/20 text-brand font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand flex-1 min-h-[52px] ${selectedGroupId ? 'py-4 text-base' : ''}`}
               >
                 <Plus className="w-4 h-4" />
                 {t('home.newSession')}
               </button>
               {!selectedGroupId && (
-                <button
-                  onClick={() => setFolderModal({ type: 'create', name: '' })}
-                  className="py-3.5 glass bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500/20 transition-all rounded-2xl shadow-lg shadow-blue-500/10"
-                >
-                  <FolderPlus className="w-4 h-4" />
-                  {t('home.newFolder')}
-                </button>
+                <>
+                  <button
+                    onClick={() => setFolderModal({ type: 'create', name: '' })}
+                    className="py-3.5 glass bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500/20 transition-all rounded-2xl shadow-lg shadow-blue-500/10 flex-1 min-h-[52px]"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    {t('home.newFolder')}
+                  </button>
+                  <button
+                    onClick={() => setShowImportCodeModal(true)}
+                    className="w-[52px] h-[52px] glass bg-purple-500/10 border-purple-500/20 text-purple-400 font-bold flex items-center justify-center hover:bg-purple-500/20 transition-all rounded-2xl shadow-lg shadow-purple-500/10 shrink-0"
+                    title={t('home.importBtnTitle')}
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                </>
               )}
             </div>
 
@@ -3131,7 +3214,7 @@ function SessionDetail({
                 className="p-2 rounded-xl border bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/80 transition-colors flex items-center justify-center min-h-[38px] min-w-[38px]"
                 title={t('session.sessionSettings')}
               >
-                <Settings className="w-4 h-4 text-brand" />
+                <SlidersHorizontal className="w-4 h-4 text-brand" />
               </button>
             </div>
           </div>
@@ -3237,7 +3320,7 @@ function SessionDetail({
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Settings className="w-5 h-5 text-brand" />
+                <SlidersHorizontal className="w-5 h-5 text-brand" />
                 {t('sessionSettings.drawerTitle')}
               </h3>
               <button
