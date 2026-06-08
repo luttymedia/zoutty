@@ -350,7 +350,7 @@ const es: Translations = {
     demoTooltipEdit: '💡 Puedes editar este texto directamente.',
     demoTooltipDelete: '💡 Esto elimina el elemento.',
     demoTooltipShare: '💡 Puedes generar un enlace para compartir esta sesión.',
-    demoTooltipExport: '💡 Puedes exportar esta sesión a un documento de Word.',
+    demoTooltipExport: '💡 Puedes exportar esta sesión a un documento PDF.',
     demoTooltipGallery: '💡 Puedes adjuntar fotos y videos a la sesión aquí.',
     demoTooltipSettings: '💡 Puedes configurar el estilo de baile y el idioma de los audios aquí.',
     demoTooltipGlossary: '💡 Esto detecta el estilo de baile automáticamente y aplica la terminología (glosario) correcta al informe.',

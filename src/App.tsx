@@ -50,7 +50,7 @@ import { CustomSwitch } from './components/CustomSwitch';
 import { AutoGrowingTextarea } from './components/AutoGrowingTextarea';
 import { WelcomeModal } from './components/WelcomeModal';
 import Markdown from 'react-markdown';
-import { exportDocx } from './lib/exportDocx';
+// Word export removed due to Google Docs converter compatibility issues
 import { useTranslation } from './i18n/TranslationContext';
 import { UI_LANGUAGE_NAMES } from './i18n';
 import {
@@ -241,7 +241,6 @@ export default function App() {
   const [deleteFolderModal, setDeleteFolderModal] = useState<{ id: string, name: string } | null>(null);
   const [deleteFolderAlsoSessions, setDeleteFolderAlsoSessions] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'docx' | 'pdf'>('docx');
   const [exportIncludeAudioTranscripts, setExportIncludeAudioTranscripts] = useState(true);
 
   const [shareModal, setShareModal] = useState<{
@@ -1382,38 +1381,12 @@ export default function App() {
               </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-white/40 uppercase tracking-wider">{t('modals.exportFormatLabel')}</label>
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => setExportFormat('docx')}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${exportFormat === 'docx' ? 'bg-brand/20 border-brand/50 text-brand' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${exportFormat === 'docx' ? 'border-brand' : 'border-white/30'}`}>
-                    {exportFormat === 'docx' && <div className="w-2 h-2 rounded-full bg-brand" />}
-                  </div>
-                  <span className="text-sm font-medium">{t('modals.exportFormatDocx')}</span>
-                </button>
-                <button
-                  onClick={() => setExportFormat('pdf')}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${exportFormat === 'pdf' ? 'bg-brand/20 border-brand/50 text-brand' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${exportFormat === 'pdf' ? 'border-brand' : 'border-white/30'}`}>
-                    {exportFormat === 'pdf' && <div className="w-2 h-2 rounded-full bg-brand" />}
-                  </div>
-                  <span className="text-sm font-medium">{t('modals.exportFormatPdf')}</span>
-                </button>
-              </div>
+            <div className="bg-brand/10 border border-brand/20 p-3 rounded-xl flex items-start gap-3 mt-4">
+              <AlertTriangle className="w-5 h-5 text-brand shrink-0 mt-0.5" />
+              <p className="text-xs text-brand/90 leading-relaxed">
+                {t('modals.exportPdfInstructions')}
+              </p>
             </div>
-
-            {exportFormat === 'pdf' && (
-              <div className="bg-brand/10 border border-brand/20 p-3 rounded-xl flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-brand shrink-0 mt-0.5" />
-                <p className="text-xs text-brand/90 leading-relaxed">
-                  {t('modals.exportPdfInstructions')}
-                </p>
-              </div>
-            )}
 
             <div className="flex gap-3 justify-end items-center mt-6">
               <button
@@ -1425,39 +1398,24 @@ export default function App() {
               <button
                 onClick={async () => {
                   setShowExportConfirm(false);
-                  if (exportFormat === 'pdf') {
-                    if (!exportIncludeAudioTranscripts) {
-                      document.body.classList.add('no-print-transcripts');
-                    }
-                    const dateStr = format(new Date(selectedSession.date), "yyyy-MM-dd");
-                    let fileName = `Zoutty_${dateStr}`;
-                    if (selectedSession.title) {
-                        const safeTitle = selectedSession.title.replace(/[<>:"/\\|?*]/g, '_').trim();
-                        fileName = `Zoutty_${safeTitle}`;
-                    }
-                    const originalTitle = document.title;
-                    document.title = fileName;
-                    setTimeout(() => {
-                      window.print();
-                      document.title = originalTitle;
-                      if (!exportIncludeAudioTranscripts) {
-                        document.body.classList.remove('no-print-transcripts');
-                      }
-                    }, 100);
-                  } else {
-                    showSpinner(t('toast.generatingDoc'));
-                    try {
-                      const report = await db.getSessionFinalReport(selectedSession.id);
-                      const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp);
-                      await exportDocx(selectedSession, sessionEntries, report, t, { includeTranscripts: exportIncludeAudioTranscripts });
-                      showToast(t('toast.docExported'));
-                    } catch (err) {
-                      console.error(err);
-                      showToast(t('toast.failedExport'), true);
-                    } finally {
-                      hideSpinner();
-                    }
+                  if (!exportIncludeAudioTranscripts) {
+                    document.body.classList.add('no-print-transcripts');
                   }
+                  const dateStr = format(new Date(selectedSession.date), "yyyy-MM-dd");
+                  let fileName = `Zoutty_${dateStr}`;
+                  if (selectedSession.title) {
+                      const safeTitle = selectedSession.title.replace(/[<>:"/\\|?*]/g, '_').trim();
+                      fileName = `Zoutty_${safeTitle}`;
+                  }
+                  const originalTitle = document.title;
+                  document.title = fileName;
+                  setTimeout(() => {
+                    window.print();
+                    document.title = originalTitle;
+                    if (!exportIncludeAudioTranscripts) {
+                      document.body.classList.remove('no-print-transcripts');
+                    }
+                  }, 100);
                 }}
                 className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs"
               >
@@ -3716,10 +3674,10 @@ function EditableText({ value, onChange, className, multiline = false, onInterce
 function CollapsiblePanel({ title, children, defaultOpen = true, accent = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean; accent?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className={`rounded-xl border overflow-hidden ${accent ? 'border-brand/30' : 'border-white/10'}`}>
+    <div className={`rounded-xl border overflow-hidden ${accent ? 'border-brand/30 print:border-brand/30' : 'border-white/10 print:border-black/10'}`}>
       <button
         onClick={() => setOpen(o => !o)}
-        className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${accent ? 'bg-brand/10 hover:bg-brand/15' : 'bg-white/5 hover:bg-white/10'} print-show-flex`}
+        className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${accent ? 'bg-brand/10 hover:bg-brand/15 print:bg-brand/5' : 'bg-white/5 hover:bg-white/10 print:bg-black/5'} print-show-flex`}
       >
         <span className={`text-xs font-bold uppercase tracking-widest ${accent ? 'text-brand' : 'text-white/50'}`}>{title}</span>
         <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${open ? '' : '-rotate-90'} print-hide-icon`} />
@@ -3791,7 +3749,7 @@ function ExpandedInsightsBlock({ data, onChange, onIntercept }: { data: Expanded
         <span className="font-bold text-purple-300 text-sm">{t('session.expandedInsights')}</span>
         <ChevronDown className={`w-4 h-4 text-purple-400/50 ml-auto transition-transform ${open ? 'rotate-180' : ''} print-hide-icon`} />
       </button>
-      <div className={`p-4 space-y-3 bg-black/20 ${open ? 'block' : 'hidden'} print-expand`}>
+      <div className={`p-4 space-y-3 bg-black/20 print:bg-transparent ${open ? 'block' : 'hidden'} print-expand`}>
         {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.drills')} defaultOpen={false}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
         {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.homework')} defaultOpen={false}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
         {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.technicalExpansion')} defaultOpen={false}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
@@ -3812,7 +3770,7 @@ function TranscriptBlock({ text, onChange, onIntercept }: { text: string, onChan
         <span className="font-bold text-white/50 text-sm">{t('session.viewTranscript')}</span>
         <ChevronDown className={`w-4 h-4 text-white/20 ml-auto transition-transform ${open ? 'rotate-180' : ''} print-hide-icon`} />
       </button>
-      <div className={`p-4 bg-black/20 text-white/50 text-sm italic leading-relaxed ${open ? 'block' : 'hidden'} print-expand`}>
+      <div className={`p-4 bg-black/20 print:bg-transparent text-white/50 print:text-black/60 text-sm italic leading-relaxed ${open ? 'block' : 'hidden'} print-expand`}>
         {onChange ? (
           <EditableText value={text} onChange={onChange} multiline={true} className="whitespace-pre-wrap block" onIntercept={onIntercept} />
         ) : (
@@ -3975,9 +3933,9 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
 
   if (hasConsolidated) {
     availableItems.set(reportId, (
-      <div className={`border rounded-2xl overflow-hidden shadow-sm ${consolidatedStrictSummary ? 'border-brand/40 bg-brand/5' : 'border-white/10 glass'}`}>
+      <div className={`border rounded-2xl overflow-hidden shadow-sm ${consolidatedStrictSummary ? 'border-brand/40 bg-brand/5 print:bg-transparent print:border-black/10' : 'border-white/10 glass'}`}>
         <div
-          className="px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 bg-brand/10 cursor-pointer select-none transition-colors hover:bg-brand/20"
+          className="px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 bg-brand/10 print:bg-black/5 cursor-pointer select-none transition-colors hover:bg-brand/20"
           onClick={() => setIsConsolidatedOpen(o => !o)}
         >
           <div className="flex items-center gap-3">
@@ -3990,7 +3948,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
             </span>
           )}
         </div>
-        <div className={`p-4 space-y-4 bg-black/20 border-t border-brand/20 ${isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
+        <div className={`p-4 space-y-4 bg-black/20 print:bg-transparent border-t border-brand/20 print:border-black/10 ${isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
             {consolidatedStrictSummary && (
               <>
                 <div>
@@ -4059,7 +4017,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   // Add the Notes Card (always render so it is visible even on empty/new sessions)
   const notesId = `notes-${sessionId}`;
   availableItems.set(notesId, (
-    <div className="glass p-6 rounded-2xl border border-white/10 shadow-sm relative w-full box-border">
+    <div className="bg-white/5 print:bg-transparent backdrop-blur-md border border-white/10 print:border-transparent p-6 rounded-2xl shadow-sm print:shadow-none relative w-full box-border mt-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('session.notesHeading')}</h3>
         {!isNoteVisible && !sessionNotes && (
@@ -4100,7 +4058,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
               setIsNoteVisible(false);
             }
           }}
-          className="w-full min-h-[150px] bg-black/20 text-white/80 p-4 rounded-xl border border-white/5 outline-none focus:border-brand/50 transition-colors resize-none overflow-hidden box-border"
+          className="w-full min-h-[150px] bg-black/20 print:bg-black/5 text-white/80 print:text-black/80 p-4 rounded-xl border border-white/5 print:border-black/10 outline-none focus:border-brand/50 transition-colors resize-none overflow-hidden box-border"
         />
       )}
     </div>
@@ -4307,11 +4265,11 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
         </div>
       </div>
 
-      <div className={`p-4 sm:p-5 bg-black/20 border-t border-white/5 space-y-4 ${isOpen ? 'block' : 'hidden'} print-expand`}>
+      <div className={`p-4 sm:p-5 bg-black/20 print:bg-transparent border-t border-white/5 print:border-black/10 space-y-4 ${isOpen ? 'block' : 'hidden'} print-expand`}>
           {audioUrl ? (
-            <audio controls src={audioUrl} className="w-full h-10 opacity-90 rounded-xl bg-black/20" />
+            <audio controls src={audioUrl} className="w-full h-10 opacity-90 rounded-xl bg-black/20 print-hide" />
           ) : audio.sessionId === 'demo-session' ? (
-            <div className="w-full h-10 flex items-center gap-3 bg-black/20 rounded-xl px-4 overflow-hidden relative cursor-not-allowed">
+            <div className="w-full h-10 flex items-center gap-3 bg-black/20 rounded-xl px-4 overflow-hidden relative cursor-not-allowed print-hide">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
               <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
                 <Play className="w-3 h-3 text-black fill-black ml-[1.5px]" />
@@ -4433,7 +4391,7 @@ function CollapsibleSection({ title, contentObj, isReport = false, isOpen, onTog
       {isOpen && (
         <div className="p-4 sm:p-5 bg-black/20 border-t border-white/5">
           {audioUrl && (
-            <audio controls src={audioUrl} className="w-full h-10 mb-5 opacity-90 transition-opacity rounded-xl bg-black/20" />
+            <audio controls src={audioUrl} className="w-full h-10 mb-5 opacity-90 transition-opacity rounded-xl bg-black/20 print-hide" />
           )}
 
           {Object.keys(contentObj).length > 0 ? (

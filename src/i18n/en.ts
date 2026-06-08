@@ -348,7 +348,7 @@ const en = {
     demoTooltipEdit: '💡 You can edit this text directly.',
     demoTooltipDelete: '💡 This deletes the item.',
     demoTooltipShare: '💡 You can generate a link to share this session.',
-    demoTooltipExport: '💡 You can export this session to a Word Document.',
+    demoTooltipExport: '💡 You can export this session to a PDF document.',
     demoTooltipGallery: '💡 You can attach videos and photos to the session here.',
     demoTooltipSettings: '💡 You can configure the dance style and language here.',
     demoTooltipGlossary: '💡 This detects the dance style automatically and applies the correct terminology (glossary) to the AI report.',
