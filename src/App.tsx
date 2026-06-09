@@ -2327,7 +2327,7 @@ export default function App() {
       )}
 
       {/* Top Bar */}
-      <header className="px-6 py-8 flex items-center justify-between">
+      <header className="max-w-2xl mx-auto w-full px-6 py-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {(view === 'detail' || (view === 'list' && selectedGroupId !== null)) && (
             <button
