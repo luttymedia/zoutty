@@ -909,6 +909,9 @@ export default function App() {
           }
           if (Object.keys(reportData).length > 0) {
             payload.report = reportData;
+            if (report.timestamp) {
+              payload.reportTimestamp = report.timestamp;
+            }
           }
         }
       }
@@ -976,7 +979,7 @@ export default function App() {
           id: crypto.randomUUID(),
           sessionId: newSessionId,
           report: importPreview.report,
-          timestamp: Date.now()
+          timestamp: importPreview.reportTimestamp || importPreview.date || Date.now()
         });
       }
 
