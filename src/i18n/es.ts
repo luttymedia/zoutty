@@ -203,7 +203,7 @@ const es: Translations = {
     disableReorder: 'Desactivar modo de reordenación',
     enableReorder: 'Activar modo de reordenación',
     sessionSettings: 'Ajustes de sesión',
-    exportToWord: 'Exportar a Word',
+    exportToPDF: 'Exportar a PDF',
     reorderModeActive: 'Modo de reordenación activo',
     // Audio entries
     audioEntryDefault: 'Entrada de audio {index}',
@@ -352,7 +352,7 @@ const es: Translations = {
     cloudBackupDesc: 'Opcional. Conecta tu Google Drive en Ajustes para copias automáticas y evitar pérdidas si el navegador borra los datos.',
     startExploring: 'Empezar a Explorar',
     // Demo content
-    demoSessionTitle: 'Sesión de Bienvenida y Tour',
+    demoSessionTitle: 'Sesión de Guía Práctica',
     demoSessionSubtitle: 'Subtítulo editable de la sesión',
     demoAudioTranscript: 'Esta es una grabación de prueba de una clase de baile. Puedes capturar combinaciones, consejos o correcciones de la clase aquí.',
     demoAudioFilename: 'Audio de Prueba.mp3',

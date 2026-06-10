@@ -132,12 +132,12 @@ function Toast({ message, isError, actionText, onAction, onClose, duration = 500
   const isDragging = touchStart.current !== null;
 
   return (
-    <div 
+    <div
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ 
-        transform: `translateX(calc(-50% + ${offset}px))`, 
+      style={{
+        transform: `translateX(calc(-50% + ${offset}px))`,
         opacity: 1 - Math.abs(offset) / 200,
         transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.2s ease-out'
       }}
@@ -1349,7 +1349,7 @@ export default function App() {
             <p className="text-white/70 text-sm">
               {t('modals.exportMsg')}
             </p>
-            
+
             <div className="space-y-3">
               <label className="text-xs font-bold text-white/40 uppercase tracking-wider">{t('modals.exportIncludeTranscriptsLabel', 'Include Data')}</label>
               <div className="flex items-center gap-3">
@@ -1391,17 +1391,21 @@ export default function App() {
                   const dateStr = format(new Date(selectedSession.date), "yyyy-MM-dd");
                   let fileName = `Zoutty_${dateStr}`;
                   if (selectedSession.title) {
-                      const safeTitle = selectedSession.title.replace(/[<>:"/\\|?*]/g, '_').trim();
-                      fileName = `Zoutty_${safeTitle}`;
+                    const safeTitle = selectedSession.title.replace(/[<>:"/\\|?*]/g, '_').trim();
+                    fileName = `Zoutty_${safeTitle}`;
                   }
                   const originalTitle = document.title;
                   document.title = fileName;
                   setTimeout(() => {
+                    const handleAfterPrint = () => {
+                      document.title = originalTitle;
+                      if (!exportIncludeAudioTranscripts) {
+                        document.body.classList.remove('no-print-transcripts');
+                      }
+                      window.removeEventListener('afterprint', handleAfterPrint);
+                    };
+                    window.addEventListener('afterprint', handleAfterPrint);
                     window.print();
-                    document.title = originalTitle;
-                    if (!exportIncludeAudioTranscripts) {
-                      document.body.classList.remove('no-print-transcripts');
-                    }
                   }, 100);
                 }}
                 className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs"
@@ -1437,7 +1441,7 @@ export default function App() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 text-center">
             <div className="w-16 h-16 bg-brand/20 rounded-full flex items-center justify-center mx-auto mb-2">
-              <svg className="w-8 h-8 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/><polyline points="8 13 12 17 16 13"/><line x1="12" y1="17" x2="12" y2="9"/></svg>
+              <svg className="w-8 h-8 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29" /><polyline points="8 13 12 17 16 13" /><line x1="12" y1="17" x2="12" y2="9" /></svg>
             </div>
             <h3 className="text-xl font-bold">
               {t('onboarding.hintBackupTitle')}
@@ -1446,14 +1450,14 @@ export default function App() {
               {t('onboarding.hintBackupMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button 
-                onClick={() => setShowBackupReminderModal(false)} 
+              <button
+                onClick={() => setShowBackupReminderModal(false)}
                 className="flex-1 px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm text-white"
               >
                 {t('onboarding.hintBackupDismissBtn')}
               </button>
-              <button 
-                onClick={() => { setShowBackupReminderModal(false); setShowAppSettings(true); }} 
+              <button
+                onClick={() => { setShowBackupReminderModal(false); setShowAppSettings(true); }}
                 className="flex-1 px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/20 text-black min-h-[44px] text-sm"
               >
                 {t('onboarding.hintBackupBtn')}
@@ -1516,10 +1520,10 @@ export default function App() {
                 {/* Header row */}
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                   </svg>
                   <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider flex-1">
                     {t('appSettings.cloudSyncSection')}
@@ -1567,10 +1571,10 @@ export default function App() {
                     className="w-full flex items-center justify-center gap-2.5 p-4 rounded-xl border border-brand/30 bg-brand/10 text-white hover:bg-brand/20 hover:border-brand/50 transition-all text-sm font-bold shadow-sm shadow-brand/10"
                   >
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84z"/>
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84z" />
                     </svg>
                     {t('appSettings.cloudSyncConnectBtn')}
                   </button>
@@ -1793,10 +1797,10 @@ export default function App() {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
               </div>
               <h3 className="text-lg font-bold text-white">{t('modals.confirmDriveDisconnect')}</h3>
@@ -2130,16 +2134,16 @@ export default function App() {
               <>
                 <div className="space-y-4 font-sans">
                   <h4 className="text-white font-bold text-sm">{t('modals.shareCodeReady')}</h4>
-                  
+
                   <div className="flex flex-col items-center justify-center bg-black/40 border border-white/10 rounded-2xl p-6 space-y-2 relative">
                     <span className="text-white/40 text-xs font-bold uppercase tracking-widest">{t('modals.shareCodeLabel')}</span>
                     <div className="flex items-center gap-4">
                       <span className="text-brand text-3xl font-mono font-black tracking-widest select-all">{shareModal.shareCode}</span>
-                      <button 
-                        onClick={() => { 
-                          navigator.clipboard.writeText(shareModal.shareCode || ''); 
-                          showToast(t('toast.codeCopied')); 
-                        }} 
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(shareModal.shareCode || '');
+                          showToast(t('toast.codeCopied'));
+                        }}
                         className="p-2.5 bg-white/5 hover:bg-white/10 active:scale-95 rounded-xl text-white/60 transition-all shadow-sm"
                         title="Copy code"
                       >
@@ -2154,12 +2158,12 @@ export default function App() {
                       ? t('modals.shareLinkExpiryCountdown', { days: Math.max(1, 30 - Math.floor((Date.now() - shareModal.shareTimestamp) / (1000 * 60 * 60 * 24))) })
                       : t('modals.shareLinkExpiry')}
                   </p>
-                  
+
                   <button
                     onClick={async () => {
                       const shareCode = shareModal.shareCode || '';
                       const shareMessage = t('modals.shareMessageTemplate', { code: shareCode });
-                      
+
                       if (navigator.share) {
                         try {
                           await navigator.share({
@@ -2422,7 +2426,7 @@ export default function App() {
                   }
                 }}
                 className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
-                title={t('session.exportToWord')}
+                title={t('session.exportToPDF')}
               >
                 <Download className="w-5 h-5" />
               </button>
@@ -4043,21 +4047,21 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
           )}
         </div>
         <div className={`p-4 space-y-4 bg-black/20 print:bg-transparent border-t border-brand/20 print:border-black/10 ${isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
-            {consolidatedStrictSummary && (
-              <>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
-                  <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} onIntercept={interceptProp} />
-                </div>
-                {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} onIntercept={interceptProp} />}
-              </>
-            )}
-            {legacyReportContent && (
-              <>
-                <StructuredBullets contentObj={legacyReportContent} isReport={true} onChange={handleUpdateLegacyConsolidated} onIntercept={interceptProp} />
-              </>
-            )}
-          </div>
+          {consolidatedStrictSummary && (
+            <>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
+                <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} onIntercept={interceptProp} />
+              </div>
+              {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} onIntercept={interceptProp} />}
+            </>
+          )}
+          {legacyReportContent && (
+            <>
+              <StructuredBullets contentObj={legacyReportContent} isReport={true} onChange={handleUpdateLegacyConsolidated} onIntercept={interceptProp} />
+            </>
+          )}
+        </div>
       </div>
     ));
   }
@@ -4360,77 +4364,77 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
       </div>
 
       <div className={`p-4 sm:p-5 bg-black/20 print:bg-transparent border-t border-white/5 print:border-black/10 space-y-4 ${isOpen ? 'block' : 'hidden'} print-expand`}>
-          {audioUrl ? (
-            <audio controls src={audioUrl} className="w-full h-10 opacity-90 rounded-xl bg-black/20 print-hide" />
-          ) : audio.sessionId === 'demo-session' ? (
-            <div className="w-full h-10 flex items-center gap-3 bg-black/20 rounded-xl px-4 overflow-hidden relative cursor-not-allowed print-hide">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
-              <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
-                <Play className="w-3 h-3 text-black fill-black ml-[1.5px]" />
-              </div>
-              <div className="flex-1 flex items-center justify-between gap-[3px] opacity-50 overflow-hidden px-2">
-                {[12, 24, 18, 10, 14, 22, 20, 12, 10, 16, 24, 18, 12, 14, 20, 24, 16, 10, 14, 22, 18, 12, 14, 20, 16, 10, 12, 22, 18, 14].map((h, i) => (
-                  <div key={i} className="w-1.5 rounded-full bg-brand/60" style={{ height: `${h}px` }}></div>
-                ))}
-              </div>
-              <span className="text-[10px] text-brand/50 font-mono tracking-widest">00:45</span>
+        {audioUrl ? (
+          <audio controls src={audioUrl} className="w-full h-10 opacity-90 rounded-xl bg-black/20 print-hide" />
+        ) : audio.sessionId === 'demo-session' ? (
+          <div className="w-full h-10 flex items-center gap-3 bg-black/20 rounded-xl px-4 overflow-hidden relative cursor-not-allowed print-hide">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
+            <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
+              <Play className="w-3 h-3 text-black fill-black ml-[1.5px]" />
             </div>
-          ) : null}
-
-          {hasNewShape ? (
-            <>
-              {audio.strictSummary && (audio.strictSummary as string[]).length > 0 && (
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
-                  <StrictSummaryBlock data={audio.strictSummary as string[]} onChange={(s) => onUpdateContent({ strictSummary: s })} onIntercept={interceptProp} />
-                </div>
-              )}
-              {audio.expandedInsights && <ExpandedInsightsBlock data={audio.expandedInsights} onChange={(ei) => onUpdateContent({ expandedInsights: ei })} onIntercept={interceptProp} />}
-              <TranscriptBlock text={audio.transcript ?? ''} onChange={(t) => onUpdateContent({ transcript: t })} onIntercept={interceptProp} />
-            </>
-          ) : (
-            <>
-              {Object.keys(legacyContent).length > 0 ? (
-                <div className="print-transcript">
-                  <StructuredBullets contentObj={legacyContent} onIntercept={interceptProp} onChange={(newObj) => {
-                    if ((audio as any).processedData) {
-                      onUpdateContent({ processedData: { ...(audio as any).processedData, ...newObj } } as any);
-                    } else if (audio.transcript && typeof legacyContent === 'object') {
-                      try {
-                        onUpdateContent({ transcript: JSON.stringify({ ...JSON.parse(audio.transcript), ...newObj }) });
-                      } catch (e) { }
-                    } else {
-                      onUpdateContent(newObj as any);
-                    }
-                  }} />
-                </div>
-              ) : isProcessing ? (
-                <p className="text-white/40 italic text-sm">{t('session.waitingForContent')}</p>
-              ) : null}
-              {audio.transcript && !hasNewShape && (
-                <div className="mt-4 pt-4 border-t border-white/5 text-sm print-transcript">
-                  <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">{t('session.rawTranscript')}</span>
-                  <EditableText value={audio.transcript} onChange={(t) => onUpdateContent({ transcript: t })} multiline className="text-white/60 italic leading-relaxed whitespace-pre-wrap block" onIntercept={interceptProp} />
-                </div>
-              )}
-            </>
-          )}
-
-          {!isProcessing && (audio.transcript || audio.strictSummary || audio.bulletPoints || Object.keys(legacyContent).length > 0) && (
-            <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRequestReprocess();
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm font-bold shadow-sm"
-              >
-                <Zap className="w-4 h-4" />
-                {t('session.reprocessClip')}
-              </button>
+            <div className="flex-1 flex items-center justify-between gap-[3px] opacity-50 overflow-hidden px-2">
+              {[12, 24, 18, 10, 14, 22, 20, 12, 10, 16, 24, 18, 12, 14, 20, 24, 16, 10, 14, 22, 18, 12, 14, 20, 16, 10, 12, 22, 18, 14].map((h, i) => (
+                <div key={i} className="w-1.5 rounded-full bg-brand/60" style={{ height: `${h}px` }}></div>
+              ))}
             </div>
-          )}
-        </div>
+            <span className="text-[10px] text-brand/50 font-mono tracking-widest">00:45</span>
+          </div>
+        ) : null}
+
+        {hasNewShape ? (
+          <>
+            {audio.strictSummary && (audio.strictSummary as string[]).length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
+                <StrictSummaryBlock data={audio.strictSummary as string[]} onChange={(s) => onUpdateContent({ strictSummary: s })} onIntercept={interceptProp} />
+              </div>
+            )}
+            {audio.expandedInsights && <ExpandedInsightsBlock data={audio.expandedInsights} onChange={(ei) => onUpdateContent({ expandedInsights: ei })} onIntercept={interceptProp} />}
+            <TranscriptBlock text={audio.transcript ?? ''} onChange={(t) => onUpdateContent({ transcript: t })} onIntercept={interceptProp} />
+          </>
+        ) : (
+          <>
+            {Object.keys(legacyContent).length > 0 ? (
+              <div className="print-transcript">
+                <StructuredBullets contentObj={legacyContent} onIntercept={interceptProp} onChange={(newObj) => {
+                  if ((audio as any).processedData) {
+                    onUpdateContent({ processedData: { ...(audio as any).processedData, ...newObj } } as any);
+                  } else if (audio.transcript && typeof legacyContent === 'object') {
+                    try {
+                      onUpdateContent({ transcript: JSON.stringify({ ...JSON.parse(audio.transcript), ...newObj }) });
+                    } catch (e) { }
+                  } else {
+                    onUpdateContent(newObj as any);
+                  }
+                }} />
+              </div>
+            ) : isProcessing ? (
+              <p className="text-white/40 italic text-sm">{t('session.waitingForContent')}</p>
+            ) : null}
+            {audio.transcript && !hasNewShape && (
+              <div className="mt-4 pt-4 border-t border-white/5 text-sm print-transcript">
+                <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">{t('session.rawTranscript')}</span>
+                <EditableText value={audio.transcript} onChange={(t) => onUpdateContent({ transcript: t })} multiline className="text-white/60 italic leading-relaxed whitespace-pre-wrap block" onIntercept={interceptProp} />
+              </div>
+            )}
+          </>
+        )}
+
+        {!isProcessing && (audio.transcript || audio.strictSummary || audio.bulletPoints || Object.keys(legacyContent).length > 0) && (
+          <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRequestReprocess();
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm font-bold shadow-sm"
+            >
+              <Zap className="w-4 h-4" />
+              {t('session.reprocessClip')}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

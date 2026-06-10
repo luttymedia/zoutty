@@ -201,7 +201,7 @@ const en = {
     disableReorder: 'Disable reorder mode',
     enableReorder: 'Enable reorder mode',
     sessionSettings: 'Session Settings',
-    exportToWord: 'Export to Word',
+    exportToPDF: 'Export to PDF',
     reorderModeActive: 'Reorder Mode Active',
     // Audio entries
     audioEntryDefault: 'Audio Entry {index}',
@@ -350,7 +350,7 @@ const en = {
     cloudBackupDesc: 'Optional. Connect your Google Drive in Settings for automatic backups to protect against browser data wipes.',
     startExploring: 'Start Exploring',
     // Demo content
-    demoSessionTitle: 'Welcome & Tour Session',
+    demoSessionTitle: 'Practical Guide Session',
     demoSessionSubtitle: 'Editable session subtitle',
     demoAudioTranscript: 'This is a mock recording of a dance lesson. You can capture combinations, tips, or feedback from your class here.',
     demoAudioFilename: 'Sample Audio.mp3',
