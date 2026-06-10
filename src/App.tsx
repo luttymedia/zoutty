@@ -82,6 +82,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { version } from './version';
+import { changelog } from './changelog';
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -1719,24 +1720,49 @@ export default function App() {
 
             {/* Drawer Footer / Version Info */}
             <div className="border-t border-white/5 pt-4 text-center mt-auto pr-6">
-              <p className="text-[10px] text-white/30 tracking-widest font-mono">
+              <button
+                onClick={() => setShowVersionModal(true)}
+                className="text-[10px] text-white/30 tracking-widest font-mono hover:text-white/60 transition-colors cursor-pointer"
+              >
                 ZOUTTY v{version}
-              </p>
+              </button>
             </div>
           </div>
         </>
       )}
 
-      {/* Version Modal */}
+      {/* Version & Changelog Modal */}
       {showVersionModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
-          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 text-center relative">
-            <ZouttyIcon className="w-16 h-16 text-brand mx-auto" />
-            <h3 className="text-xs uppercase tracking-[0.2em] text-brand font-bold mt-2">ZOUTTY</h3>
-            <p className="inline-block mt-2 px-4 py-1 bg-white/10 text-white/70 font-mono font-medium rounded-full border border-white/20 text-sm tracking-widest">
-              v{version}
-            </p>
-            <div className="flex justify-center mt-8">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6" onClick={() => setShowVersionModal(false)}>
+          <div className="glass p-8 max-w-md w-full animate-in zoom-in-95 relative max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="text-center shrink-0">
+              <ZouttyIcon className="w-16 h-16 text-brand mx-auto" />
+              <h3 className="text-xs uppercase tracking-[0.2em] text-brand font-bold mt-2">ZOUTTY</h3>
+              <p className="inline-block mt-2 px-4 py-1 bg-white/10 text-white/70 font-mono font-medium rounded-full border border-white/20 text-sm tracking-widest">
+                v{version}
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 space-y-6 mt-8 custom-scrollbar">
+              <h4 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-4 border-b border-white/10 pb-2">
+                Changelog
+              </h4>
+              {changelog.map((entry, idx) => (
+                <div key={idx} className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-brand font-mono font-bold text-sm">v{entry.version}</span>
+                    <span className="text-white/40 text-xs">{entry.date}</span>
+                  </div>
+                  <ul className="list-disc list-inside text-white/70 text-sm space-y-1">
+                    {entry.changes.map((change, cIdx) => (
+                      <li key={cIdx}>{change}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-center mt-8 shrink-0 pt-6 border-t border-white/10">
               <button
                 onClick={() => setShowVersionModal(false)}
                 className="px-8 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
