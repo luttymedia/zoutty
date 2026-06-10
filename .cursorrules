@@ -2,3 +2,8 @@
 
 ## Development Environment
 - **Local Deployment Port**: The application development server must ALWAYS run on `http://localhost:3000/`. Never use the Vite default `5173` or any other port unless explicitly instructed by the user.
+
+## Versioning & Changelog
+- **Semantic Versioning**: Every time a modification or addition worth bumping the version is made, ALWAYS bump the version in `src/version.ts` (and anywhere else applicable) following semantic versioning guidelines (Major.Minor.Patch).
+- **Changelog Updates**: Any version bump must be accompanied by a new entry in `src/changelog.ts` documenting the changes.
+- **Consultation**: If there is ever any lack of clarity or ambiguity regarding whether a change warrants a version bump, or what magnitude the bump should be, you MUST consult the user BEFORE making the version change. This is critical.
