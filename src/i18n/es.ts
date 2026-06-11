@@ -169,7 +169,7 @@ const es: Translations = {
     shareMedia: 'Incluir Archivos Multimedia',
     shareMediaWarning: 'Archivos pesados seleccionados. Esta sesión se exportará como un archivo local.',
     shareNoMedia: '(Sin archivos multimedia)',
-    exportFileBtn: 'Exportar Archivo .zoutty',
+    exportFileBtn: 'Exportar Archivo',
     generateShareLink: 'Generar Código',
     updateShareLink: 'Actualizar Copia',
     shareResyncBtn: 'Actualizar',
@@ -200,7 +200,7 @@ const es: Translations = {
     importCodeDesc: 'Ingresa el código de 6 caracteres para previsualizar e importar la sesión.',
     importCodePlaceholder: 'Ej., A1B2C3',
     or: 'o',
-    importFromFile: 'Importar desde archivo .zoutty',
+    importFromFile: 'Importar desde archivo',
   },
 
   // ─── Session Detail ──────────────────────────────────────────────────────────
@@ -294,7 +294,7 @@ const es: Translations = {
     shareLinkGenerated: '¡Enlace para compartir generado!',
     shareLinkUpdated: '¡Copia compartida actualizada exitosamente!',
     failedShareLink: 'Error al generar el código para compartir',
-    fileExported: 'Sesión exportada como archivo .zoutty',
+    fileExported: 'Sesión exportada como archivo',
     importingSession: 'Importando sesión...',
     sessionImported: '¡Sesión importada correctamente!',
     failedImport: 'Error al importar la sesión',

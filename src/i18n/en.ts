@@ -167,7 +167,7 @@ const en = {
     shareMedia: 'Include Media',
     shareMediaWarning: 'Heavy media selected. This session will be exported as a local file.',
     shareNoMedia: '(No media found)',
-    exportFileBtn: 'Export .zoutty File',
+    exportFileBtn: 'Export File',
     generateShareLink: 'Generate Code',
     updateShareLink: 'Update Copy',
     shareResyncBtn: 'Update',
@@ -198,7 +198,7 @@ const en = {
     importCodeDesc: 'Enter the 6-character code shared with you to preview and import the session.',
     importCodePlaceholder: 'E.g., A1B2C3',
     or: 'or',
-    importFromFile: 'Import from .zoutty file',
+    importFromFile: 'Import from file',
   },
 
   // ─── Session Detail ──────────────────────────────────────────────────────────
@@ -292,7 +292,7 @@ const en = {
     shareLinkGenerated: 'Share link generated!',
     shareLinkUpdated: 'Shared copy updated successfully!',
     failedShareLink: 'Failed to generate share code',
-    fileExported: 'Session exported as .zoutty file',
+    fileExported: 'Session exported as file',
     importingSession: 'Importing session...',
     sessionImported: 'Session imported successfully!',
     failedImport: 'Failed to import session',

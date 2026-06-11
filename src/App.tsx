@@ -970,7 +970,7 @@ export default function App() {
         }
         
         const content = await zip.generateAsync({ type: 'blob' });
-        const fileName = `zoutty-session-${selectedSession.id.substring(0, 8)}.zoutty`;
+        const fileName = `zoutty-session-${selectedSession.id.substring(0, 8)}.zoutty.zip`;
         let sharedViaApi = false;
 
         if (navigator.canShare) {
@@ -2455,7 +2455,7 @@ export default function App() {
                 <div className="flex-grow border-t border-white/10"></div>
               </div>
 
-              <input type="file" id="zoutty-import-file" accept=".zoutty" className="hidden" onChange={handleImportFile} />
+              <input type="file" id="zoutty-import-file" accept=".zoutty,.zoutty.zip,.zip,application/zip" className="hidden" onChange={handleImportFile} />
               <label htmlFor="zoutty-import-file" className="w-full text-center px-5 py-3 rounded-xl font-bold border border-white/10 text-white/80 hover:bg-white/5 transition-colors cursor-pointer">
                 {t('modals.importFromFile', 'Import from .zoutty file')}
               </label>
