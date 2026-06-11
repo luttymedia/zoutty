@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.1.3',
+    date: '2026-06-11',
+    changes: [
+      'Improved Share Session modal UX to track and display previous share states (code vs file)',
+      'Added included content badges to the Share Modal to remind users what was previously shared'
+    ]
+  },
+  {
     version: "2.1.2",
     date: new Date().toISOString().split('T')[0],
     changes: [

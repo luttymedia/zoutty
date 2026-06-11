@@ -37,6 +37,13 @@ export interface Session {
   customGlossaryStyle?: string; // Optional custom style name if glossaryId is 'other'
   shareId?: string; // Optional share short code ID
   shareTimestamp?: number; // Optional timestamp when the share link was generated
+  shareMethod?: 'code' | 'file'; // Optional historical share method
+  sharedContent?: {
+    report: boolean;
+    notes: boolean;
+    transcripts: boolean;
+    media: boolean;
+  };
   isDemo?: boolean; // Indicates if this is a mock/demo session
 }
 

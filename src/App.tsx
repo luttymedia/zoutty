@@ -1004,7 +1004,26 @@ export default function App() {
           showToast(t('toast.shareSuccessful'));
         }
         
-        setShareModal(null);
+        const timestamp = Date.now();
+        const updatedContent = {
+          report: shareModal.shareReport,
+          notes: shareModal.shareNotes,
+          transcripts: shareModal.shareTranscripts,
+          media: shareModal.shareMedia
+        };
+        await updateSession(selectedSession.id, { 
+          shareMethod: 'file', 
+          shareTimestamp: timestamp,
+          sharedContent: updatedContent
+        });
+
+        setShareModal({
+          ...shareModal,
+          shareMethod: 'file',
+          sharedContent: updatedContent,
+          shareTimestamp: timestamp,
+          viewState: 'active_file'
+        });
         return;
       }
 
@@ -1022,11 +1041,31 @@ export default function App() {
       const { shareId } = await res.json();
       const shareTimestamp = Date.now();
 
-      if (shareId !== selectedSession.shareId || selectedSession.shareTimestamp !== shareTimestamp) {
-        await updateSession(selectedSession.id, { shareId, shareTimestamp });
+      const updatedContent = {
+        report: shareModal.shareReport,
+        notes: shareModal.shareNotes,
+        transcripts: shareModal.shareTranscripts,
+        media: shareModal.shareMedia
+      };
+
+      if (shareId !== selectedSession.shareId || selectedSession.shareTimestamp !== shareTimestamp || selectedSession.shareMethod !== 'code') {
+        await updateSession(selectedSession.id, { 
+          shareId, 
+          shareTimestamp, 
+          shareMethod: 'code',
+          sharedContent: updatedContent
+        });
       }
 
-      setShareModal(prev => prev ? { ...prev, generatedLink: shareId, shareCode: shareId, shareTimestamp } : null);
+      setShareModal(prev => prev ? { 
+        ...prev, 
+        generatedLink: shareId, 
+        shareCode: shareId, 
+        shareTimestamp,
+        shareMethod: 'code',
+        sharedContent: updatedContent,
+        viewState: 'active_code' 
+      } : null);
       showToast(isUpdating ? t('toast.shareCodeUpdated') : t('toast.shareCodeGenerated'));
     } catch (e) {
       console.error(e);
@@ -2170,7 +2209,7 @@ export default function App() {
               {t('modals.shareSession')}
             </h3>
 
-            {!shareModal.generatedLink ? (
+            {shareModal.viewState === 'checklist' ? (
               <>
                 <p className="text-white/70 text-sm">
                   {t('modals.shareSelectInfo')}
@@ -2306,7 +2345,7 @@ export default function App() {
                       onChange={(checked) => setShareModal({ ...shareModal, shareMedia: checked })}
                       label={
                         <span className={`text-sm font-semibold ${!shareModal.availableMedia ? 'text-white/40' : 'text-white'}`}>
-                          {t('modals.shareMedia', 'Include Media')} {!shareModal.availableMedia && <span className="font-normal text-xs opacity-70">({t('modals.shareNoMedia', 'No media found')})</span>}
+                          {t('modals.shareMedia')} {!shareModal.availableMedia && <span className="font-normal text-xs opacity-70">({t('modals.shareNoMedia')})</span>}
                         </span>
                       }
                       className="px-2 py-1.5"
@@ -2314,7 +2353,7 @@ export default function App() {
                     {shareModal.shareMedia && (
                       <p className="px-2 mt-1 text-xs text-brand font-medium flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5" />
-                        {t('modals.shareMediaWarning', 'Heavy media selected. This session will be exported as a local file.')}
+                        {t('modals.shareMediaWarning')}
                       </p>
                     )}
                   </div>
@@ -2326,33 +2365,46 @@ export default function App() {
                     disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts && !shareModal.shareMedia}
                     className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]"
                   >
-                    {shareModal.shareMedia ? t('modals.exportFileBtn', 'Export .zoutty File') : (selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink'))}
+                    {shareModal.shareMedia ? t('modals.exportFileBtn') : (selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink'))}
                   </button>
                 </div>
               </>
-            ) : (
+            ) : shareModal.viewState === 'active_code' ? (
               <>
                 <div className="space-y-4 font-sans">
-                  <h4 className="text-white font-bold text-sm">{t('modals.shareCodeReady')}</h4>
+                  <div className="text-white/70 text-sm leading-relaxed bg-black/20 p-4 rounded-xl border border-white/5">
+                    <p className="mb-3">
+                      {t('modals.previouslySharedCodeText', { date: shareModal.shareTimestamp ? new Date(shareModal.shareTimestamp).toLocaleDateString() : '' })}
+                    </p>
+                    
+                    <ul className="list-disc pl-5 space-y-1.5 text-xs text-white/90 font-medium mb-5">
+                      {shareModal.sharedContent?.report && <li>{t('modals.shareConsolidatedReport')}</li>}
+                      {shareModal.sharedContent?.notes && <li>{t('modals.shareNotes')}</li>}
+                      {shareModal.sharedContent?.transcripts && <li>{t('modals.shareTranscripts')}</li>}
+                      {shareModal.sharedContent?.media && <li>{t('modals.shareMedia')}</li>}
+                      {(!shareModal.sharedContent?.report && !shareModal.sharedContent?.notes && !shareModal.sharedContent?.transcripts && !shareModal.sharedContent?.media) && (
+                        <li className="text-white/40 italic">No specific items recorded.</li>
+                      )}
+                    </ul>
 
-                  <div className="flex flex-col items-center justify-center bg-black/40 border border-white/10 rounded-2xl p-6 space-y-2 relative">
-                    <span className="text-white/40 text-xs font-bold uppercase tracking-widest">{t('modals.shareCodeLabel')}</span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-brand text-3xl font-mono font-black tracking-widest select-all">{shareModal.shareCode}</span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(shareModal.shareCode || '');
-                          showToast(t('toast.codeCopied'));
-                        }}
-                        className="p-2.5 bg-white/5 hover:bg-white/10 active:scale-95 rounded-xl text-white/60 transition-all shadow-sm"
-                        title="Copy code"
-                      >
-                        <Copy className="w-5 h-5" />
-                      </button>
+                    <div className="flex flex-col items-center justify-center bg-black/40 border border-white/10 rounded-2xl p-4 space-y-2 relative">
+                      <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">{t('modals.shareCodeLabel')}</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-brand text-3xl font-mono font-black tracking-widest select-all">{shareModal.shareCode}</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(shareModal.shareCode || '');
+                            showToast(t('toast.codeCopied'));
+                          }}
+                          className="p-2.5 bg-white/5 hover:bg-white/10 active:scale-95 rounded-xl text-white/60 transition-all shadow-sm"
+                          title="Copy code"
+                        >
+                          <Copy className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <p className="text-white/70 text-xs leading-relaxed">{t('modals.shareInstructions')}</p>
                   <p className="text-white/40 text-[10px] italic">
                     {shareModal.shareTimestamp
                       ? t('modals.shareLinkExpiryCountdown', { days: Math.max(1, 30 - Math.floor((Date.now() - shareModal.shareTimestamp) / (1000 * 60 * 60 * 24))) })
@@ -2389,15 +2441,51 @@ export default function App() {
                 </div>
                 <div className="flex justify-end gap-3 items-center">
                   <button
-                    onClick={() => setShareModal({ ...shareModal, generatedLink: undefined })}
+                    onClick={() => setShareModal({ ...shareModal, viewState: 'checklist' })}
                     className="px-5 py-2.5 rounded-xl font-bold border border-white/10 text-white/60 hover:bg-white/5 hover:text-white/80 transition-colors min-h-[44px]"
                   >
-                    {t('modals.shareResyncBtn')}
+                    {t('modals.updateExportSettingsBtn')}
                   </button>
                   <button onClick={() => setShareModal(null)} className="px-6 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.closeBtn')}</button>
                 </div>
               </>
-            )}
+            ) : shareModal.viewState === 'active_file' ? (
+              <>
+                <div className="space-y-4 font-sans">
+                  <div className="text-white/70 text-sm leading-relaxed bg-black/20 p-5 rounded-xl border border-white/5">
+                    <p className="mb-3">
+                      {t('modals.previouslyExportedText', { date: shareModal.shareTimestamp ? new Date(shareModal.shareTimestamp).toLocaleDateString() : '' })}
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1.5 text-xs text-white/90 font-medium">
+                      {shareModal.sharedContent?.report && <li>{t('modals.shareConsolidatedReport')}</li>}
+                      {shareModal.sharedContent?.notes && <li>{t('modals.shareNotes')}</li>}
+                      {shareModal.sharedContent?.transcripts && <li>{t('modals.shareTranscripts')}</li>}
+                      {shareModal.sharedContent?.media && <li>{t('modals.shareMedia')}</li>}
+                      {(!shareModal.sharedContent?.report && !shareModal.sharedContent?.notes && !shareModal.sharedContent?.transcripts && !shareModal.sharedContent?.media) && (
+                        <li className="text-white/40 italic">No specific items recorded.</li>
+                      )}
+                    </ul>
+                  </div>
+
+                  <button
+                    onClick={handleGenerateShareLink}
+                    className="w-full py-3 bg-brand text-bg-dark rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-[0.98] shadow-lg shadow-brand/20 min-h-[44px]"
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>{t('modals.exportFileAgainBtn')}</span>
+                  </button>
+                </div>
+                <div className="flex justify-end gap-3 items-center mt-6">
+                  <button
+                    onClick={() => setShareModal({ ...shareModal, viewState: 'checklist' })}
+                    className="px-5 py-2.5 rounded-xl font-bold border border-white/10 text-white/60 hover:bg-white/5 hover:text-white/80 transition-colors min-h-[44px]"
+                  >
+                    {t('modals.updateExportSettingsBtn')}
+                  </button>
+                  <button onClick={() => setShareModal(null)} className="px-6 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.closeBtn')}</button>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       )}
@@ -2611,17 +2699,22 @@ export default function App() {
                     const hasAudios = Object.values(audioEntries).some(e => e.sessionId === selectedSession.id && !!e.audioBlob);
                     const hasMedia = sessionMedia.length > 0 || hasAudios;
 
+                    const hasOldShareCode = !!selectedSession.shareId && !selectedSession.shareMethod;
+                    const defaultViewState = (selectedSession.shareMethod === 'code' || hasOldShareCode) ? 'active_code' 
+                                           : selectedSession.shareMethod === 'file' ? 'active_file' 
+                                           : 'checklist';
+
                     setShareModal({
                       sessionId: selectedSession.id,
-                      shareReport: hasReport,
-                      shareNotes: hasNotes,
-                      shareTranscripts: hasTranscripts,
+                      shareReport: selectedSession.sharedContent ? selectedSession.sharedContent.report : hasReport,
+                      shareNotes: selectedSession.sharedContent ? selectedSession.sharedContent.notes : hasNotes,
+                      shareTranscripts: selectedSession.sharedContent ? selectedSession.sharedContent.transcripts : hasTranscripts,
                       shareStrictSummary: hasStrictSummary,
                       shareDrills: hasDrills,
                       shareHomework: hasHomework,
                       shareTechnical: hasTechnical,
                       shareEmotional: hasEmotional,
-                      shareMedia: hasMedia,
+                      shareMedia: selectedSession.sharedContent ? selectedSession.sharedContent.media : hasMedia,
                       availableReport: hasReport,
                       availableNotes: hasNotes,
                       availableTranscripts: hasTranscripts,
@@ -2633,7 +2726,10 @@ export default function App() {
                       availableMedia: hasMedia,
                       generatedLink: selectedSession.shareId ? selectedSession.shareId : undefined,
                       shareCode: selectedSession.shareId ? selectedSession.shareId : undefined,
-                      shareTimestamp: selectedSession.shareTimestamp
+                      shareTimestamp: selectedSession.shareTimestamp,
+                      viewState: defaultViewState,
+                      shareMethod: selectedSession.shareMethod || (hasOldShareCode ? 'code' : undefined),
+                      sharedContent: selectedSession.sharedContent
                     });
                   }
                 }}
@@ -4295,7 +4391,8 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   // Build audio card maps
   entries.forEach((audio, index) => {
     const time = formatClipDate(audio.timestamp);
-    const displayTitle = audio.filename || `Audio Entry ${entries.length - index}`;
+    const displayTitleRaw = audio.filename || `Audio Entry ${entries.length - index}`;
+    const displayTitle = displayTitleRaw.replace(/\.(webm|mp4|mp3|wav|caf)$/i, '');
     const isOpen = isEntryOpen(audio.id);
     const isProcessing = processingIds.has(audio.id);
 
