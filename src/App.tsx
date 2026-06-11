@@ -83,6 +83,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { version } from './version';
 import { changelog } from './changelog';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -255,6 +257,7 @@ export default function App() {
     shareHomework: boolean;
     shareTechnical: boolean;
     shareEmotional: boolean;
+    shareMedia: boolean;
     generatedLink?: string;
     shareCode?: string;
     shareTimestamp?: number;
@@ -266,6 +269,7 @@ export default function App() {
     availableHomework: boolean;
     availableTechnical: boolean;
     availableEmotional: boolean;
+    availableMedia: boolean;
   } | null>(null);
   const [moveSessionModal, setMoveSessionModal] = useState<{ sessionId: string, currentGroupId?: string } | null>(null);
   const [sessionSortBy, setSessionSortBy] = useState<'date' | 'name' | 'created'>(
@@ -930,6 +934,76 @@ export default function App() {
         }));
       }
 
+      if (shareModal.shareMedia) {
+        const audios = await db.getSessionAudios(selectedSession.id);
+        const sessionMediaItems = await db.getSessionMedia(selectedSession.id);
+        
+        payload.mediaItems = sessionMediaItems.map(m => ({
+          filename: m.filename,
+          mimeType: m.mimeType,
+          timestamp: m.timestamp
+        }));
+
+        const zip = new JSZip();
+        zip.file('session.json', JSON.stringify(payload, null, 2));
+        
+        for (const a of audios) {
+          if (a.audioBlob) {
+            zip.file(`media/${a.filename}`, a.audioBlob);
+          }
+        }
+        for (const m of sessionMediaItems) {
+          if (m.blob) {
+            zip.file(`media/${m.filename}`, m.blob);
+          } else if (m.fileHandle) {
+            try {
+              const perm = await m.fileHandle.queryPermission({ mode: 'read' });
+              if (perm !== 'granted') {
+                await m.fileHandle.requestPermission({ mode: 'read' });
+              }
+              const file = await m.fileHandle.getFile();
+              zip.file(`media/${m.filename}`, file);
+            } catch (e) {
+              console.error("Failed to read fileHandle for export", m.filename, e);
+            }
+          }
+        }
+        
+        const content = await zip.generateAsync({ type: 'blob' });
+        const fileName = `zoutty-session-${selectedSession.id.substring(0, 8)}.zoutty`;
+        let sharedViaApi = false;
+
+        if (navigator.canShare) {
+          const file = new File([content], fileName, { type: 'application/zip' });
+          if (navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                title: selectedSession.title || 'Zoutty Session',
+                files: [file]
+              });
+              sharedViaApi = true;
+            } catch (error: any) {
+              console.log('Share failed or cancelled', error);
+              if (error.name === 'AbortError') {
+                setShareModal(null);
+                hideSpinner();
+                return;
+              }
+            }
+          }
+        }
+
+        if (!sharedViaApi) {
+          saveAs(content, fileName);
+          showToast(t('toast.fileExported'));
+        } else {
+          showToast(t('toast.shareSuccessful'));
+        }
+        
+        setShareModal(null);
+        return;
+      }
+
       const isUpdating = !!selectedSession.shareId;
 
       const res = await fetch('/api/share', {
@@ -955,6 +1029,51 @@ export default function App() {
       showToast(t('toast.failedShareLink'), true);
     } finally {
       hideSpinner();
+    }
+  };
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    showSpinner(t('toast.importingSession', 'Reading file...'));
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const sessionJsonStr = await zip.file('session.json')?.async('string');
+      if (!sessionJsonStr) throw new Error('Invalid .zoutty file: missing session.json');
+      
+      const sessionData = JSON.parse(sessionJsonStr);
+      const parsedMediaFiles: any[] = [];
+      
+      if (sessionData.transcripts) {
+        for (const t of sessionData.transcripts) {
+          const fileData = zip.file(`media/${t.filename}`);
+          if (fileData) {
+            const blob = await fileData.async('blob');
+            parsedMediaFiles.push({ filename: t.filename, blob, isAudioEntry: true });
+          }
+        }
+      }
+      
+      if (sessionData.mediaItems) {
+        for (const m of sessionData.mediaItems) {
+          const fileData = zip.file(`media/${m.filename}`);
+          if (fileData) {
+            const blob = await fileData.async('blob');
+            parsedMediaFiles.push({ filename: m.filename, blob, isAudioEntry: false, mimeType: m.mimeType, timestamp: m.timestamp });
+          }
+        }
+      }
+      
+      sessionData.parsedMediaFiles = parsedMediaFiles;
+      setShowImportCodeModal(false);
+      setImportCodeValue('');
+      setImportPreview(sessionData);
+    } catch (err: any) {
+      console.error(err);
+      showToast(t('toast.failedRetrieveShared', 'Failed to read file'), true);
+    } finally {
+      hideSpinner();
+      e.target.value = '';
     }
   };
 
@@ -986,7 +1105,9 @@ export default function App() {
 
       if (importPreview.transcripts && Array.isArray(importPreview.transcripts)) {
         for (const t of importPreview.transcripts) {
-          const emptyBlob = new Blob([], { type: 'audio/webm' });
+          const mediaFile = importPreview.parsedMediaFiles?.find((f: any) => f.isAudioEntry && f.filename === t.filename);
+          const audioBlob = mediaFile ? mediaFile.blob : new Blob([], { type: 'audio/webm' });
+          
           const newAudio: AudioEntry = {
             id: crypto.randomUUID(),
             sessionId: newSessionId,
@@ -997,9 +1118,26 @@ export default function App() {
             expandedInsights: t.expandedInsights,
             type: 'recording',
             filename: t.filename,
-            audioBlob: emptyBlob
+            audioBlob
           };
           await db.saveAudioEntry(newAudio);
+        }
+      }
+
+      if (importPreview.parsedMediaFiles) {
+        for (const m of importPreview.parsedMediaFiles) {
+          if (!m.isAudioEntry) {
+            await db.saveMediaItem({
+              id: crypto.randomUUID(),
+              sessionId: newSessionId,
+              timestamp: m.timestamp || Date.now(),
+              mimeType: m.mimeType || 'image/jpeg',
+              filename: m.filename,
+              blob: m.blob,
+              size: m.blob.size,
+              storageMode: 'blob'
+            });
+          }
         }
       }
 
@@ -2144,15 +2282,34 @@ export default function App() {
                       className="px-2 py-1.5"
                     />
                   </div>
+                  <div className="pt-2 border-t border-white/5">
+                    <CustomSwitch
+                      disabled={!shareModal.availableMedia}
+                      checked={shareModal.shareMedia}
+                      onChange={(checked) => setShareModal({ ...shareModal, shareMedia: checked })}
+                      label={
+                        <span className={`text-sm font-semibold ${!shareModal.availableMedia ? 'text-white/40' : 'text-white'}`}>
+                          {t('modals.shareMedia', 'Include Media')} {!shareModal.availableMedia && <span className="font-normal text-xs opacity-70">({t('modals.shareNoMedia', 'No media found')})</span>}
+                        </span>
+                      }
+                      className="px-2 py-1.5"
+                    />
+                    {shareModal.shareMedia && (
+                      <p className="px-2 mt-1 text-xs text-brand font-medium flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        {t('modals.shareMediaWarning', 'Heavy media selected. This session will be exported as a local file.')}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-3 justify-end items-center">
                   <button onClick={() => setShareModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
                   <button
                     onClick={handleGenerateShareLink}
-                    disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts}
+                    disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts && !shareModal.shareMedia}
                     className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]"
                   >
-                    {selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink')}
+                    {shareModal.shareMedia ? t('modals.exportFileBtn', 'Export .zoutty File') : (selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink'))}
                   </button>
                 </div>
               </>
@@ -2252,43 +2409,56 @@ export default function App() {
               />
             </div>
 
-            <div className="flex gap-3 justify-end items-center">
-              <button
-                onClick={() => {
-                  setShowImportCodeModal(false);
-                  setImportCodeValue('');
-                }}
-                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
-              >
-                {t('modals.cancelBtn')}
-              </button>
-              <button
-                onClick={async () => {
-                  if (importCodeValue.length !== 6) {
-                    showToast(t('toast.invalidCodeLength'), true);
-                    return;
-                  }
-                  const codeToFetch = importCodeValue;
-                  setShowImportCodeModal(false);
-                  setImportCodeValue('');
-                  showSpinner(t('toast.retrievingSession'));
-                  try {
-                    const res = await fetch(`/api/share/${codeToFetch}`);
-                    if (!res.ok) throw new Error('Shared session not found');
-                    const data = await res.json();
-                    setImportPreview(data);
-                  } catch (e: any) {
-                    console.error(e);
-                    showToast(t('toast.failedRetrieveShared'), true);
-                  } finally {
-                    hideSpinner();
-                  }
-                }}
-                disabled={importCodeValue.length !== 6}
-                className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
-              >
-                {t('modals.importSessionBtn')}
-              </button>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-3 justify-end items-center">
+                <button
+                  onClick={() => {
+                    setShowImportCodeModal(false);
+                    setImportCodeValue('');
+                  }}
+                  className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+                >
+                  {t('modals.cancelBtn')}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (importCodeValue.length !== 6) {
+                      showToast(t('toast.invalidCodeLength'), true);
+                      return;
+                    }
+                    const codeToFetch = importCodeValue;
+                    setShowImportCodeModal(false);
+                    setImportCodeValue('');
+                    showSpinner(t('toast.retrievingSession'));
+                    try {
+                      const res = await fetch(`/api/share/${codeToFetch}`);
+                      if (!res.ok) throw new Error('Shared session not found');
+                      const data = await res.json();
+                      setImportPreview(data);
+                    } catch (e: any) {
+                      console.error(e);
+                      showToast(t('toast.failedRetrieveShared'), true);
+                    } finally {
+                      hideSpinner();
+                    }
+                  }}
+                  disabled={importCodeValue.length !== 6}
+                  className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
+                >
+                  {t('modals.importSessionBtn')}
+                </button>
+              </div>
+
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-white/10"></div>
+                <span className="flex-shrink-0 mx-4 text-white/40 text-xs uppercase tracking-widest">{t('modals.or', 'or')}</span>
+                <div className="flex-grow border-t border-white/10"></div>
+              </div>
+
+              <input type="file" id="zoutty-import-file" accept=".zoutty" className="hidden" onChange={handleImportFile} />
+              <label htmlFor="zoutty-import-file" className="w-full text-center px-5 py-3 rounded-xl font-bold border border-white/10 text-white/80 hover:bg-white/5 transition-colors cursor-pointer">
+                {t('modals.importFromFile', 'Import from .zoutty file')}
+              </label>
             </div>
           </div>
         </div>
@@ -2318,7 +2488,7 @@ export default function App() {
               {importPreview.notes && (
                 <div>
                   <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedNotesShared')}</span>
-                  <p className="text-xs text-white/60 line-clamp-3 mt-1 italic font-sans">"{importPreview.notes}"</p>
+                  <span className="text-xs text-green-400 font-semibold block mt-1 font-sans">{t('modals.sharedNotesIncluded')}</span>
                 </div>
               )}
               {importPreview.report && (
@@ -2331,6 +2501,14 @@ export default function App() {
                 <div>
                   <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedClipsShared')}</span>
                   <span className="text-xs text-blue-400 font-semibold block mt-1 font-sans">{t('modals.sharedClipsIncluded', { count: importPreview.transcripts.length })}</span>
+                </div>
+              )}
+              {importPreview.parsedMediaFiles && importPreview.parsedMediaFiles.filter((f: any) => !f.isAudioEntry).length > 0 && (
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedMediaShared')}</span>
+                  <span className="text-xs text-purple-400 font-semibold block mt-1 font-sans">
+                    {t('modals.sharedMediaIncluded', { count: importPreview.parsedMediaFiles.filter((f: any) => !f.isAudioEntry).length })}
+                  </span>
                 </div>
               )}
             </div>
@@ -2413,6 +2591,7 @@ export default function App() {
                     const hasHomework = hasReport && !!report.report?.expandedInsights?.homework && report.report.expandedInsights.homework.length > 0;
                     const hasTechnical = hasReport && !!report.report?.expandedInsights?.technicalExpansion && report.report.expandedInsights.technicalExpansion.length > 0;
                     const hasEmotional = hasReport && !!report.report?.expandedInsights?.emotionalNotes && report.report.expandedInsights.emotionalNotes.length > 0;
+                    const hasMedia = sessionMedia.length > 0;
 
                     setShareModal({
                       sessionId: selectedSession.id,
@@ -2424,6 +2603,7 @@ export default function App() {
                       shareHomework: hasHomework,
                       shareTechnical: hasTechnical,
                       shareEmotional: hasEmotional,
+                      shareMedia: hasMedia,
                       availableReport: hasReport,
                       availableNotes: hasNotes,
                       availableTranscripts: hasTranscripts,
@@ -2432,6 +2612,7 @@ export default function App() {
                       availableHomework: hasHomework,
                       availableTechnical: hasTechnical,
                       availableEmotional: hasEmotional,
+                      availableMedia: hasMedia,
                       generatedLink: selectedSession.shareId ? selectedSession.shareId : undefined,
                       shareCode: selectedSession.shareId ? selectedSession.shareId : undefined,
                       shareTimestamp: selectedSession.shareTimestamp
@@ -4260,7 +4441,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
         </SortableContext>
       </DndContext>
 
-      {!hasConsolidated && entries.length === 0 && (
+      {!hasConsolidated && entries.length === 0 && !sessionNotes && (
         <div className="flex flex-col items-center justify-center pt-2 pb-16 sm:pb-24 text-center px-4 animate-in fade-in duration-500">
           <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-6">
             <div className="absolute inset-0 bg-brand/10 blur-xl rounded-full animate-pulse" style={{ animationDuration: '3s' }} />

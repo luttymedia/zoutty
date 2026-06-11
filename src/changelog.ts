@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "2.1.0",
+    date: new Date().toISOString().split('T')[0],
+    changes: [
+      "Added local file export/import (.zoutty) for sessions containing heavy media (audio/gallery)",
+      "Hybrid sharing: text-only sessions still use 6-letter code, media sessions use file export"
+    ]
+  },
+  {
     version: "2.0.14",
     date: "2026-06-10",
     changes: [
