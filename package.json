@@ -1,7 +1,7 @@
 {
   "name": "zoutty",
   "private": true,
-  "version": "2.0.13",
+  "version": "2.1.2",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",

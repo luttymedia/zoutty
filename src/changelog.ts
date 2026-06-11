@@ -6,8 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
-    version: "2.1.1",
+    version: "2.1.2",
     date: new Date().toISOString().split('T')[0],
+    changes: [
+      "Fixed Include Media option availability when only audio clips are present",
+      "Fixed iOS export bug where .zoutty.zip files were saved with a .txt extension and failed to import"
+    ]
+  },
+  {
+    version: "2.1.1",
+    date: "2026-06-11",
     changes: [
       "Fixed Web Share API compatibility for exported sessions by utilizing standard zip extension",
       "Fixed an iOS bug where imported media files rendered as black previews",

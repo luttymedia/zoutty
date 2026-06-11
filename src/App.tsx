@@ -978,7 +978,6 @@ export default function App() {
           if (navigator.canShare({ files: [file] })) {
             try {
               await navigator.share({
-                title: selectedSession.title || 'Zoutty Session',
                 files: [file]
               });
               sharedViaApi = true;
@@ -2600,7 +2599,8 @@ export default function App() {
                     const hasHomework = hasReport && !!report.report?.expandedInsights?.homework && report.report.expandedInsights.homework.length > 0;
                     const hasTechnical = hasReport && !!report.report?.expandedInsights?.technicalExpansion && report.report.expandedInsights.technicalExpansion.length > 0;
                     const hasEmotional = hasReport && !!report.report?.expandedInsights?.emotionalNotes && report.report.expandedInsights.emotionalNotes.length > 0;
-                    const hasMedia = sessionMedia.length > 0;
+                    const hasAudios = Object.values(audioEntries).some(e => e.sessionId === selectedSession.id && !!e.audioBlob);
+                    const hasMedia = sessionMedia.length > 0 || hasAudios;
 
                     setShareModal({
                       sessionId: selectedSession.id,
