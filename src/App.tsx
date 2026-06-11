@@ -4263,6 +4263,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
   const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(false);
   const [isNoteVisible, setIsNoteVisible] = useState(false);
+  const [newNoteText, setNewNoteText] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -4437,11 +4438,13 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
 
   // Add the Notes Card (always render so it is visible even on empty/new sessions)
   const notesId = `notes-${sessionId}`;
+  const notesList = sessionNotes ? sessionNotes.split('\n').filter(n => n.trim().length > 0) : [];
+
   availableItems.set(notesId, (
     <div className="bg-white/5 print:bg-transparent backdrop-blur-md border border-white/10 print:border-transparent p-6 rounded-2xl shadow-sm print:shadow-none relative w-full box-border mt-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('session.notesHeading')}</h3>
-        {!isNoteVisible && !sessionNotes && (
+        {!isNoteVisible && (
           <button
             onClick={() => {
               if (sessionId === 'demo-session' && showToast) {
@@ -4456,31 +4459,58 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
           </button>
         )}
       </div>
-      {(isNoteVisible || !!sessionNotes) && (
-        <AutoGrowingTextarea
-          autoFocus={isNoteVisible && !sessionNotes}
-          placeholder={t('session.notesPlaceholder')}
-          value={sessionNotes || ''}
-          onClick={(e) => {
-            if (sessionId === 'demo-session' && showToast) {
-              e.preventDefault();
-              showToast(t('onboarding.demoTooltipNotes'), false);
-            }
-          }}
-          readOnly={sessionId === 'demo-session'}
-          onChange={(e) => {
-            onUpdateNotes(e.target.value);
-            if (e.target.value.trim().length === 0) {
-              setIsNoteVisible(false);
-            }
-          }}
-          onBlur={(e) => {
-            if (e.target.value.trim().length === 0) {
-              setIsNoteVisible(false);
-            }
-          }}
-          className="w-full min-h-[150px] bg-black/20 print:bg-black/5 text-white/80 print:text-black/80 p-4 rounded-xl border border-white/5 print:border-black/10 outline-none focus:border-brand/50 transition-colors resize-none overflow-hidden box-border"
-        />
+
+      {notesList.length > 0 && (
+        <div className="mb-4">
+          <BulletList 
+            items={notesList} 
+            onChange={(newList) => onUpdateNotes(newList.join('\n'))}
+            onIntercept={interceptProp} 
+          />
+        </div>
+      )}
+
+      {isNoteVisible && (
+        <div className="flex flex-col gap-3 mt-4">
+          <AutoGrowingTextarea
+            autoFocus
+            placeholder={t('session.notesPlaceholder')}
+            value={newNoteText}
+            onClick={(e) => {
+              if (sessionId === 'demo-session' && showToast) {
+                e.preventDefault();
+                showToast(t('onboarding.demoTooltipNotes'), false);
+              }
+            }}
+            readOnly={sessionId === 'demo-session'}
+            onChange={(e) => setNewNoteText(e.target.value)}
+            className="w-full min-h-[100px] bg-black/20 print:bg-black/5 text-white/80 print:text-black/80 p-4 rounded-xl border border-white/5 print:border-black/10 outline-none focus:border-brand/50 transition-colors resize-none overflow-hidden box-border"
+          />
+          <div className="flex justify-end gap-3">
+             <button 
+               onClick={() => {
+                 setNewNoteText('');
+                 setIsNoteVisible(false);
+               }}
+               className="px-4 py-2 text-white/50 hover:text-white/80 text-sm font-bold transition-colors"
+             >
+               {t('sessionSettings.cancelBtn')}
+             </button>
+             <button 
+               onClick={() => {
+                 if (newNoteText.trim()) {
+                   const updatedNotes = [...notesList, newNoteText.trim()];
+                   onUpdateNotes(updatedNotes.join('\n'));
+                   setNewNoteText('');
+                   setIsNoteVisible(false);
+                 }
+               }}
+               className="px-4 py-2 bg-brand/20 text-brand hover:bg-brand/30 rounded-lg text-sm font-bold transition-colors"
+             >
+               {t('sessionSettings.confirmBtn')}
+             </button>
+          </div>
+        </div>
       )}
     </div>
   ));

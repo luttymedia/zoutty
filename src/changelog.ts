@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.1.4',
+    date: new Date().toISOString().split('T')[0],
+    changes: [
+      'Updated the Session Notes feature to use a list of editable bullet points instead of a single text area',
+      'Added an inline text area with Confirm/Cancel buttons for creating new notes'
+    ]
+  },
+  {
     version: '2.1.3',
     date: '2026-06-11',
     changes: [
