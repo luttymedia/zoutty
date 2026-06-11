@@ -923,10 +923,16 @@ export default function App() {
       if (shareModal.shareNotes) {
         payload.notes = selectedSession.notes;
       }
+      const audios = await db.getSessionAudios(selectedSession.id);
+      audios.sort((a, b) => b.timestamp - a.timestamp);
+      const audiosWithNames = audios.map((a, index) => {
+        const defaultName = `Audio Entry ${audios.length - index}.webm`;
+        return { ...a, exportFilename: a.filename || defaultName };
+      });
+
       if (shareModal.shareTranscripts) {
-        const audios = await db.getSessionAudios(selectedSession.id);
-        payload.transcripts = audios.map(a => ({
-          filename: a.filename,
+        payload.transcripts = audiosWithNames.map(a => ({
+          filename: a.exportFilename,
           timestamp: a.timestamp,
           transcript: a.transcript,
           strictSummary: a.strictSummary,
@@ -935,7 +941,6 @@ export default function App() {
       }
 
       if (shareModal.shareMedia) {
-        const audios = await db.getSessionAudios(selectedSession.id);
         const sessionMediaItems = await db.getSessionMedia(selectedSession.id);
         
         payload.mediaItems = sessionMediaItems.map(m => ({
@@ -947,9 +952,9 @@ export default function App() {
         const zip = new JSZip();
         zip.file('session.json', JSON.stringify(payload, null, 2));
         
-        for (const a of audios) {
+        for (const a of audiosWithNames) {
           if (a.audioBlob) {
-            zip.file(`media/${a.filename}`, a.audioBlob);
+            zip.file(`media/${a.exportFilename}`, a.audioBlob);
           }
         }
         for (const m of sessionMediaItems) {
@@ -1045,16 +1050,20 @@ export default function App() {
       
       if (sessionData.transcripts) {
         for (const t of sessionData.transcripts) {
-          const fileData = zip.file(`media/${t.filename}`);
+          const fname = t.filename || 'undefined';
+          const fileData = zip.file(`media/${fname}`);
           if (fileData) {
             const rawBlob = await fileData.async('blob');
             let mimeType = 'audio/webm';
-            if (t.filename.endsWith('.m4a')) mimeType = 'audio/mp4';
-            else if (t.filename.endsWith('.mp3')) mimeType = 'audio/mpeg';
-            else if (t.filename.endsWith('.wav')) mimeType = 'audio/wav';
-            else if (t.filename.endsWith('.caf')) mimeType = 'audio/x-caf';
+            if (fname.endsWith('.m4a')) mimeType = 'audio/mp4';
+            else if (fname.endsWith('.mp3')) mimeType = 'audio/mpeg';
+            else if (fname.endsWith('.wav')) mimeType = 'audio/wav';
+            else if (fname.endsWith('.caf')) mimeType = 'audio/x-caf';
             const blob = new Blob([rawBlob], { type: mimeType });
-            parsedMediaFiles.push({ filename: t.filename, blob, isAudioEntry: true });
+            parsedMediaFiles.push({ filename: fname, blob, isAudioEntry: true });
+            if (!t.filename) {
+              t.filename = fname;
+            }
           }
         }
       }
