@@ -3758,7 +3758,7 @@ function SessionDetail({
                             }}
                           >
                             {isVideo ? (
-                              <video src={url} className="w-full h-full object-cover" muted playsInline />
+                              <video src={`${url}#t=0.001`} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                             ) : (
                               <img src={url} alt={item.filename} className="w-full h-full object-cover" />
                             )}
@@ -3852,8 +3852,9 @@ function SessionDetail({
                 >
                   <video
                     ref={videoRef}
-                    src={url}
+                    src={`${url}#t=0.001`}
                     controls
+                    preload="metadata"
                     className="w-full h-full max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200 cursor-pointer"
                   />
                   {/* Invisible click handler overlay for play/pause (leaves space at bottom for native controls) */}
