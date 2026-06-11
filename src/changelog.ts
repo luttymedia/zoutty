@@ -6,8 +6,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
-    version: "2.1.0",
+    version: "2.1.1",
     date: new Date().toISOString().split('T')[0],
+    changes: [
+      "Fixed Web Share API compatibility for exported sessions by utilizing standard zip extension",
+      "Fixed an iOS bug where imported media files rendered as black previews",
+      "Switched media storage entirely to Blob Mode to prevent browser permission prompts and broken gallery links"
+    ]
+  },
+  {
+    version: "2.1.0",
+    date: "2026-06-11",
     changes: [
       "Added local file export/import (.zoutty) for sessions containing heavy media (audio/gallery)",
       "Hybrid sharing: text-only sessions still use 6-letter code, media sessions use file export"

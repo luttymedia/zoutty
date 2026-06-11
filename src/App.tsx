@@ -2963,7 +2963,7 @@ function SessionDetail({
   const [mediaToDelete, setMediaToDelete] = useState<SessionMedia | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
-  const isFileAccessSupported = typeof window !== 'undefined' && 'showOpenFilePicker' in window;
+  const isFileAccessSupported = false;
 
   // Revoke object URLs on cleanup
   useEffect(() => {
