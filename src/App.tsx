@@ -1048,7 +1048,13 @@ export default function App() {
         for (const t of sessionData.transcripts) {
           const fileData = zip.file(`media/${t.filename}`);
           if (fileData) {
-            const blob = await fileData.async('blob');
+            const rawBlob = await fileData.async('blob');
+            let mimeType = 'audio/webm';
+            if (t.filename.endsWith('.m4a')) mimeType = 'audio/mp4';
+            else if (t.filename.endsWith('.mp3')) mimeType = 'audio/mpeg';
+            else if (t.filename.endsWith('.wav')) mimeType = 'audio/wav';
+            else if (t.filename.endsWith('.caf')) mimeType = 'audio/x-caf';
+            const blob = new Blob([rawBlob], { type: mimeType });
             parsedMediaFiles.push({ filename: t.filename, blob, isAudioEntry: true });
           }
         }
@@ -1058,7 +1064,8 @@ export default function App() {
         for (const m of sessionData.mediaItems) {
           const fileData = zip.file(`media/${m.filename}`);
           if (fileData) {
-            const blob = await fileData.async('blob');
+            const rawBlob = await fileData.async('blob');
+            const blob = new Blob([rawBlob], { type: m.mimeType || 'image/jpeg' });
             parsedMediaFiles.push({ filename: m.filename, blob, isAudioEntry: false, mimeType: m.mimeType, timestamp: m.timestamp });
           }
         }
