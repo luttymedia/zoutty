@@ -1533,6 +1533,8 @@ export default function App() {
                   setShowExportConfirm(false);
                   if (!exportIncludeAudioTranscripts) {
                     document.body.classList.add('no-print-transcripts');
+                  } else {
+                    document.body.classList.remove('no-print-transcripts');
                   }
                   const dateStr = format(new Date(selectedSession.date), "yyyy-MM-dd");
                   let fileName = `Zoutty_${dateStr}`;
@@ -1543,15 +1545,15 @@ export default function App() {
                   const originalTitle = document.title;
                   document.title = fileName;
                   setTimeout(() => {
-                    const handleAfterPrint = () => {
+                    const handleCleanup = () => {
                       document.title = originalTitle;
-                      if (!exportIncludeAudioTranscripts) {
-                        document.body.classList.remove('no-print-transcripts');
-                      }
-                      window.removeEventListener('afterprint', handleAfterPrint);
+                      window.removeEventListener('afterprint', handleCleanup);
+                      window.removeEventListener('focus', handleCleanup);
                     };
-                    window.addEventListener('afterprint', handleAfterPrint);
+                    window.addEventListener('afterprint', handleCleanup);
+                    window.addEventListener('focus', handleCleanup);
                     window.print();
+                    setTimeout(() => { document.title = originalTitle; }, 10000);
                   }, 100);
                 }}
                 className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs"
