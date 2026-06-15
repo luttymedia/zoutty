@@ -419,6 +419,36 @@ const es: Translations = {
     iosGotIt: '¡Entendido!',
     alreadyInstalled: "¿Ya tienes la app instalada? Por favor, ábrela directamente desde tu pantalla de inicio.",
   },
+
+  // ─── Search ───────────────────────────────────────────────────────────────
+  search: {
+    title: 'Buscar',
+    placeholder: 'Términos de búsqueda...',
+    advancedSearch: 'Búsqueda avanzada',
+    searchIn: 'Buscar en',
+    all: 'Todo',
+    folders: 'Carpetas',
+    sessions: 'Títulos de sesiones',
+    entries: 'Títulos de entradas',
+    transcriptions: 'Transcripciones',
+    reports: 'Reportes',
+    notes: 'Notas',
+    advancedFilters: 'Filtros avanzados',
+    hasGalleryItems: 'Tiene ítems de galería',
+    hasAudioRecordings: 'Tiene grabaciones de audio',
+    glossaryUsed: 'Glosario usado',
+    anyGlossary: 'Cualquier glosario',
+    cancel: 'Cancelar',
+    confirm: 'Confirmar',
+    noResults: 'Sin resultados',
+    tryAdjusting: 'Intenta ajustar tus filtros o término de búsqueda',
+    searching: 'Buscando: {query}',
+    resultsCount_oneSession_oneFolder: '1 sesión, 1 carpeta',
+    resultsCount_oneSession_multiFolder: '1 sesión, {folderCount} carpetas',
+    resultsCount_multiSession_oneFolder: '{sessionCount} sesiones, 1 carpeta',
+    resultsCount_multiSession_multiFolder: '{sessionCount} sesiones, {folderCount} carpetas',
+    clearSearch: 'Limpiar Búsqueda',
+  },
 };
 
 export default es;

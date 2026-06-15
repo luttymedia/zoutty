@@ -35,7 +35,8 @@ import {
   AudioLines,
   Play,
   CloudUpload,
-  CloudDownload
+  CloudDownload,
+  Search
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -50,8 +51,9 @@ import { CustomCheckbox } from './components/CustomCheckbox';
 import { CustomSwitch } from './components/CustomSwitch';
 import { AutoGrowingTextarea } from './components/AutoGrowingTextarea';
 import { WelcomeModal } from './components/WelcomeModal';
+import { SearchModal } from './components/SearchModal';
+import { SearchFilters, performSearch } from './lib/search';
 import Markdown from 'react-markdown';
-// Word export removed due to Google Docs converter compatibility issues
 import { useTranslation } from './i18n/TranslationContext';
 import { UI_LANGUAGE_NAMES } from './i18n';
 import {
@@ -244,6 +246,39 @@ export default function App() {
   const [folderModal, setFolderModal] = useState<{ type: 'create' | 'rename', id?: string, name: string } | null>(null);
   const [deleteFolderModal, setDeleteFolderModal] = useState<{ id: string, name: string } | null>(null);
   const [deleteFolderAlsoSessions, setDeleteFolderAlsoSessions] = useState(false);
+
+  // Search state
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [activeSearch, setActiveSearch] = useState<{
+    query: string;
+    filters: SearchFilters;
+    matchedSessionIds: Set<string>;
+    matchedGroupIds: Set<string>;
+  } | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearchConfirm = async (query: string, filters: SearchFilters) => {
+    setIsSearching(true);
+    setShowSearchModal(false);
+    try {
+      const reports = await db.getFinalReports();
+      const { matchedSessionIds, matchedGroupIds } = performSearch(
+        query,
+        filters,
+        sessions,
+        groups,
+        Object.values(audioEntries),
+        reports,
+        sessionMedia
+      );
+      setActiveSearch({ query, filters, matchedSessionIds, matchedGroupIds });
+    } catch (e) {
+      console.error(e);
+      setToastMessage({ text: 'Error performing search', isError: true });
+    } finally {
+      setIsSearching(false);
+    }
+  };
   const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [exportIncludeAudioTranscripts, setExportIncludeAudioTranscripts] = useState(true);
 
@@ -1531,6 +1566,25 @@ export default function App() {
         </div>
       )}
 
+      {showSearchModal && (
+        <SearchModal
+          onClose={() => setShowSearchModal(false)}
+          onConfirm={handleSearchConfirm}
+          initialQuery={activeSearch?.query}
+          initialFilters={activeSearch?.filters}
+          glossaries={glossaries}
+        />
+      )}
+
+      {isSearching && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[70]">
+          <div className="glass p-6 rounded-2xl flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-brand font-semibold text-lg animate-pulse">Searching...</span>
+          </div>
+        </div>
+      )}
+
       {/* Export Session Modal */}
       {showExportConfirm && selectedSession && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6" onClick={() => setShowExportConfirm(false)}>
@@ -2671,13 +2725,22 @@ export default function App() {
 
         <div className="flex items-center gap-3">
           {view === 'list' && (
-            <button
-              onClick={() => setShowAppSettings(true)}
-              className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 text-white/40 hover:text-brand transition-colors"
-              title="Zoutty Settings"
-            >
-              <Settings className="w-5 h-5 text-brand" />
-            </button>
+            <>
+              <button
+                onClick={() => setShowSearchModal(true)}
+                className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 text-white/40 hover:text-brand transition-colors"
+                title="Search"
+              >
+                <Search className="w-5 h-5 text-brand" />
+              </button>
+              <button
+                onClick={() => setShowAppSettings(true)}
+                className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 text-white/40 hover:text-brand transition-colors"
+                title="Zoutty Settings"
+              >
+                <Settings className="w-5 h-5 text-brand" />
+              </button>
+            </>
           )}
           {view === 'detail' && selectedSession && (
             <>
@@ -2784,36 +2847,68 @@ export default function App() {
             )}
 
             {/* Action buttons - Compact same-line layout */}
-            <div className="flex gap-4">
-              <button
-                onClick={createSession}
-                className={`py-3.5 glass bg-brand/10 border-brand/20 text-brand font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand flex-1 min-h-[52px] ${selectedGroupId ? 'py-4 text-base' : ''}`}
+            {activeSearch ? (
+              <div 
+                className="flex items-center justify-between px-4 py-3 rounded-xl bg-purple-500/5 border border-purple-500/10 hover:bg-purple-500/10 transition-colors cursor-pointer group"
+                onClick={() => setShowSearchModal(true)}
               >
-                <Plus className="w-4 h-4" />
-                {t('home.newSession')}
-              </button>
-              {!selectedGroupId && (
-                <>
-                  <button
-                    onClick={() => setFolderModal({ type: 'create', name: '' })}
-                    className="py-3.5 glass bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500/20 transition-all rounded-2xl shadow-lg shadow-blue-500/10 flex-1 min-h-[52px]"
-                  >
-                    <FolderPlus className="w-4 h-4" />
-                    {t('home.newFolder')}
-                  </button>
-                  <button
-                    onClick={() => setShowImportCodeModal(true)}
-                    className="w-[52px] h-[52px] glass bg-purple-500/10 border-purple-500/20 text-purple-400 font-bold flex items-center justify-center hover:bg-purple-500/20 transition-all rounded-2xl shadow-lg shadow-purple-500/10 shrink-0"
-                    title={t('home.importBtnTitle')}
-                  >
-                    <Download className="w-5 h-5" />
-                  </button>
-                </>
-              )}
-            </div>
+                <div className="flex items-center gap-3">
+                  <Search className="w-4 h-4 text-purple-400/80 group-hover:text-purple-400 transition-colors" />
+                  <span className="text-sm font-medium text-white/90">
+                    {activeSearch.query ? t('search.searching', { query: activeSearch.query }) : t('search.advancedSearch')}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveSearch(null);
+                  }}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-colors"
+                  title={t('search.clearSearch')}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-4">
+                <button
+                  onClick={createSession}
+                  className={`py-3.5 glass bg-brand/10 border-brand/20 text-brand font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand flex-1 min-h-[52px] ${selectedGroupId ? 'py-4 text-base' : ''}`}
+                >
+                  <Plus className="w-4 h-4" />
+                  {t('home.newSession')}
+                </button>
+                {!selectedGroupId && (
+                  <>
+                    <button
+                      onClick={() => setFolderModal({ type: 'create', name: '' })}
+                      className="py-3.5 glass bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500/20 transition-all rounded-2xl shadow-lg shadow-blue-500/10 flex-1 min-h-[52px]"
+                    >
+                      <FolderPlus className="w-4 h-4" />
+                      {t('home.newFolder')}
+                    </button>
+                    <button
+                      onClick={() => setShowImportCodeModal(true)}
+                      className="w-[52px] h-[52px] glass bg-purple-500/10 border-purple-500/20 text-purple-400 font-bold flex items-center justify-center hover:bg-purple-500/20 transition-all rounded-2xl shadow-lg shadow-purple-500/10 shrink-0"
+                      title={t('home.importBtnTitle')}
+                    >
+                      <Download className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {activeSearch && activeSearch.matchedSessionIds.size === 0 && activeSearch.matchedGroupIds.size === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in">
+                <Search className="w-12 h-12 text-white/20 mb-4" />
+                <h3 className="text-lg font-bold text-white/60">{t('search.noResults')}</h3>
+                <p className="text-sm text-white/40 mt-1">{t('search.tryAdjusting')}</p>
+              </div>
+            )}
 
             {/* Folders List - Shown in Root */}
-            {!selectedGroupId && groups.filter(g => g.id !== 'root').length > 0 && (
+            {!selectedGroupId && groups.filter(g => activeSearch ? activeSearch.matchedGroupIds.has(g.id) : g.id !== 'root').length > 0 && (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
                   <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('home.foldersHeading')}</h2>
@@ -2848,7 +2943,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  {sortFolders(groups.filter(g => g.id !== 'root')).map(group => (
+                  {sortFolders(groups.filter(g => activeSearch ? activeSearch.matchedGroupIds.has(g.id) : g.id !== 'root')).map(group => (
                     <div
                       key={group.id}
                       onClick={() => navigateTo('list', null, group.id)}
@@ -2940,7 +3035,7 @@ export default function App() {
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
                     {sortSessions(
-                      sessions.filter(s => selectedGroupId ? s.groupId === selectedGroupId : !s.groupId)
+                      sessions.filter(s => activeSearch ? activeSearch.matchedSessionIds.has(s.id) : (selectedGroupId ? s.groupId === selectedGroupId : !s.groupId))
                     ).map(session => (
                       <div
                         key={session.id}

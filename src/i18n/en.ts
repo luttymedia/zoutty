@@ -417,6 +417,36 @@ const en = {
     iosGotIt: 'Got it!',
     alreadyInstalled: "App already installed? Please launch it directly from your home screen.",
   },
+
+  // ─── Search ───────────────────────────────────────────────────────────────
+  search: {
+    title: 'Search',
+    placeholder: 'Search terms...',
+    advancedSearch: 'Advanced Search',
+    searchIn: 'Search In',
+    all: 'All',
+    folders: 'Folders',
+    sessions: 'Sessions titles',
+    entries: 'Entry titles',
+    transcriptions: 'Transcriptions',
+    reports: 'Reports',
+    notes: 'Notes',
+    advancedFilters: 'Advanced Filters',
+    hasGalleryItems: 'Has gallery items',
+    hasAudioRecordings: 'Has audio recordings',
+    glossaryUsed: 'Glossary used',
+    anyGlossary: 'Any Glossary',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    noResults: 'No results',
+    tryAdjusting: 'Try adjusting your filters or search term',
+    searching: 'Searching: {query}',
+    resultsCount_oneSession_oneFolder: '1 session, 1 folder',
+    resultsCount_oneSession_multiFolder: '1 session, {folderCount} folders',
+    resultsCount_multiSession_oneFolder: '{sessionCount} sessions, 1 folder',
+    resultsCount_multiSession_multiFolder: '{sessionCount} sessions, {folderCount} folders',
+    clearSearch: 'Clear Search',
+  },
 };
 
 export default en;

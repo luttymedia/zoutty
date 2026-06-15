@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.1.5',
+    date: new Date().toISOString().split('T')[0],
+    changes: [
+      'Added a comprehensive global Search feature allowing you to easily find content across all folders, sessions, entries, transcriptions, reports, and notes'
+    ]
+  },
+  {
     version: '2.1.4',
     date: new Date().toISOString().split('T')[0],
     changes: [
