@@ -4,7 +4,7 @@ import { CustomCheckbox } from './CustomCheckbox';
 import { CustomSwitch } from './CustomSwitch';
 import { CustomSelect } from './CustomSelect';
 import { SearchFilters, defaultSearchFilters } from '../lib/search';
-import { Glossary } from '../types';
+import { DanceGlossary } from '../types';
 import { useTranslation } from '../i18n/TranslationContext';
 
 interface SearchModalProps {
@@ -12,7 +12,7 @@ interface SearchModalProps {
   onConfirm: (query: string, filters: SearchFilters) => void;
   initialQuery?: string;
   initialFilters?: SearchFilters;
-  glossaries: Glossary[];
+  glossaries: DanceGlossary[];
 }
 
 export function SearchModal({
@@ -114,10 +114,10 @@ export function SearchModal({
         </div>
 
         <div className="mb-6 overflow-y-auto pr-2">
-          {/* Filters */}
-          <div className="mb-6">
+          {/* Filters & Advanced Filters */}
+          <div className="mb-2">
             <h3 className="text-sm font-semibold uppercase tracking-widest text-white/40 mb-3">{t('search.searchIn')}</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mb-8">
               <CustomCheckbox
                 checked={filters.all}
                 onChange={(c) => handleFilterChange('all', c)}
@@ -160,38 +160,32 @@ export function SearchModal({
                 className={filters.all ? "opacity-50 hover:opacity-100 transition-opacity" : ""}
               />
             </div>
-          </div>
 
-          {/* Advanced Filters */}
-          <div className="mb-2 p-4 bg-white/5 rounded-xl border border-white/5">
             <h3 className="text-sm font-semibold uppercase tracking-widest text-brand/70 mb-4 flex items-center gap-2">
               <Settings className="w-4 h-4" />
               {t('search.advancedFilters')}
             </h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-white/80">{t('search.hasGalleryItems')}</span>
-                <CustomSwitch
-                  checked={filters.hasGalleryItems}
-                  onChange={(c) => handleFilterChange('hasGalleryItems', c)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-white/80">{t('search.hasAudioRecordings')}</span>
-                <CustomSwitch
-                  checked={filters.hasAudioRecordings}
-                  onChange={(c) => handleFilterChange('hasAudioRecordings', c)}
-                />
-              </div>
-              <div className="pt-2 border-t border-white/10 space-y-2 relative">
-                <span className="text-sm text-white/80 block">{t('search.glossaryUsed')}</span>
-                <CustomSelect
-                  value={filters.glossaryUsed}
-                  onChange={(v) => handleFilterChange('glossaryUsed', v || 'all')}
-                  options={glossaryOptions}
-                  className="w-full"
-                  position="fixed"
-                />
+              <CustomSwitch
+                label={t('search.hasGalleryItems')}
+                checked={filters.hasGalleryItems}
+                onChange={(c) => handleFilterChange('hasGalleryItems', c)}
+              />
+              <CustomSwitch
+                label={t('search.hasAudioRecordings')}
+                checked={filters.hasAudioRecordings}
+                onChange={(c) => handleFilterChange('hasAudioRecordings', c)}
+              />
+              <div className="flex items-center justify-between pt-4 border-t border-white/10 relative">
+                <span className="text-sm font-semibold text-white">{t('search.glossaryUsed')}</span>
+                <div className="w-48">
+                  <CustomSelect
+                    value={filters.glossaryUsed}
+                    onChange={(v) => handleFilterChange('glossaryUsed', v || 'all')}
+                    options={glossaryOptions}
+                    className="w-full"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -207,7 +201,7 @@ export function SearchModal({
           </button>
           <button
             onClick={() => onConfirm(query, filters)}
-            className="flex-1 py-3 glass bg-brand/20 border-brand/30 text-brand font-bold rounded-xl hover:bg-brand/30 transition-colors shadow-[0_0_15px_rgba(45,212,191,0.2)]"
+            className="flex-1 py-3 rounded-xl font-bold bg-brand text-black hover:bg-brand/90 transition-colors shadow-[0_0_15px_rgba(45,212,191,0.2)]"
           >
             {t('search.confirm')}
           </button>
