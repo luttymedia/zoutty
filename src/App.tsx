@@ -63,6 +63,9 @@ import {
   clearDriveAuth,
   getStoredDriveAccount,
   isDriveConnected,
+  hasSavedAccount,
+  silentlyRefreshToken,
+  getTokenMsUntilRefresh,
   type DriveAccount,
 } from './lib/drive';
 import {
@@ -231,7 +234,9 @@ export default function App() {
   const [driveAccount, setDriveAccount] = useState<DriveAccount | null>(
     () => getStoredDriveAccount()
   );
-  const [driveConnected, setDriveConnected] = useState<boolean>(() => isDriveConnected());
+  // Connected = account is linked; token may be silently refreshed on demand
+  const [driveConnected, setDriveConnected] = useState<boolean>(() => hasSavedAccount());
+  const [driveNeedsReconnect, setDriveNeedsReconnect] = useState(false);
   const [showDriveInfo, setShowDriveInfo] = useState(false);
   const [showDriveDisconnectConfirm, setShowDriveDisconnectConfirm] = useState(false);
 
@@ -464,6 +469,38 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
+  // ─── Google Drive: proactive token refresh ───────────────────────────────────
+  // While the app is open, refresh the token 5 minutes before it expires.
+  // GIS handles this silently (no popup) because the user has an active
+  // Google session. This keeps auto-backups working without interruption.
+  // If the token is already expired on load, the banner handles reconnect.
+  useEffect(() => {
+    if (!driveConnected) return;
+
+    let timerId: ReturnType<typeof setTimeout>;
+
+    const scheduleRefresh = () => {
+      const delay = getTokenMsUntilRefresh();
+      if (delay === 0) {
+        // Token already expired — don't call GIS; banner/reconnect flow handles it.
+        return;
+      }
+      timerId = setTimeout(async () => {
+        try {
+          await silentlyRefreshToken();
+          console.log('[Drive] Token proactively refreshed.');
+          scheduleRefresh(); // schedule the next refresh cycle
+        } catch (e) {
+          console.warn('[Drive] Proactive token refresh failed:', e);
+          setDriveNeedsReconnect(true);
+        }
+      }, delay);
+    };
+
+    scheduleRefresh();
+    return () => clearTimeout(timerId);
+  }, [driveConnected]);
+
   // Load from IndexedDB on mount
   useEffect(() => {
     const loadData = async () => {
@@ -589,6 +626,7 @@ export default function App() {
       const account = getStoredDriveAccount();
       setDriveAccount(account);
       setDriveConnected(true);
+      setDriveNeedsReconnect(false);
       showToast(t('toast.driveConnected'));
     } catch (err: any) {
       console.error('Drive connect failed:', err);
@@ -606,21 +644,27 @@ export default function App() {
     clearDriveAuth();
     setDriveAccount(null);
     setDriveConnected(false);
+    setDriveNeedsReconnect(false);
     setShowDriveDisconnectConfirm(false);
     showToast(t('toast.driveDisconnected'));
   };
 
   const handleDriveBackup = async () => {
+    // If the token has expired, show the reconnect banner instead of calling GIS.
+    if (!isDriveConnected()) {
+      setDriveNeedsReconnect(true);
+      return;
+    }
     showSpinner('Backing up to Google Drive...');
     try {
       const backup = await db.exportDatabase();
       await uploadBackupToDrive(JSON.stringify(backup));
+      setDriveNeedsReconnect(false);
       showToast(t('toast.driveBackupSuccess'));
     } catch (err: any) {
       console.error('Drive backup failed:', err);
-      // Token may have expired — reset connection
-      if (err.message?.includes('401')) {
-        handleDisconnectDrive();
+      if (err.message?.includes('drive_token_expired') || err.message?.includes('401')) {
+        setDriveNeedsReconnect(true);
       }
       showToast(t('toast.driveBackupFailed'), true);
     } finally {
@@ -629,6 +673,11 @@ export default function App() {
   };
 
   const handleDriveRestore = async () => {
+    // If the token has expired, show the reconnect banner instead of calling GIS.
+    if (!isDriveConnected()) {
+      setDriveNeedsReconnect(true);
+      return;
+    }
     showSpinner('Restoring from Google Drive...');
     try {
       const backup = await downloadBackupFromDrive();
@@ -637,12 +686,13 @@ export default function App() {
         return;
       }
       await db.importDatabase(backup);
+      setDriveNeedsReconnect(false);
       showToast(t('toast.driveRestoreSuccess'));
       setTimeout(() => window.location.reload(), 1500);
     } catch (err: any) {
       console.error('Drive restore failed:', err);
-      if (err.message?.includes('401')) {
-        handleDisconnectDrive();
+      if (err.message?.includes('drive_token_expired') || err.message?.includes('401')) {
+        setDriveNeedsReconnect(true);
       }
       showToast(t('toast.driveRestoreFailed'), true);
     } finally {
@@ -1453,14 +1503,23 @@ export default function App() {
         showToast(t('toast.consolidated'));
       }
 
-      // Auto-backup to Google Drive if connected (silent, no spinner)
-      if (isDriveConnected()) {
-        try {
-          const backup = await db.exportDatabase();
-          await uploadBackupToDrive(JSON.stringify(backup));
-          console.log('[Drive] Auto-backup after consolidation succeeded.');
-        } catch (e) {
-          console.warn('[Drive] Auto-backup after consolidation failed silently:', e);
+      // Auto-backup to Google Drive if account is linked (silent, no spinner)
+      if (hasSavedAccount()) {
+        if (!isDriveConnected()) {
+          // Token expired — show banner so user can reconnect at their convenience.
+          setDriveNeedsReconnect(true);
+        } else {
+          try {
+            const backup = await db.exportDatabase();
+            await uploadBackupToDrive(JSON.stringify(backup));
+            setDriveNeedsReconnect(false);
+            console.log('[Drive] Auto-backup after consolidation succeeded.');
+          } catch (e: any) {
+            console.warn('[Drive] Auto-backup after consolidation failed:', e);
+            if (e?.message?.includes('drive_token_expired') || e?.message?.includes('401')) {
+              setDriveNeedsReconnect(true);
+            }
+          }
         }
       }
     } catch (error) {
@@ -1550,7 +1609,31 @@ export default function App() {
       {spinnerText && <Spinner text={spinnerText} />}
       {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.onAction} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
 
+      {/* Drive Reconnect Modal */}
+      {driveNeedsReconnect && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[100] p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 border-amber-500/30">
+            <div className="flex items-center gap-3 text-amber-500">
+              <CloudUpload size={24} />
+              <h3 className="text-xl font-bold">Google Drive</h3>
+            </div>
+            <p className="text-white/80 leading-relaxed">
+              {t('toast.driveReconnectModalBody')}
+            </p>
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button onClick={() => setDriveNeedsReconnect(false)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">
+                {t('toast.driveReconnectLaterBtn', 'Later')}
+              </button>
+              <button onClick={handleConnectDrive} className="px-5 py-2.5 rounded-xl font-bold bg-brand text-brand-foreground hover:opacity-90 transition-opacity min-h-[44px]">
+                {t('toast.driveReconnectConnectBtn', 'Connect')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Modal */}
+
       {deleteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">

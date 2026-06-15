@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.1.6',
+    date: new Date().toISOString().split('T')[0],
+    changes: [
+      'Implemented proactive background refresh for Google Drive access tokens to prevent automatic logouts',
+      'Improved the Google Drive reconnection experience with a centered modal prompt instead of an easily-missed banner'
+    ]
+  },
+  {
     version: '2.1.5',
     date: new Date().toISOString().split('T')[0],
     changes: [

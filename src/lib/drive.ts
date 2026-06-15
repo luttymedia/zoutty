@@ -38,16 +38,46 @@ function getStoredToken(): string | null {
   const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
   if (!token || !expiry) return null;
   if (Date.now() > Number(expiry)) {
-    clearDriveAuth();
+    // Clear only the token — keep account info so the UI stays "linked"
+    // and silent refresh can be attempted on the next operation.
+    clearDriveToken();
     return null;
   }
   return token;
 }
 
+/** Clears only the access token and expiry (not the account record). */
+export function clearDriveToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EXPIRY_KEY);
+}
+
+/**
+ * Returns milliseconds until the token should be proactively refreshed
+ * (5 minutes before it expires). Returns 0 if the token is already expired
+ * or absent, which means a refresh is overdue / not possible silently.
+ */
+export function getTokenMsUntilRefresh(): number {
+  const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+  if (!expiry) return 0;
+  const REFRESH_BUFFER_MS = 5 * 60 * 1000; // 5 min before expiry
+  return Math.max(0, Number(expiry) - Date.now() - REFRESH_BUFFER_MS);
+}
+
+/** Clears everything — token, expiry, and account info. Used on explicit disconnect. */
 export function clearDriveAuth(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
   localStorage.removeItem(ACCOUNT_KEY);
+}
+
+/**
+ * Returns true if the user has previously linked a Google account,
+ * regardless of whether the current access token is still valid.
+ * Used to keep the UI in "connected" state across token expiry events.
+ */
+export function hasSavedAccount(): boolean {
+  return localStorage.getItem(ACCOUNT_KEY) !== null;
 }
 
 export function getStoredDriveAccount(): DriveAccount | null {
@@ -116,13 +146,12 @@ function waitForGIS(): Promise<void> {
 // ─── OAuth – request a fresh token ───────────────────────────────────────────
 
 /**
- * Opens the Google OAuth popup and resolves with an access token.
- * Silently reuses a cached token if still valid.
+ * Attempts a silent GIS token refresh — no popup shown.
+ * Works as long as the user still has an active Google session in the browser
+ * (which is typically the case for weeks/months).
+ * Rejects if the Google session has genuinely expired.
  */
-export async function requestDriveToken(): Promise<string> {
-  const cached = getStoredToken();
-  if (cached) return cached;
-
+export async function silentlyRefreshToken(): Promise<string> {
   await waitForGIS();
 
   return new Promise((resolve, reject) => {
@@ -138,13 +167,28 @@ export async function requestDriveToken(): Promise<string> {
         const token: string = response.access_token;
         const expiresIn: number = Number(response.expires_in) || 3600;
         saveToken(token, expiresIn);
-        await fetchAndSaveAccount(token);
+        // Re-fetch account in case it was cleared
+        if (!localStorage.getItem(ACCOUNT_KEY)) {
+          await fetchAndSaveAccount(token);
+        }
         resolve(token);
       },
     });
 
     client.requestAccessToken({ prompt: '' });
   });
+}
+
+/**
+ * Returns a valid cached access token, or throws if the token is absent /
+ * expired. Callers that need a token must either hold a valid one (proactive
+ * refresh keeps this true while the app is open) or explicitly prompt the
+ * user to reconnect. We never call GIS here to avoid unexpected Google UI.
+ */
+export async function requestDriveToken(): Promise<string> {
+  const cached = getStoredToken();
+  if (cached) return cached;
+  throw new Error('drive_token_expired');
 }
 
 /**
