@@ -146,43 +146,8 @@ function waitForGIS(): Promise<void> {
 // ─── OAuth – request a fresh token ───────────────────────────────────────────
 
 /**
- * Attempts a silent GIS token refresh — no popup shown.
- * Works as long as the user still has an active Google session in the browser
- * (which is typically the case for weeks/months).
- * Rejects if the Google session has genuinely expired.
- */
-export async function silentlyRefreshToken(): Promise<string> {
-  await waitForGIS();
-
-  return new Promise((resolve, reject) => {
-    const client = (window as any).google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPE,
-      prompt: '',
-      callback: async (response: any) => {
-        if (response.error) {
-          reject(new Error(response.error_description || response.error));
-          return;
-        }
-        const token: string = response.access_token;
-        const expiresIn: number = Number(response.expires_in) || 3600;
-        saveToken(token, expiresIn);
-        // Re-fetch account in case it was cleared
-        if (!localStorage.getItem(ACCOUNT_KEY)) {
-          await fetchAndSaveAccount(token);
-        }
-        resolve(token);
-      },
-    });
-
-    client.requestAccessToken({ prompt: '' });
-  });
-}
-
-/**
  * Returns a valid cached access token, or throws if the token is absent /
- * expired. Callers that need a token must either hold a valid one (proactive
- * refresh keeps this true while the app is open) or explicitly prompt the
+ * expired. Callers that need a token must catch this and explicitly prompt the
  * user to reconnect. We never call GIS here to avoid unexpected Google UI.
  */
 export async function requestDriveToken(): Promise<string> {

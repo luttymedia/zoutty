@@ -64,7 +64,6 @@ import {
   getStoredDriveAccount,
   isDriveConnected,
   hasSavedAccount,
-  silentlyRefreshToken,
   getTokenMsUntilRefresh,
   type DriveAccount,
 } from './lib/drive';
@@ -468,38 +467,6 @@ export default function App() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
-
-  // ─── Google Drive: proactive token refresh ───────────────────────────────────
-  // While the app is open, refresh the token 5 minutes before it expires.
-  // GIS handles this silently (no popup) because the user has an active
-  // Google session. This keeps auto-backups working without interruption.
-  // If the token is already expired on load, the banner handles reconnect.
-  useEffect(() => {
-    if (!driveConnected) return;
-
-    let timerId: ReturnType<typeof setTimeout>;
-
-    const scheduleRefresh = () => {
-      const delay = getTokenMsUntilRefresh();
-      if (delay === 0) {
-        // Token already expired — don't call GIS; banner/reconnect flow handles it.
-        return;
-      }
-      timerId = setTimeout(async () => {
-        try {
-          await silentlyRefreshToken();
-          console.log('[Drive] Token proactively refreshed.');
-          scheduleRefresh(); // schedule the next refresh cycle
-        } catch (e) {
-          console.warn('[Drive] Proactive token refresh failed:', e);
-          setDriveNeedsReconnect(true);
-        }
-      }, delay);
-    };
-
-    scheduleRefresh();
-    return () => clearTimeout(timerId);
-  }, [driveConnected]);
 
   // Load from IndexedDB on mount
   useEffect(() => {
