@@ -47,7 +47,7 @@ import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
-import { LogoAnimationV30 } from './components/LogoAnimationV30';
+import { LogoAnimation } from './components/LogoAnimation';
 import { CustomSelect } from './components/CustomSelect';
 import { CustomCheckbox } from './components/CustomCheckbox';
 import { CustomSwitch } from './components/CustomSwitch';
@@ -1591,7 +1591,7 @@ export default function App() {
   return (
     <div className="min-h-screen font-sans selection:bg-brand/30">
       {logoAnimationType && (
-        <LogoAnimationV30 onComplete={handleLogoAnimationComplete} />
+        <LogoAnimation onComplete={handleLogoAnimationComplete} />
       )}
       {spinnerText && <Spinner text={spinnerText} />}
       {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.onAction} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}

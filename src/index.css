@@ -417,65 +417,6 @@ input::placeholder {
   100% { opacity: 0; }
 }
 
-/* ------------------------------------- */
-/* LogoAnimation V30 additions           */
-/* ------------------------------------- */
-
-.logo-anim-overlay.v30 {
-  .logo-v30-group {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .zoutty-logo {
-    position: relative;
-    z-index: 2;
-  }
-
-  &.anim-active .zoutty-logo {
-    animation: logo-v30-move-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    animation-delay: 3.0s;
-  }
-
-  .zoutty-text-wrapper {
-    position: absolute;
-    top: 140px; /* Tuck behind the teal box */
-    z-index: 1;
-    width: 191.39px; /* Match the exact width of the square box */
-    opacity: 0;
-  }
-
-  .zoutty-text-logo {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  &.anim-active .zoutty-text-wrapper {
-    animation: logo-v30-text-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    animation-delay: 3.0s;
-  }
-}
-
-@keyframes logo-v30-move-up {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-30px); }
-}
-
-@keyframes logo-v30-text-reveal {
-  0% { 
-    transform: translateY(-20px); 
-    opacity: 0; 
-  }
-  100% { 
-    transform: translateY(60px); 
-    opacity: 1; 
-  }
-}
-
-
 
 
 
