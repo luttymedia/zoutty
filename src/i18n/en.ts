@@ -365,7 +365,7 @@ const en = {
     storageDesc: 'Required to save your sessions and link video files. Everything stays on your phone.',
     cloudBackup: 'Cloud Backup',
     cloudBackupDesc: 'Optional. Connect your Google Drive in Settings for automatic backups to protect against browser data wipes.',
-    startExploring: 'Start Exploring',
+    startExploring: 'Enter the Studio',
     // Demo content
     demoSessionTitle: 'Practical Guide Session',
     demoSessionSubtitle: 'Editable session subtitle',

@@ -367,7 +367,7 @@ const es: Translations = {
     storageDesc: 'Necesario para guardar tus sesiones y enlazar archivos de video. Todo se queda en tu teléfono.',
     cloudBackup: 'Copia en la nube',
     cloudBackupDesc: 'Opcional. Conecta tu Google Drive en Ajustes para copias automáticas y evitar pérdidas si el navegador borra los datos.',
-    startExploring: 'Empezar a Explorar',
+    startExploring: 'Entrar al estudio',
     // Demo content
     demoSessionTitle: 'Sesión de Guía Práctica',
     demoSessionSubtitle: 'Subtítulo editable de la sesión',

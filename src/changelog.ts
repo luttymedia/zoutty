@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.1.8',
+    date: new Date().toISOString().split('T')[0],
+    changes: [
+      'Added the full spring-loaded brand logo animation (v29) as a celebratory transition overlay during onboarding completion and database restores'
+    ]
+  },
+  {
     version: '2.1.7',
     date: new Date().toISOString().split('T')[0],
     changes: [

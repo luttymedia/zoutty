@@ -186,5 +186,237 @@ input::placeholder {
   50% { opacity: 1; }
 }
 
+/* Zoutty Logo Brand Animation (v29) */
+.logo-anim-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: radial-gradient(circle at 50% 0%, #06373A 0%, #021517 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #2dd4bf;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &.anim-active::before {
+    animation: logo-bg-fade 1.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  .zoutty-logo {
+    width: 191.39px;
+    height: 230.75px; 
+    overflow: visible;
+  }
+
+  .logo-box {
+    transform-origin: 95.69px 118.61px;
+  }
+
+  &.anim-active .logo-box {
+    animation: logo-box-implode 4.5s cubic-bezier(0.8, 0, 0.2, 1) forwards;
+  }
+
+  .stroke-line {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 15px;
+  }
+
+  .line-1 {
+    stroke-dasharray: calc(var(--snake-length-1) * 1px) 2000px;
+    stroke-dashoffset: calc(var(--snake-length-1) * 1px);
+    stroke-linecap: round;
+  }
+
+  .line-2 {
+    stroke-dasharray: calc(var(--snake-length-2) * 1px) 2000px;
+    stroke-dashoffset: calc(var(--snake-length-2) * 1px);
+    stroke-linecap: butt;
+  }
+
+  &.anim-active .line-1 { animation: logo-slide-snake-1 1.5s cubic-bezier(0.4, 0, 0.2, 1) both; animation-delay: 1.5s; }
+  &.anim-active .line-2 { animation: logo-slide-snake-2 1.5s cubic-bezier(0.4, 0, 0.2, 1) both; animation-delay: 1.5s; }
+
+  &.anim-active .mask-eraser-1 { animation: logo-slide-mask-1 1.5s both; animation-delay: 1.5s; }
+  &.anim-active .mask-eraser-2 { animation: logo-slide-mask-2 1.5s both; animation-delay: 1.5s; }
+
+  .arrow-mover {
+    offset-path: path("M173.825,-4.603 L57.55,138.88 C51.34,146.55 56.81,157.99 66.68,157.98 L144.03,157.88");
+    offset-rotate: auto;
+    offset-distance: 0%;
+    opacity: 0;
+  }
+
+  &.anim-active .arrow-mover {
+    animation: logo-move-arrow 1.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+    animation-delay: 1.5s;
+  }
+
+  .final-shapes {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  &.anim-active .final-shapes {
+    animation: logo-show-final 0.01s forwards;
+    animation-delay: 3.0s;
+  }
+
+  .glow-shapes {
+    opacity: 0;
+    visibility: hidden;
+    transform-origin: 95.69px 118.61px;
+    pointer-events: none;
+  }
+
+  &.anim-active .glow-shapes {
+    animation: logo-glow-explode 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: 3.0s;
+  }
+
+  &.anim-active .anim-guides {
+    animation: logo-hide-guides 0.01s forwards;
+    animation-delay: 3.0s;
+  }
+
+  /* Outro Scopes */
+  &.outro-active {
+    animation: logo-outro-wrapper 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+
+    .logo-box {
+      animation: logo-outro-box 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .anim-guides {
+      animation: none !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    .final-shapes,
+    .glow-shapes {
+      animation: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    .line-1 { animation: logo-outro-array-1 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards, logo-outro-offset-1 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    .line-2 { animation: logo-outro-array-2 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards, logo-outro-offset-2 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    .arrow-mover { animation: logo-outro-arrow 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  }
+}
+
+/* Global Keyframes for Logo Brand Animation */
+@keyframes logo-bg-fade {
+  0%, 15% { opacity: 1; }
+  30%, 100% { opacity: 0; }
+}
+
+@keyframes logo-box-implode {
+  0%, 15% { transform: scale(30) rotate(180deg); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  30% { transform: scale(0.95) rotate(-5deg); animation-timing-function: ease-in-out; }
+  33% { transform: scale(1.02) rotate(2deg); animation-timing-function: ease-in-out; }
+  38%, 100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes logo-slide-snake-1 {
+  0% { stroke-dashoffset: calc(var(--snake-length-1) * 1px); }
+  100% { stroke-dashoffset: calc(-1px * (var(--track-length-1) - var(--snake-length-1))); }
+}
+
+@keyframes logo-slide-snake-2 {
+  0% { stroke-dashoffset: calc(var(--snake-length-2) * 1px); }
+  100% { stroke-dashoffset: calc(-1px * (var(--track-length-2) - var(--snake-length-2))); }
+}
+
+@keyframes logo-slide-mask-1 {
+  0% { transform: translateY(var(--clip-y-start-1)); animation-timing-function: ease-in-out; }
+  50%, 100% { transform: translateY(var(--clip-y-end-1)); }
+}
+
+@keyframes logo-slide-mask-2 {
+  0% { transform: translateY(var(--clip-y-start-2)); animation-timing-function: ease-in-out; }
+  50%, 100% { transform: translateY(var(--clip-y-end-2)); }
+}
+
+@keyframes logo-move-arrow {
+  0% { offset-distance: 0%; opacity: 1; }
+  99% { offset-distance: 100%; opacity: 1; }
+  100% { offset-distance: 100%; opacity: 1; }
+}
+
+@keyframes logo-hide-guides {
+  to { opacity: 0; visibility: hidden; }
+}
+
+@keyframes logo-show-final {
+  to { opacity: 1; visibility: visible; }
+}
+
+@keyframes logo-glow-explode {
+  0%, 0.99% { 
+    opacity: 0; 
+    visibility: hidden; 
+    transform: scale(1); 
+    filter: brightness(1) blur(0px); 
+  }
+  1% { 
+    opacity: 1; 
+    visibility: visible; 
+    transform: scale(1.02); 
+    filter: brightness(2) blur(2px) drop-shadow(0 0 20px #fff); 
+  }
+  100% { 
+    opacity: 0; 
+    visibility: hidden; 
+    transform: scale(1.3); 
+    filter: brightness(1) blur(10px) drop-shadow(0 0 0px transparent); 
+  }
+}
+
+@keyframes logo-outro-offset-1 {
+  0%, 20% { stroke-dashoffset: -94.03px; }
+  100% { stroke-dashoffset: -1146.86px; }
+}
+@keyframes logo-outro-array-1 {
+  0% { stroke-dasharray: 183px 2000px; }
+  10% { stroke-dasharray: 175px 2000px; }
+  20%, 100% { stroke-dasharray: 183px 2000px; }
+}
+@keyframes logo-outro-offset-2 {
+  0%, 20% { stroke-dashoffset: -88.03px; }
+  100% { stroke-dashoffset: -1148.28px; }
+}
+@keyframes logo-outro-array-2 {
+  0% { stroke-dasharray: 189px 2000px; }
+  10% { stroke-dasharray: 181px 2000px; }
+  20%, 100% { stroke-dasharray: 189px 2000px; }
+}
+@keyframes logo-outro-arrow {
+  0% { offset-distance: 24.13%; }
+  10% { offset-distance: 23.43%; }
+  20% { offset-distance: 24.13%; }
+  100% { offset-distance: 100%; }
+}
+@keyframes logo-outro-box {
+  0%, 30% { transform: scale(1) rotate(0deg); opacity: 1; }
+  55% { transform: scale(1.02) rotate(-2deg); opacity: 1; animation-timing-function: ease-in-out; }
+  70% { transform: scale(0.95) rotate(5deg); opacity: 1; animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+  100% { transform: scale(40) rotate(-180deg); opacity: 0; }
+}
+@keyframes logo-outro-wrapper {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+
 
 

@@ -47,6 +47,7 @@ import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
+import { LogoAnimation } from './components/LogoAnimation';
 import { CustomSelect } from './components/CustomSelect';
 import { CustomCheckbox } from './components/CustomCheckbox';
 import { CustomSwitch } from './components/CustomSwitch';
@@ -223,6 +224,7 @@ export default function App() {
 
   const [toastMessage, setToastMessage] = useState<{ text: string, isError: boolean, actionText?: string, onAction?: () => void, duration?: number } | null>(null);
   const [spinnerText, setSpinnerText] = useState<string | null>(null);
+  const [logoAnimationType, setLogoAnimationType] = useState<'onboarding' | 'restore' | null>(null);
 
   const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
   const [reprocessModal, setReprocessModal] = useState<string | null>(null);
@@ -473,6 +475,11 @@ export default function App() {
 
   // Load from IndexedDB on mount
   useEffect(() => {
+    if (sessionStorage.getItem('zoutty_show_restore_animation') === 'true') {
+      sessionStorage.removeItem('zoutty_show_restore_animation');
+      setLogoAnimationType('restore');
+    }
+
     const loadData = async () => {
       try {
         // Seed default/system glossaries if needed
@@ -559,6 +566,7 @@ export default function App() {
       const backup = JSON.parse(text);
       await db.importDatabase(backup);
       showToast(t('toast.restoreSuccess'));
+      sessionStorage.setItem('zoutty_show_restore_animation', 'true');
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -658,6 +666,7 @@ export default function App() {
       await db.importDatabase(backup);
       setDriveNeedsReconnect(false);
       showToast(t('toast.driveRestoreSuccess'));
+      sessionStorage.setItem('zoutty_show_restore_animation', 'true');
       setTimeout(() => window.location.reload(), 1500);
     } catch (err: any) {
       console.error('Drive restore failed:', err);
@@ -1553,9 +1562,14 @@ export default function App() {
   };
 
   const handleCompleteOnboarding = () => {
+    setLogoAnimationType('onboarding');
     localStorage.setItem('zoutty_onboarding_completed', 'true');
     setHasCompletedOnboarding(true);
     seedDemoSession();
+  };
+
+  const handleLogoAnimationComplete = () => {
+    setLogoAnimationType(null);
   };
 
   const folders = groups.filter(g => g.id !== 'root');
@@ -1576,6 +1590,9 @@ export default function App() {
   // --- Renderers ---
   return (
     <div className="min-h-screen font-sans selection:bg-brand/30">
+      {logoAnimationType && (
+        <LogoAnimation onComplete={handleLogoAnimationComplete} />
+      )}
       {spinnerText && <Spinner text={spinnerText} />}
       {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.onAction} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
 
