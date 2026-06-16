@@ -46,6 +46,7 @@ import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, Session
 import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
+import { LoaderIcon } from './components/LoaderIcon';
 import { CustomSelect } from './components/CustomSelect';
 import { CustomCheckbox } from './components/CustomCheckbox';
 import { CustomSwitch } from './components/CustomSwitch';
@@ -162,8 +163,10 @@ function Toast({ message, isError, actionText, onAction, onClose, duration = 500
 function Spinner({ text }: { text: string }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] text-white font-sans">
-      <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-      <span className="mt-4 font-medium">{text}</span>
+      <div className="flex flex-col items-center gap-6">
+        <LoaderIcon className="w-[60px] h-auto overflow-visible" />
+        <span className="loader-text">{text}</span>
+      </div>
     </div>
   );
 }

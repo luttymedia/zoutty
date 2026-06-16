@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.1.7',
+    date: new Date().toISOString().split('T')[0],
+    changes: [
+      'Replaced the default browser loading spinner with the premium, spring-loaded fidget-spinner Zoutty logo animation'
+    ]
+  },
+  {
     version: '2.1.6',
     date: new Date().toISOString().split('T')[0],
     changes: [

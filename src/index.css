@@ -135,4 +135,56 @@ input::placeholder {
   }
 }
 
+/* Zoutty Fidget Spinner Loader Animations */
+.spinner-group {
+  transform-origin: 95.69px 118.61px;
+  animation: spinner-loop 3.0s infinite, blur-loop 3.0s infinite;
+}
+
+@keyframes blur-loop {
+  0%, 20% { filter: blur(0px); }
+  25% { filter: blur(3px); } /* Maximum blur at peak flick speed */
+  50%, 100% { filter: blur(0px); } /* Fade out blur as friction slows it down */
+}
+
+@keyframes spinner-loop {
+  /* Rest state */
+  0%, 10% { 
+    transform: scale(0.9) rotate(0deg); 
+    animation-timing-function: ease-out; 
+  }
+  
+  /* The Anticipation Spring (Wind up backwards) */
+  20% { 
+    transform: scale(0.85) rotate(-35deg); 
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1); /* Sharp, immediate flick outwards */
+  }
+  
+  /* The Flick (Spins 4 times, grows 5% to 0.95) */
+  /* Natural deceleration, subtle overshoot to +15deg */
+  55% { 
+    transform: scale(0.95) rotate(1455deg); 
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); /* Smooth spring back */
+  }
+  
+  /* The Settle (Springs back cleanly to plain horizontal rest position) */
+  65%, 100% { 
+    transform: scale(0.9) rotate(1440deg); 
+  }
+}
+
+.loader-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  animation: pulse-text 2s infinite ease-in-out;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+
 
