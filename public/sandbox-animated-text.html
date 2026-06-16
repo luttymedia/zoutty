@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoutty Logo Animation Sandbox</title>
+    <style>
+        body {
+            background: #09090b;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .sandbox-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at 50% 0%, #06373A 0%, #021517 70%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .sandbox-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: #2dd4bf;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .anim-active.sandbox-wrapper::before {
+            animation: bg-fade 1.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        /* V33 Absolute Positioning Group */
+        .logo-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .anim-active .logo-group {
+            animation: group-shift-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation-delay: 3.0s;
+        }
+
+        .logo-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .text-reveal-wrapper {
+            position: absolute;
+            top: 214.31px; /* Exactly aligned with the bottom of the teal box (22.92 + 191.39) */
+            height: 0px;
+            overflow: hidden;
+            opacity: 0;
+            z-index: 1;
+        }
+
+        .anim-active .text-reveal-wrapper {
+            animation: reveal-height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation-delay: 3.0s;
+        }
+
+        .text-slider {
+            transform: translateY(-27.74px);
+        }
+
+        .anim-active .text-slider {
+            animation: slide-text-down 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation-delay: 3.0s;
+        }
+
+        .zoutty-text-logo {
+            width: 191.39px;
+            height: 27.74px; /* 191.39 * (83.13 / 573.39) */
+            display: block;
+        }
+
+        @keyframes group-shift-up {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-18.87px); } /* Shifts the whole group up to keep layout visually centered */
+        }
+
+        @keyframes reveal-height {
+            0% { 
+                height: 0px; 
+                transform: translateY(0px);
+                opacity: 0; 
+            }
+            100% { 
+                height: 27.74px; 
+                transform: translateY(10px); /* Pushes down to create the 10px gap */
+                opacity: 1; 
+            }
+        }
+
+        @keyframes slide-text-down {
+            0% { transform: translateY(-27.74px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* Logo Original Styles */
+        .zoutty-logo {
+            width: 191.39px;
+            height: 230.75px; 
+            overflow: visible;
+        }
+
+        .logo-box {
+            transform-origin: 95.69px 118.61px;
+        }
+        .anim-active .logo-box {
+            animation: box-implode 4.5s cubic-bezier(0.8, 0, 0.2, 1) forwards;
+        }
+
+        /* The Moving Lines */
+        .stroke-line {
+            fill: none;
+            stroke: #fff;
+            stroke-width: 15px;
+        }
+
+        .line-1 {
+            stroke-dasharray: calc(var(--snake-length-1) * 1px) 2000px;
+            stroke-dashoffset: calc(var(--snake-length-1) * 1px);
+            stroke-linecap: round;
+        }
+        .line-2 {
+            stroke-dasharray: calc(var(--snake-length-2) * 1px) 2000px;
+            stroke-dashoffset: calc(var(--snake-length-2) * 1px);
+            stroke-linecap: butt;
+        }
+
+        .anim-active .line-1 { animation: slide-snake-1 1.5s cubic-bezier(0.4, 0, 0.2, 1) both; animation-delay: 1.5s; }
+        .anim-active .line-2 { animation: slide-snake-2 1.5s cubic-bezier(0.4, 0, 0.2, 1) both; animation-delay: 1.5s; }
+
+        /* The Masks (Horizontal Trims) */
+        .anim-active .mask-eraser-1 { animation: slide-mask-1 1.5s both; animation-delay: 1.5s; }
+        .anim-active .mask-eraser-2 { animation: slide-mask-2 1.5s both; animation-delay: 1.5s; }
+
+        /* The Arrowhead Mover */
+        .arrow-mover {
+            offset-path: path("M173.825,-4.603 L57.55,138.88 C51.34,146.55 56.81,157.99 66.68,157.98 L144.03,157.88");
+            offset-rotate: auto;
+            offset-distance: 0%;
+            opacity: 0;
+        }
+
+        .anim-active .arrow-mover {
+            animation: move-arrow 1.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+            animation-delay: 1.5s;
+        }
+
+        /* Final Logo Swap */
+        .final-shapes {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .anim-active .final-shapes {
+            animation: show-final 0.01s forwards;
+            animation-delay: 3.0s;
+        }
+
+        /* Glow Explosion (Ghost Burst) */
+        .glow-shapes {
+            opacity: 0;
+            visibility: hidden;
+            transform-origin: 95.69px 118.61px;
+            pointer-events: none;
+        }
+        .anim-active .glow-shapes {
+            animation: glow-explode 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            animation-delay: 3.0s;
+        }
+        .anim-active .anim-guides {
+            animation: hide-guides 0.01s forwards;
+            animation-delay: 3.0s;
+        }
+
+        @keyframes bg-fade {
+            0%, 15% { opacity: 1; }
+            30%, 100% { opacity: 0; }
+        }
+
+        @keyframes box-implode {
+            0%, 15% { transform: scale(30) rotate(180deg); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+            30% { transform: scale(0.95) rotate(-5deg); animation-timing-function: ease-in-out; }
+            33% { transform: scale(1.02) rotate(2deg); animation-timing-function: ease-in-out; }
+            38%, 100% { transform: scale(1) rotate(0deg); }
+        }
+
+        @keyframes slide-snake-1 {
+            0% { stroke-dashoffset: calc(var(--snake-length-1) * 1px); }
+            100% { stroke-dashoffset: calc(-1px * (var(--track-length-1) - var(--snake-length-1))); }
+        }
+        @keyframes slide-snake-2 {
+            0% { stroke-dashoffset: calc(var(--snake-length-2) * 1px); }
+            100% { stroke-dashoffset: calc(-1px * (var(--track-length-2) - var(--snake-length-2))); }
+        }
+
+        @keyframes slide-mask-1 {
+            0% { transform: translateY(var(--clip-y-start-1)); animation-timing-function: ease-in-out; }
+            50%, 100% { transform: translateY(var(--clip-y-end-1)); }
+        }
+        @keyframes slide-mask-2 {
+            0% { transform: translateY(var(--clip-y-start-2)); animation-timing-function: ease-in-out; }
+            50%, 100% { transform: translateY(var(--clip-y-end-2)); }
+        }
+
+        @keyframes move-arrow {
+            0% { offset-distance: 0%; opacity: 1; }
+            99% { offset-distance: 100%; opacity: 1; }
+            100% { offset-distance: 100%; opacity: 1; }
+        }
+
+        @keyframes hide-guides {
+            to { opacity: 0; visibility: hidden; }
+        }
+        @keyframes show-final {
+            to { opacity: 1; visibility: visible; }
+        }
+
+        @keyframes glow-explode {
+            0%, 0.99% { 
+                opacity: 0; 
+                visibility: hidden; 
+                transform: scale(1); 
+                filter: brightness(1) blur(0px); 
+            }
+            1% { 
+                opacity: 1; 
+                visibility: visible; 
+                transform: scale(1.02); 
+                filter: brightness(2) blur(2px) drop-shadow(0 0 20px #fff); 
+            }
+            100% { 
+                opacity: 0; 
+                visibility: hidden; 
+                transform: scale(1.3); 
+                filter: brightness(1) blur(10px) drop-shadow(0 0 0px transparent); 
+            }
+        }
+
+        /* OUTRO ANIMATIONS (Pure CSS) */
+        .outro-active.sandbox-wrapper { animation: outro-wrapper 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .outro-active .logo-box { animation: outro-box 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        
+        /* Cancel intro hiding animations so the lines come back */
+        .outro-active .anim-guides {
+            animation: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        .outro-active .final-shapes,
+        .outro-active .glow-shapes {
+            animation: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+
+        .outro-active .line-1 { animation: outro-array-1 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards, outro-offset-1 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .outro-active .line-2 { animation: outro-array-2 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards, outro-offset-2 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .outro-active .arrow-mover { animation: outro-arrow 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+        @keyframes outro-offset-1 {
+            0%, 20% { stroke-dashoffset: -94.03px; }
+            100% { stroke-dashoffset: -1146.86px; }
+        }
+        @keyframes outro-array-1 {
+            0% { stroke-dasharray: 183px 2000px; }
+            10% { stroke-dasharray: 175px 2000px; }
+            20%, 100% { stroke-dasharray: 183px 2000px; }
+        }
+        @keyframes outro-offset-2 {
+            0%, 20% { stroke-dashoffset: -88.03px; }
+            100% { stroke-dashoffset: -1148.28px; }
+        }
+        @keyframes outro-array-2 {
+            0% { stroke-dasharray: 189px 2000px; }
+            10% { stroke-dasharray: 181px 2000px; }
+            20%, 100% { stroke-dasharray: 189px 2000px; }
+        }
+        @keyframes outro-arrow {
+            0% { offset-distance: 24.13%; }
+            10% { offset-distance: 23.43%; }
+            20% { offset-distance: 24.13%; }
+            100% { offset-distance: 100%; }
+        }
+        @keyframes outro-box {
+            0%, 30% { transform: scale(1) rotate(0deg); opacity: 1; }
+            55% { transform: scale(1.02) rotate(-2deg); opacity: 1; animation-timing-function: ease-in-out; }
+            70% { transform: scale(0.95) rotate(5deg); opacity: 1; animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+            100% { transform: scale(40) rotate(-180deg); opacity: 0; }
+        }
+        @keyframes outro-wrapper {
+            0%, 80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .controls { 
+            position: absolute; 
+            bottom: 40px; 
+            z-index: 20; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+        .controls-row {
+            display: flex;
+            gap: 15px;
+        }
+        button { padding: 12px 20px; background: #2dd4bf; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button.outro-btn { background: #f43f5e; color: white; }
+
+        .version-badge {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            background: #2dd4bf;
+            color: #000;
+            font-weight: bold;
+            font-size: 13px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            z-index: 9999;
+            font-family: monospace;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sandbox-wrapper" id="sandbox">
+        <div class="logo-group" id="logo-group">
+            <div class="logo-container">
+                <svg class="zoutty-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 191.39 230.75">
+                    <defs>
+                        <clipPath id="box-clip">
+                            <rect y="22.92" width="191.39" height="191.39" rx="41.01" ry="41.01"/>
+                        </clipPath>
+
+                        <!-- Intro Masks -->
+                        <mask id="trim-1" maskUnits="userSpaceOnUse" x="-3000" y="-3000" width="6000" height="6000">
+                            <rect x="-3000" y="-3000" width="6000" height="6000" fill="white" />
+                            <rect class="mask-eraser-1" x="-3000" y="0" width="6000" height="3000" fill="black" />
+                        </mask>
+                        <mask id="trim-2" maskUnits="userSpaceOnUse" x="-3000" y="-3000" width="6000" height="6000">
+                            <rect x="-3000" y="-3000" width="6000" height="6000" fill="white" />
+                            <rect class="mask-eraser-2" x="-3000" y="-3000" width="6000" height="3000" fill="black" />
+                        </mask>
+                    </defs>
+
+                    <rect id="BOX" class="logo-box" fill="#2dd4bf" y="22.92" width="191.39" height="191.39" rx="41.01" ry="41.01"/>
+                    
+                    <g clip-path="url(#box-clip)" id="clip-wrapper">
+                        <g class="anim-guides">
+                            <!-- Top Line -->
+                            <path id="guide-1" class="stroke-line line-1" mask="url(#trim-1)" d="M12.86,231.88 L133.73,82.44 C139.91,74.8 134.46,63.41 124.63,63.42 L54.80,63.52" />
+                            
+                            <!-- Arrow Line -->
+                            <path id="guide-2" class="stroke-line line-2" mask="url(#trim-2)" d="M173.825,-4.603 L57.55,138.88 C51.34,146.55 56.81,157.99 66.68,157.98 L144.03,157.88" />
+                            
+                            <g class="arrow-mover">
+                                <g transform="translate(-143.93, -157.88)">
+                                    <path fill="#fff" d="M150.37,152.65l-15.95-15.95c-2.94-2.94-7.7-2.94-10.64,0s-2.94,7.7,0,10.64l10.64,10.64-10.64,10.64c-2.94,2.94-2.94,7.7,0,10.64s7.7,2.94,10.64,0l15.95-15.95c1.47-1.47,2.21-3.41,2.2-5.34,0-1.93-.73-3.86-2.2-5.34Z"/>
+                                </g>
+                            </g>
+                        </g>
+
+                        <g class="final-shapes" id="final-logo">
+                            <path fill="#fff" d="M123.89,71.04h.2c.07,0,.13.02.19.02.16,0,.32.02.48.05.14.02.28.04.42.08.15.04.29.08.43.13.14.05.28.1.42.17.13.06.25.13.37.2.14.08.28.17.41.27.05.04.11.06.16.1.06.05.1.11.16.16.12.11.23.22.34.34.1.11.19.22.27.33.09.12.17.24.25.37.08.13.15.25.21.38.06.13.12.27.17.41.05.14.09.28.13.42.04.14.06.28.09.43.02.16.04.32.05.48,0,.08.02.15.02.22,0,.07-.02.13-.02.19,0,.16-.02.32-.05.48-.02.14-.04.28-.08.42-.04.15-.08.29-.13.43-.05.14-.1.28-.17.42-.06.13-.13.25-.2.37-.08.14-.17.28-.27.41-.04.05-.06.11-.11.16l-48.68,59.93-2.26,2.78h18.7l2.28-2.78,42.06-51.31c10.25-12.5,1.35-31.29-14.81-31.29h0s-.04,0-.06,0c-.01,0-.02,0-.03,0H54.8c-4.15,0-7.52,3.37-7.52,7.52v.17c0,4.15,3.37,7.52,7.52,7.52h64.37s4.72,0,4.72,0Z"/>
+                            <path fill="#fff" d="M150.37,152.58l-15.95-15.95c-2.94-2.94-7.7-2.94-10.64,0s-2.94,7.7,0,10.64l3.12,3.12-24.92-.02-31.83-.02h-2.81s-.25,0-.25,0c-.07,0-.13-.02-.19-.02-.16,0-.32-.02-.48-.05-.14-.02-.28-.04-.42-.08-.14-.04-.29-.08-.43-.13-.14-.05-.29-.1-.42-.17-.13-.06-.25-.13-.37-.2-.14-.08-.28-.17-.41-.27-.05-.04-.11-.06-.16-.1-.06-.05-.1-.11-.16-.16-.12-.11-.24-.22-.34-.34-.1-.11-.19-.22-.27-.33-.09-.12-.17-.25-.25-.37-.08-.13-.15-.25-.21-.38-.06-.13-.12-.27-.17-.41-.05-.14-.09-.28-.13-.42-.04-.14-.06-.28-.09-.43-.02-.16-.04-.32-.05-.48,0-.08-.02-.15-.02-.22,0-.07.02-.13.02-.19,0-.16.02-.32.05-.48.02-.14.04-.28.08-.42.04-.15.08-.29.13-.43.05-.14.1-.28.17-.42.06-.13.13-.25.2-.37.08-.14.17-.28.27-.41.04-.05.06-.11.11-.16l47.54-58.51,3.41-4.2h-18.6l-3.44,4.2-40.8,49.77c-10.25,12.5-1.35,31.29,14.81,31.29h0c.05,0,.11,0,.16,0,.03,0,.06,0,.09,0h60.18s-3.12,3.12-3.12,3.12c-2.94,2.94-2.94,7.7,0,10.64s7.7,2.94,10.64,0l15.95-15.95c1.47-1.47,2.21-3.41,2.2-5.34,0-1.93-.73-3.86-2.2-5.34Z"/>
+                        </g>
+                        <g class="glow-shapes">
+                            <path fill="#fff" d="M123.89,71.04h.2c.07,0,.13.02.19.02.16,0,.32.02.48.05.14.02.28.04.42.08.15.04.29.08.43.13.14.05.28.1.42.17.13.06.25.13.37.2.14.08.28.17.41.27.05.04.11.06.16.1.06.05.1.11.16.16.12.11.23.22.34.34.1.11.19.22.27.33.09.12.17.24.25.37.08.13.15.25.21.38.06.13.12.27.17.41.05.14.09.28.13.42.04.14.06.28.09.43.02.16.04.32.05.48,0,.08.02.15.02.22,0,.07-.02.13-.02.19,0,.16-.02.32-.05.48-.02.14-.04.28-.08.42-.04.15-.08.29-.13.43-.05.14-.1.28-.17.42-.06.13-.13.25-.2.37-.08.14-.17.28-.27.41-.04.05-.06.11-.11.16l-48.68,59.93-2.26,2.78h18.7l2.28-2.78,42.06-51.31c10.25-12.5,1.35-31.29-14.81-31.29h0s-.04,0-.06,0c-.01,0-.02,0-.03,0H54.8c-4.15,0-7.52,3.37-7.52,7.52v.17c0,4.15,3.37,7.52,7.52,7.52h64.37s4.72,0,4.72,0Z"/>
+                            <path fill="#fff" d="M150.37,152.58l-15.95-15.95c-2.94-2.94-7.7-2.94-10.64,0s-2.94,7.7,0,10.64l3.12,3.12-24.92-.02-31.83-.02h-2.81s-.25,0-.25,0c-.07,0-.13-.02-.19-.02-.16,0-.32-.02-.48-.05-.14-.02-.28-.04-.42-.08-.14-.04-.29-.08-.43-.13-.14-.05-.29-.1-.42-.17-.13-.06-.25-.13-.37-.2-.14-.08-.28-.17-.41-.27-.05-.04-.11-.06-.16-.1-.06-.05-.1-.11-.16-.16-.12-.11-.24-.22-.34-.34-.1-.11-.19-.22-.27-.33-.09-.12-.17-.25-.25-.37-.08-.13-.15-.25-.21-.38-.06-.13-.12-.27-.17-.41-.05-.14-.09-.28-.13-.42-.04-.14-.06-.28-.09-.43-.02-.16-.04-.32-.05-.48,0-.08-.02-.15-.02-.22,0-.07.02-.13.02-.19,0-.16.02-.32.05-.48.02-.14.04-.28.08-.42.04-.15.08-.29.13-.43.05-.14.1-.28.17-.42.06-.13.13-.25.2-.37.08-.14.17-.28.27-.41.04-.05.06-.11.11-.16l47.54-58.51,3.41-4.2h-18.6l-3.44,4.2-40.8,49.77c-10.25,12.5-1.35,31.29,14.81,31.29h0c.05,0,.11,0,.16,0,.03,0,.06,0,.09,0h60.18s-3.12,3.12-3.12,3.12c-2.94,2.94-2.94,7.7,0,10.64s7.7,2.94,10.64,0l15.95-15.95c1.47-1.47,2.21-3.41,2.2-5.34,0-1.93-.73-3.86-2.2-5.34Z"/>
+                        </g>
+                    </g>
+                </svg>
+            </div>
+            <div class="text-reveal-wrapper">
+                <div class="text-slider">
+                    <svg class="zoutty-text-logo" viewBox="0 0 573.39 83.13" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="#2dd4bf" d="M0,68.47L52.76,14.72H1.33V0h78.22v13.93l-53.44,54.54h53.58v14.66H0v-14.66Z"/>
+                        <path fill="#2dd4bf" d="M165.85,73.96c-6.28,6.11-15.36,9.17-27.24,9.17s-20.96-3.06-27.24-9.17c-8.42-7.5-12.63-18.3-12.63-32.4s4.21-25.19,12.63-32.4c6.28-6.11,15.36-9.17,27.24-9.17s20.96,3.06,27.24,9.17c8.38,7.21,12.58,18.01,12.58,32.4s-4.19,24.9-12.58,32.4ZM155,62.03c4.04-4.8,6.06-11.62,6.06-20.46s-2.02-15.62-6.06-20.44c-4.04-4.81-9.5-7.22-16.38-7.22s-12.37,2.4-16.47,7.19c-4.1,4.8-6.15,11.62-6.15,20.46s2.05,15.67,6.15,20.46c4.1,4.8,9.59,7.19,16.47,7.19s12.34-2.4,16.38-7.19Z"/>
+                        <path fill="#2dd4bf" d="M197.48,0h21.08v49.77c0,5.57.81,9.63,2.42,12.2,2.51,4.54,7.96,6.81,16.38,6.81s13.8-2.27,16.31-6.81c1.61-2.56,2.42-6.63,2.42-12.2V0h21.08v49.81c0,8.61-1.64,15.32-4.91,20.12-6.1,8.8-17.73,13.2-34.9,13.2s-28.83-4.4-34.97-13.2c-3.27-4.8-4.91-11.51-4.91-20.12V0Z"/>
+                        <path fill="#2dd4bf" d="M375.91,0v14.72h-29.43v68.41h-20.69V14.72h-29.57V0h79.69Z"/>
+                        <path fill="#2dd4bf" d="M474.65,0v14.72h-29.43v68.41h-20.69V14.72h-29.57V0h79.69Z"/>
+                        <path fill="#2dd4bf" d="M552.18,0h21.21l-29.97,51.96v31.17h-18.72v-31.17L493.7,0h22.07l18.6,36.21L552.18,0Z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="version-badge">v33</div>
+
+    <div class="controls">
+        <div class="controls-row">
+            <button onclick="playAnim()">▶ Play Full Animation</button>
+        </div>
+    </div>
+
+    <script>
+        const root = document.documentElement;
+
+        // Fixed snake lengths (sliders removed)
+        const SNAKE_LEN_1 = 183;
+        const SNAKE_LEN_2 = 189;
+        root.style.setProperty('--snake-length-1', SNAKE_LEN_1);
+        root.style.setProperty('--snake-length-2', SNAKE_LEN_2);
+
+        let isOutro = false;
+        let outroTimer = null;
+
+        function calculateTrimPositions() {
+            const line1 = document.getElementById('guide-1');
+            const line2 = document.getElementById('guide-2');
+            
+            // Force layout flush so getTotalLength returns correct updated value
+            void line1.getBoundingClientRect();
+            
+            const trackLen1 = line1.getTotalLength() || 277.03;
+            const trackLen2 = line2.getTotalLength() || 277.03;
+            root.style.setProperty('--track-length-1', trackLen1);
+            root.style.setProperty('--track-length-2', trackLen2);
+
+            const pt0_1 = line1.getPointAtLength(0);
+            const pt1_1 = line1.getPointAtLength(1);
+            const dirY_1 = (pt1_1.y - pt0_1.y); 
+            const startY_1 = pt0_1.y + dirY_1 * (-SNAKE_LEN_1);
+            const endY_1 = line1.getPointAtLength(Math.max(0, trackLen1 - SNAKE_LEN_1)).y;
+
+            root.style.setProperty('--clip-y-start-1', (startY_1 - 8) + 'px');
+            root.style.setProperty('--clip-y-end-1', (endY_1 - 8) + 'px');
+
+            const pt0_2 = line2.getPointAtLength(0);
+            const pt1_2 = line2.getPointAtLength(1);
+            const dirY_2 = (pt1_2.y - pt0_2.y); 
+            const startY_2 = pt0_2.y + dirY_2 * (-SNAKE_LEN_2);
+            const endY_2 = line2.getPointAtLength(Math.max(0, trackLen2 - SNAKE_LEN_2)).y;
+
+            root.style.setProperty('--clip-y-start-2', (startY_2 + 8) + 'px');
+            root.style.setProperty('--clip-y-end-2', (endY_2 + 8) + 'px');
+        }
+
+        function playAnim() {
+            clearTimeout(outroTimer);
+            const wrapper = document.getElementById('sandbox');
+            
+            if (isOutro) {
+                // Completely Reset Outro State to prepare for Intro
+                isOutro = false;
+                wrapper.classList.remove('outro-active');
+                wrapper.style.opacity = '1';
+                document.querySelector('.final-shapes').style.display = '';
+                document.getElementById('BOX').style.transform = '';
+                document.getElementById('BOX').style.animation = '';
+                
+                const line1 = document.getElementById('guide-1');
+                const line2 = document.getElementById('guide-2');
+                const arrowMover = document.querySelector('.arrow-mover');
+                
+                // Re-add clip path to trap lines inside the box
+                document.getElementById('clip-wrapper').setAttribute('clip-path', 'url(#box-clip)');
+                
+                // Restore Original Paths
+                line1.setAttribute('d', 'M12.86,231.88 L133.73,82.44 C139.91,74.8 134.46,63.41 124.63,63.42 L54.80,63.52');
+                line2.setAttribute('d', 'M173.825,-4.603 L57.55,138.88 C51.34,146.55 56.81,157.99 66.68,157.98 L144.03,157.88');
+                arrowMover.style.offsetPath = 'path("M173.825,-4.603 L57.55,138.88 C51.34,146.55 56.81,157.99 66.68,157.98 L144.03,157.88")';
+                
+                // Restore Original Masks
+                line1.setAttribute('mask', 'url(#trim-1)');
+                line2.setAttribute('mask', 'url(#trim-2)');
+                
+                // Clear JS styles
+                line1.style = '';
+                line2.style = '';
+                arrowMover.style = '';
+                document.querySelector('.mask-eraser-1').style = '';
+                document.querySelector('.mask-eraser-2').style = '';
+                document.querySelector('.mask-eraser-1').removeAttribute('transform');
+                document.querySelector('.mask-eraser-2').removeAttribute('transform');
+            }
+
+            wrapper.classList.remove('anim-active');
+            void wrapper.offsetWidth; 
+            calculateTrimPositions();
+            
+            document.querySelectorAll('*').forEach(el => el.style.animationDelay = '');
+            wrapper.classList.add('anim-active');
+            
+            outroTimer = setTimeout(playOutro, 4500);
+        }
+
+        function playOutro() {
+            if (isOutro) return; 
+            isOutro = true;
+            
+            const line1 = document.getElementById('guide-1');
+            const line2 = document.getElementById('guide-2');
+            const arrowMover = document.querySelector('.arrow-mover');
+            
+            // 1. Hide Final Logo & Re-show Guides
+            document.querySelector('.final-shapes').style.display = 'none';
+            document.querySelector('.anim-guides').style.opacity = '1';
+            document.querySelector('.anim-guides').style.visibility = 'visible';
+            arrowMover.style.opacity = '1';
+            
+            // 2. Extend Paths Horizontally
+            line1.setAttribute('d', 'M12.86,231.88 L133.73,82.44 C139.91,74.8 134.46,63.41 124.63,63.42 L-800,63.52');
+            line2.setAttribute('d', 'M173.825,-4.603 L57.55,138.88 C51.34,146.55 56.81,157.99 66.68,157.98 L1000,157.88');
+            arrowMover.style.offsetPath = 'path("M173.825,-4.603 L57.55,138.88 C51.34,146.55 56.81,157.99 66.68,157.98 L1000,157.88")';
+            
+            // 3. Trigger Outro
+            document.getElementById('sandbox').classList.add('outro-active');
+        }
+
+        window.onload = () => {
+            calculateTrimPositions();
+            playAnim();
+        };
+    </script>
+</body>
+</html>
