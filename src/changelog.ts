@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.1.9',
+    date: new Date().toISOString().split('T')[0],
+    changes: [
+      'Fixed a database write flaw causing ghost audios and disappearing sessions on some devices',
+      'Added immediate error notifications if device storage runs out during session saves or recordings'
+    ]
+  },
+  {
     version: '2.1.8',
     date: new Date().toISOString().split('T')[0],
     changes: [

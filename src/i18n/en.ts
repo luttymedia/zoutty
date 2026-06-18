@@ -276,6 +276,8 @@ const en = {
   // ─── Toast Messages ──────────────────────────────────────────────────────────
   toast: {
     failedLoadData: 'Failed to load app data',
+    failedSaveAudio: 'Error saving audio. Device storage may be full.',
+    failedSaveSession: 'Error saving session. Device storage may be full.',
     failedRetrieveShared: 'Failed to retrieve shared session details',
     backupDownloaded: 'Backup downloaded successfully!',
     failedBackup: 'Failed to create backup',

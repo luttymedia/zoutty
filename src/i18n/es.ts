@@ -278,6 +278,8 @@ const es: Translations = {
   // ─── Toast Messages ──────────────────────────────────────────────────────────
   toast: {
     failedLoadData: 'Error al cargar los datos de la app',
+    failedSaveAudio: 'Error al guardar audio. El almacenamiento podría estar lleno.',
+    failedSaveSession: 'Error al guardar sesión. El almacenamiento podría estar lleno.',
     failedRetrieveShared: 'Error al recuperar los detalles de la sesión compartida',
     backupDownloaded: '¡Copia de seguridad descargada correctamente!',
     failedBackup: 'Error al crear la copia de seguridad',

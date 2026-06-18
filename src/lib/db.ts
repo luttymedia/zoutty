@@ -51,10 +51,12 @@ const writeToDb = async <T>(storeName: string, data: T): Promise<void> => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
-    const request = store.put(data);
+    
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || new Error('Database write failed'));
+    transaction.onabort = () => reject(transaction.error || new Error('Database write aborted'));
 
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    store.put(data);
   });
 };
 
@@ -75,10 +77,12 @@ const deleteFromDb = async (storeName: string, id: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
-    const request = store.delete(id);
+    
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || new Error('Database delete failed'));
+    transaction.onabort = () => reject(transaction.error || new Error('Database delete aborted'));
 
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    store.delete(id);
   });
 };
 

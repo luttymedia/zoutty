@@ -770,33 +770,48 @@ export default function App() {
       glossaryId: 'auto' // default to auto-detect
     };
 
-    await db.saveSession(newSession);
+    try {
+      await db.saveSession(newSession);
 
-    setSessions(prev => {
-      const next = [newSession, ...prev];
-      if (next.length >= 5 && !localStorage.getItem('hasShownBackupHint') && !isDriveConnected()) {
-        localStorage.setItem('hasShownBackupHint', 'true');
-        setTimeout(() => setShowBackupReminderModal(true), 1000);
-      }
-      return next;
-    });
-    navigateTo('detail', newSession.id, selectedGroupId);
+      setSessions(prev => {
+        const next = [newSession, ...prev];
+        if (next.length >= 5 && !localStorage.getItem('hasShownBackupHint') && !isDriveConnected()) {
+          localStorage.setItem('hasShownBackupHint', 'true');
+          setTimeout(() => setShowBackupReminderModal(true), 1000);
+        }
+        return next;
+      });
+      navigateTo('detail', newSession.id, selectedGroupId);
+    } catch (err) {
+      console.error('Failed to save session:', err);
+      showToast(t('toast.failedSaveSession'), true);
+    }
   };
 
   const updateSession = async (id: string, changes: Partial<Session>) => {
     const session = sessions.find(s => s.id === id);
     if (!session) return;
     const updated = { ...session, ...changes };
-    await db.saveSession(updated);
-    setSessions(prev => prev.map(s => s.id === id ? updated : s));
+    try {
+      await db.saveSession(updated);
+      setSessions(prev => prev.map(s => s.id === id ? updated : s));
+    } catch (err) {
+      console.error('Failed to update session:', err);
+      showToast(t('toast.failedSaveSession'), true);
+    }
   };
 
   const updateAudioEntry = async (id: string, changes: Partial<AudioEntry>) => {
     const entry = audioEntries[id];
     if (!entry) return;
     const updated = { ...entry, ...changes };
-    await db.saveAudioEntry(updated);
-    setAudioEntries(prev => ({ ...prev, [id]: updated }));
+    try {
+      await db.saveAudioEntry(updated);
+      setAudioEntries(prev => ({ ...prev, [id]: updated }));
+    } catch (err) {
+      console.error('Failed to update audio entry:', err);
+      showToast(t('toast.failedSaveAudio'), true);
+    }
   };
 
   const handleUndo = (id: string, type: 'session' | 'audio', data: any, extraData: any, timeoutId: NodeJS.Timeout) => {
@@ -1294,16 +1309,21 @@ export default function App() {
       audioBlob: blob,
     };
 
-    // Save to IndexedDB and update UI
-    await db.saveAudioEntry(newEntry);
-    setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
-    const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === sessionId);
-    if (sessionEntries.length === 1 && !localStorage.getItem('hasShownConsolidationHint')) {
-      localStorage.setItem('hasShownConsolidationHint', 'true');
-      // Show the hint instead of the default toast
-      showToast(t('onboarding.hintConsolidation'), false, undefined, undefined, 10000);
-    } else {
-      showToast(filename ? t('toast.fileAdded', { filename }) : t('toast.audioAdded'));
+    try {
+      // Save to IndexedDB and update UI
+      await db.saveAudioEntry(newEntry);
+      setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
+      const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === sessionId);
+      if (sessionEntries.length === 1 && !localStorage.getItem('hasShownConsolidationHint')) {
+        localStorage.setItem('hasShownConsolidationHint', 'true');
+        // Show the hint instead of the default toast
+        showToast(t('onboarding.hintConsolidation'), false, undefined, undefined, 10000);
+      } else {
+        showToast(filename ? t('toast.fileAdded', { filename }) : t('toast.audioAdded'));
+      }
+    } catch (err) {
+      console.error('Failed to save audio to database:', err);
+      showToast(t('toast.failedSaveAudio'), true);
     }
   };
 
