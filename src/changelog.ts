@@ -6,8 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.1.10',
+    date: '2026-06-18',
+    changes: [
+      'Added Screen Wake Lock API integration to keep the phone screen awake while recording audio'
+    ]
+  },
+  {
     version: '2.1.9',
-    date: new Date().toISOString().split('T')[0],
+    date: "2026-06-18",
     changes: [
       'Fixed a database write flaw causing ghost audios and disappearing sessions on some devices',
       'Added immediate error notifications if device storage runs out during session saves or recordings'
@@ -15,21 +22,21 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: '2.1.8',
-    date: new Date().toISOString().split('T')[0],
+    date: "2026-06-16",
     changes: [
       'Added the full spring-loaded brand logo animation (v29) as a celebratory transition overlay during onboarding completion and database restores'
     ]
   },
   {
     version: '2.1.7',
-    date: new Date().toISOString().split('T')[0],
+    date: "2026-06-16",
     changes: [
       'Replaced the default browser loading spinner with the premium, spring-loaded fidget-spinner Zoutty logo animation'
     ]
   },
   {
     version: '2.1.6',
-    date: new Date().toISOString().split('T')[0],
+    date: "2026-06-15",
     changes: [
       'Implemented proactive background refresh for Google Drive access tokens to prevent automatic logouts',
       'Improved the Google Drive reconnection experience with a centered modal prompt instead of an easily-missed banner'
@@ -37,14 +44,14 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: '2.1.5',
-    date: new Date().toISOString().split('T')[0],
+    date: "2026-06-15",
     changes: [
       'Added a comprehensive global Search feature allowing you to easily find content across all folders, sessions, entries, transcriptions, reports, and notes'
     ]
   },
   {
     version: '2.1.4',
-    date: new Date().toISOString().split('T')[0],
+    date: "2026-06-11",
     changes: [
       'Updated the Session Notes feature to use a list of editable bullet points instead of a single text area',
       'Added an inline text area with Confirm/Cancel buttons for creating new notes'
@@ -60,7 +67,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "2.1.2",
-    date: new Date().toISOString().split('T')[0],
+    date: "2026-06-11",
     changes: [
       "Fixed Include Media option availability when only audio clips are present",
       "Fixed iOS export bug where .zoutty.zip files were saved with a .txt extension and failed to import"

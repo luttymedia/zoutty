@@ -3474,6 +3474,7 @@ function SessionDetail({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const isCancelledRef = useRef(false);
+  const wakeLockRef = useRef<any>(null);
 
   const startRecording = async () => {
     if (session.isDemo) {
@@ -3551,6 +3552,16 @@ function SessionDetail({
       timerRef.current = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
+
+      // Request wake lock to keep screen on while recording
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+          console.log('[WakeLock] Screen wake lock acquired');
+        } catch (err) {
+          console.warn('[WakeLock] Failed to acquire wake lock:', err);
+        }
+      }
     } catch (err) {
       console.error('Error accessing microphone:', err);
       showToast(t('toast.micDenied'), true);
@@ -3566,6 +3577,11 @@ function SessionDetail({
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release().catch(console.warn);
+      wakeLockRef.current = null;
+      console.log('[WakeLock] Screen wake lock released');
     }
   };
 
