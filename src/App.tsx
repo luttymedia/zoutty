@@ -253,7 +253,13 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    const handleDbWrite = () => syncEngine.scheduleSync();
+    window.addEventListener('zoutty-db-write', handleDbWrite);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('zoutty-db-write', handleDbWrite);
+    };
   }, []);
 
   const { t, uiLanguage, setUILanguage } = useTranslation();
@@ -3102,8 +3108,12 @@ function SessionDetail({
           } else if (item.storageMode === 'blob' && item.blob) {
             file = item.blob;
           }
+          
           if (file) {
             newUrls[item.id] = URL.createObjectURL(file);
+          } else if (item.media_storage_path) {
+            const { data } = supabase.storage.from('sessionMedia').getPublicUrl(item.media_storage_path);
+            newUrls[item.id] = data.publicUrl;
           } else {
             newBroken.add(item.id);
           }
@@ -4663,8 +4673,11 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
       const url = URL.createObjectURL(audio.audioBlob);
       setAudioUrl(url);
       return () => URL.revokeObjectURL(url);
+    } else if (audio.audio_storage_path) {
+      const { data } = supabase.storage.from('audios').getPublicUrl(audio.audio_storage_path);
+      setAudioUrl(data.publicUrl);
     }
-  }, [audio.audioBlob]);
+  }, [audio.audioBlob, audio.audio_storage_path]);
 
   return (
     <div className="border border-white/10 glass rounded-2xl overflow-hidden shadow-sm">
@@ -4818,8 +4831,11 @@ function CollapsibleSection({ title, contentObj, isReport = false, isOpen, onTog
       const url = URL.createObjectURL(audioData.audioBlob);
       setAudioUrl(url);
       return () => URL.revokeObjectURL(url);
+    } else if (audioData?.audio_storage_path) {
+      const { data } = supabase.storage.from('audios').getPublicUrl(audioData.audio_storage_path);
+      setAudioUrl(data.publicUrl);
     }
-  }, [audioData?.audioBlob]);
+  }, [audioData?.audioBlob, audioData?.audio_storage_path]);
 
   if (!contentObj || (Object.keys(contentObj).length === 0 && !audioData)) return null;
 

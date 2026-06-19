@@ -22,6 +22,7 @@ export interface AudioEntry {
   audioBlob?: Blob; // The recorded or uploaded audio blob
   type: 'recording' | 'upload';
   filename?: string; // Original filename if uploaded
+  audio_storage_path?: string; // Supabase storage path
   pending_sync?: boolean;
   deleted?: boolean;
 }
@@ -95,6 +96,7 @@ export interface SessionMedia {
   storageMode: 'reference' | 'blob';
   fileHandle?: any; // FileSystemFileHandle — Reference mode (Chrome/Edge desktop)
   blob?: Blob;      // Blob mode — Safari/Firefox/iOS fallback
+  media_storage_path?: string; // Supabase storage path
   pending_sync?: boolean;
   deleted?: boolean;
 }

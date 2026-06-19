@@ -60,7 +60,10 @@ const writeToDb = async <T extends { pending_sync?: boolean; deleted?: boolean }
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
     
-    transaction.oncomplete = () => resolve();
+    transaction.oncomplete = () => {
+      resolve();
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('zoutty-db-write'));
+    };
     transaction.onerror = () => reject(transaction.error || new Error('Database write failed'));
     transaction.onabort = () => reject(transaction.error || new Error('Database write aborted'));
 
@@ -101,7 +104,10 @@ const deleteFromDb = async (storeName: string, id: string): Promise<void> => {
       }
     };
     
-    transaction.oncomplete = () => resolve();
+    transaction.oncomplete = () => {
+      resolve();
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('zoutty-db-write'));
+    };
     transaction.onerror = () => reject(transaction.error || new Error('Database delete failed'));
     transaction.onabort = () => reject(transaction.error || new Error('Database delete aborted'));
   });

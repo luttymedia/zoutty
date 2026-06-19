@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.2.4',
+    date: '2026-06-19',
+    changes: [
+      'Implemented automatic background syncing for audio and media files to Supabase Storage',
+      'Added on-demand fetching for cloud media to save local device storage',
+      'Fixed an issue where media uploads required navigating away from the app to sync'
+    ]
+  },
+  {
     version: '2.2.3',
     date: '2026-06-19',
     changes: [

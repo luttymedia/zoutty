@@ -2,7 +2,16 @@ import { supabase } from './supabase';
 import { db, dbStart } from './db';
 import { Session, AudioEntry, SessionGroup, DanceGlossary, FinalReport, SessionMedia } from '../types';
 
+let syncTimeout: ReturnType<typeof setTimeout>;
+
 export const syncEngine = {
+  scheduleSync() {
+    clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(() => {
+      this.syncAll();
+    }, 2000);
+  },
+
   async syncAll() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -34,15 +43,55 @@ export const syncEngine = {
 
       console.log(`[Sync] Pushing ${pendingItems.length} changes for ${localTableName}...`);
 
-      const payload = pendingItems.map(item => {
-        // Strip out binary blobs for Supabase DB (we'd use Storage for blobs, but for now we skip blobs in the DB row)
+      const payload = await Promise.all(pendingItems.map(async item => {
+        // Strip out binary blobs for Supabase DB
         const { audioBlob, blob, fileHandle, pending_sync, ...dbData } = item;
+        
+        // Upload audio blob if present
+        if (localTableName === 'audios' && audioBlob) {
+          const storagePath = `${userId}/${item.sessionId}/${item.id}.webm`;
+          const { error } = await supabase.storage.from('audios').upload(storagePath, audioBlob, { upsert: true });
+          if (error) {
+            console.error(`[Sync] Failed to upload audio blob for ${item.id}:`, error);
+          } else {
+            dbData.audio_storage_path = storagePath;
+          }
+        }
+
+        // Upload media blob if present
+        if (localTableName === 'sessionMedia' && (blob || fileHandle)) {
+          let mediaBlob = blob;
+          if (!mediaBlob && fileHandle) {
+             try {
+               const perm = await fileHandle.queryPermission({ mode: 'read' });
+               if (perm === 'granted') {
+                 mediaBlob = await fileHandle.getFile();
+               } else {
+                 console.warn(`[Sync] Skipping media upload for ${item.id} - read permission missing.`);
+               }
+             } catch (e) {
+               console.error(`[Sync] Failed to read fileHandle for ${item.id}:`, e);
+             }
+          }
+          if (mediaBlob) {
+            const extMatch = item.filename?.match(/\.([^.]+)$/);
+            const ext = extMatch ? `.${extMatch[1]}` : '';
+            const storagePath = `${userId}/${item.sessionId}/${item.id}${ext}`;
+            const { error } = await supabase.storage.from('sessionMedia').upload(storagePath, mediaBlob, { upsert: true });
+            if (error) {
+               console.error(`[Sync] Failed to upload media blob for ${item.id}:`, error);
+            } else {
+               dbData.media_storage_path = storagePath;
+            }
+          }
+        }
+
         return {
           ...dbData,
           user_id: userId,
           updated_at: new Date().toISOString()
         };
-      });
+      }));
 
       const { error } = await supabase.from(supabaseTableName).upsert(payload);
       if (error) {

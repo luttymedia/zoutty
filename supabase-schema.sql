@@ -117,3 +117,18 @@ create policy "Users can only see their own finalReports" on finalReports for al
 create policy "Users can only see their own groups" on sessionGroups for all using (auth.uid() = user_id);
 create policy "Users can only see their own glossaries" on glossaries for all using (auth.uid() = user_id);
 create policy "Users can only see their own media" on sessionMedia for all using (auth.uid() = user_id);
+
+-- Create the missing storage buckets
+insert into storage.buckets (id, name, public) values ('audios', 'audios', true);
+insert into storage.buckets (id, name, public) values ('sessionMedia', 'sessionMedia', true);
+
+-- Set up basic access policies for the buckets
+create policy "Anyone can view audios" on storage.objects for select using ( bucket_id = 'audios' );
+create policy "Authenticated users can upload audios" on storage.objects for insert with check ( auth.role() = 'authenticated' and bucket_id = 'audios' );
+create policy "Users can update their own audios" on storage.objects for update using ( auth.uid() = owner and bucket_id = 'audios' );
+create policy "Users can delete their own audios" on storage.objects for delete using ( auth.uid() = owner and bucket_id = 'audios' );
+
+create policy "Anyone can view sessionMedia" on storage.objects for select using ( bucket_id = 'sessionMedia' );
+create policy "Authenticated users can upload sessionMedia" on storage.objects for insert with check ( auth.role() = 'authenticated' and bucket_id = 'sessionMedia' );
+create policy "Users can update their own sessionMedia" on storage.objects for update using ( auth.uid() = owner and bucket_id = 'sessionMedia' );
+create policy "Users can delete their own sessionMedia" on storage.objects for delete using ( auth.uid() = owner and bucket_id = 'sessionMedia' );
