@@ -50,7 +50,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
     try {
       localStorage.setItem('zoutty_onboarding_completed', 'true');
       localStorage.setItem('zoutty_initial_sync_pending', 'true');
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
       if (error) throw error;
     } catch (err: any) {
       setError(err.message);
