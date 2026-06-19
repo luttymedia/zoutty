@@ -13,6 +13,30 @@ const es: Translations = {
   // ─── Navigation ─────────────────────────────────────────────────────────────
   back: 'Volver',
 
+  // ─── Cloud Sync / Auth ──────────────────────────────────────────────────────
+  auth: {
+    title: 'Zoutty Cloud',
+    loginSubtitle: 'Inicia sesión para sincronizar',
+    signupSubtitle: 'Crea una cuenta para tus copias',
+    emailLabel: 'Correo Electrónico',
+    emailPlaceholder: 'tu@ejemplo.com',
+    passwordLabel: 'Contraseña',
+    passwordPlaceholder: '••••••••',
+    signInBtn: 'Iniciar Sesión',
+    createAccountBtn: 'Crear Cuenta',
+    or: 'O',
+    continueGoogle: 'Continuar con Google',
+    toggleToSignup: '¿No tienes cuenta? Regístrate',
+    toggleToLogin: '¿Ya tienes cuenta? Inicia sesión',
+    successTitle: '¡Cuenta Creada!',
+    successMsg: 'Bienvenido a Zoutty Cloud. Tus datos se sincronizarán automáticamente en segundo plano.',
+    getStartedBtn: 'Empezar'
+  },
+  sync: {
+    title: 'Haciendo la magia de Zoutty...',
+    subtitle: 'Descargando tus sesiones de la nube...'
+  },
+
   // ─── Home / List View ───────────────────────────────────────────────────────
   home: {
     newSession: 'Sesión',
@@ -56,7 +80,11 @@ const es: Translations = {
     resetSection: 'Restablecer aplicación',
     resetDesc: 'Elimina todas las carpetas, sesiones, ajustes y grabaciones de audio de este dispositivo.',
     resetWarning: 'Advertencia: Esta acción es permanente y no se puede deshacer.',
-    resetBtn: 'Restablecer datos',
+    resetBtn: 'Borrar Todos los Datos',
+    // Account
+    accountSection: 'Cuenta',
+    logoutDesc: 'Cerrar sesión de Zoutty Cloud.',
+    logoutWarning: 'Esto borrará tus datos locales en este dispositivo para que el siguiente usuario comience desde cero.',
     // Cloud Sync (Google Drive)
     cloudSyncSection: 'Sincronización en la nube',
     cloudSyncTagline: 'Recomendado',
@@ -97,9 +125,15 @@ const es: Translations = {
 
   // ─── Modals ──────────────────────────────────────────────────────────────────
   modals: {
-    // Delete
+    // Logout
+    confirmLogout: 'Cerrar sesión de Zoutty Cloud',
+    logoutMsg: '¿Estás seguro de que quieres cerrar sesión?',
+    logoutWarningMsg: 'Se borrarán todos los datos locales de este dispositivo para que el próximo usuario empiece desde cero. Tus datos están a salvo en la nube.',
+    logoutBtn: 'Cerrar Sesión',
+
+    // Delete (session or audio)
     confirmDeletion: 'Confirmar eliminación',
-    deleteSessionMsg: '¿Seguro que quieres eliminar la sesión: {title}?',
+    deleteSessionMsg: '¿Estás seguro de querer eliminar la sesión: {title}?',
     deleteAudioMsg: '¿Seguro que quieres eliminar este audio: {title}?',
     cancelBtn: 'Cancelar',
     deleteBtn: 'Eliminar',

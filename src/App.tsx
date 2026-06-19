@@ -36,7 +36,8 @@ import {
   Play,
   CloudUpload,
   CloudDownload,
-  Search
+  Search,
+  LogOut
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -286,6 +287,8 @@ export default function App() {
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isInitialSync, setIsInitialSync] = useState(() => localStorage.getItem('zoutty_initial_sync_pending') === 'true');
 
   // Google Drive state
   const [driveAccount, setDriveAccount] = useState<DriveAccount | null>(
@@ -367,6 +370,8 @@ export default function App() {
     availableTechnical: boolean;
     availableEmotional: boolean;
     availableMedia: boolean;
+    viewState?: 'checklist' | 'active_code' | 'active_file';
+    sharedContent?: { url: string; code: string; };
   } | null>(null);
   const [moveSessionModal, setMoveSessionModal] = useState<{ sessionId: string, currentGroupId?: string } | null>(null);
   const [sessionSortBy, setSessionSortBy] = useState<'date' | 'name' | 'created'>(
@@ -575,6 +580,19 @@ export default function App() {
       }
     };
     loadData();
+
+    const handleSyncComplete = () => {
+      loadData();
+      if (localStorage.getItem('zoutty_initial_sync_pending')) {
+        localStorage.removeItem('zoutty_initial_sync_pending');
+        setIsInitialSync(false);
+      }
+    };
+    window.addEventListener('zoutty-sync-complete', handleSyncComplete);
+
+    return () => {
+      window.removeEventListener('zoutty-sync-complete', handleSyncComplete);
+    };
   }, []);
 
   const showToast = (text: string, isError = false, actionText?: string, onAction?: () => void, duration?: number) => setToastMessage({ text, isError, actionText, onAction, duration });
@@ -1210,7 +1228,7 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    showSpinner(t('toast.importingSession', 'Reading file...'));
+    showSpinner(t('toast.importingSession'));
     try {
       const zip = await JSZip.loadAsync(file);
       const sessionJsonStr = await zip.file('session.json')?.async('string');
@@ -1649,12 +1667,21 @@ export default function App() {
   // Render Helpers
   // ------------------------------------------------------------------
 
+  const folders = groups.filter(g => g.id !== 'root');
+  const hasFolders = folders.length > 0;
+  const hasOrphanSessions = sessions.some(s => !s.groupId);
+  const showSessionsSection = selectedGroupId ? true : (!hasFolders || hasOrphanSessions);
+
   if (isInitializingAuth) {
     return <Spinner text="Connecting to cloud..." />;
   }
 
   if (!session) {
     return <AuthScreen onSuccess={() => {}} />;
+  }
+
+  if (isInitialSync) {
+    return <Spinner text={t('sync.title')} />;
   }
 
   if (!hasCompletedOnboarding) {
@@ -1689,10 +1716,10 @@ export default function App() {
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
               <button onClick={() => setDriveNeedsReconnect(false)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">
-                {t('toast.driveReconnectLaterBtn', 'Later')}
+                {t('toast.driveReconnectLaterBtn')}
               </button>
               <button onClick={handleConnectDrive} className="px-5 py-2.5 rounded-xl font-bold bg-brand text-brand-foreground hover:opacity-90 transition-opacity min-h-[44px]">
-                {t('toast.driveReconnectConnectBtn', 'Connect')}
+                {t('toast.driveReconnectConnectBtn')}
               </button>
             </div>
           </div>
@@ -1748,7 +1775,7 @@ export default function App() {
             </p>
 
             <div className="space-y-3">
-              <label className="text-xs font-bold text-white/40 uppercase tracking-wider">{t('modals.exportIncludeTranscriptsLabel', 'Include Data')}</label>
+              <label className="text-xs font-bold text-white/40 uppercase tracking-wider">{t('modals.exportIncludeTranscriptsLabel')}</label>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -1760,7 +1787,7 @@ export default function App() {
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${exportIncludeAudioTranscripts ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
                 <span className="text-sm text-white/80 font-medium">
-                  {t('modals.exportIncludeTranscripts', 'Include Audio Transcripts')}
+                  {t('modals.exportIncludeTranscripts')}
                 </span>
               </div>
             </div>
@@ -2097,6 +2124,27 @@ export default function App() {
                 </button>
               </div>
 
+              {/* Account / Logout Section */}
+              <div className="space-y-3 border-t border-white/5 pt-6">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <LogOut className="w-4 h-4 text-orange-400" />
+                  {t('appSettings.accountSection')}
+                </h4>
+                <p className="text-xs text-white/60 leading-relaxed text-orange-300/80">
+                  {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
+                </p>
+                <button
+                  onClick={() => {
+                    setShowLogoutConfirm(true);
+                    setShowAppSettings(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+                >
+                  <LogOut className="w-4 h-4" />
+                  {t('modals.logoutBtn')}
+                </button>
+              </div>
+
               {/* Reset Section */}
               <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
@@ -2213,6 +2261,46 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+            <h3 className="text-xl font-bold flex items-center gap-2 text-orange-400">
+              <LogOut className="w-6 h-6 text-orange-500" />
+              {t('modals.confirmLogout')}
+            </h3>
+            <p className="text-white/70 text-sm leading-relaxed">
+              {t('modals.logoutMsg')}
+              <br /><br />
+              {t('modals.logoutWarningMsg')}
+            </p>
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button onClick={() => setShowLogoutConfirm(false)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
+              <button 
+                onClick={async () => {
+                  try {
+                    const idb = await dbStart();
+                    const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
+                    for (const table of tables) {
+                      const tx = idb.transaction(table, 'readwrite');
+                      tx.objectStore(table).clear();
+                    }
+                    localStorage.removeItem('zoutty_migrated_to_supabase');
+                    await supabase.auth.signOut();
+                    setShowLogoutConfirm(false);
+                  } catch (e) {
+                    console.error('Logout error', e);
+                  }
+                }} 
+                className="px-5 py-2.5 rounded-xl font-bold bg-orange-600 hover:bg-orange-700 transition-colors shadow-lg shadow-orange-600/30 text-white min-h-[44px] text-sm"
+              >
+                {t('modals.logoutBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Drive Disconnect Confirmation Modal */}
       {showDriveDisconnectConfirm && (
@@ -2760,13 +2848,13 @@ export default function App() {
 
               <div className="relative flex py-2 items-center">
                 <div className="flex-grow border-t border-white/10"></div>
-                <span className="flex-shrink-0 mx-4 text-white/40 text-xs uppercase tracking-widest">{t('modals.or', 'or')}</span>
+                <span className="flex-shrink-0 mx-4 text-white/40 text-xs uppercase tracking-widest">{t('modals.or')}</span>
                 <div className="flex-grow border-t border-white/10"></div>
               </div>
 
               <input type="file" id="zoutty-import-file" accept=".zoutty,.zoutty.zip,.zip,application/zip" className="hidden" onChange={handleImportFile} />
               <label htmlFor="zoutty-import-file" className="w-full text-center px-5 py-3 rounded-xl font-bold border border-white/10 text-white/80 hover:bg-white/5 transition-colors cursor-pointer">
-                {t('modals.importFromFile', 'Import from .zoutty file')}
+                {t('modals.importFromFile')}
               </label>
             </div>
           </div>

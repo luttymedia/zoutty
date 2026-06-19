@@ -21,6 +21,7 @@ export const syncEngine = {
       await this.pullCloudChanges(userId);
 
       console.log('[Sync] Full sync complete.');
+      window.dispatchEvent(new Event('zoutty-sync-complete'));
     } catch (e) {
       console.error('[Sync] Sync failed:', e);
     }

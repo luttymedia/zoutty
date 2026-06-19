@@ -1,93 +1,105 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
+-- Drop existing tables to recreate with correct camelCase column names
+drop table if exists sessionMedia cascade;
+drop table if exists glossaries cascade;
+drop table if exists sessionGroups cascade;
+drop table if exists finalReports cascade;
+drop table if exists audios cascade;
+drop table if exists sessions cascade;
+
 -- SESSIONS
 create table sessions (
-  id text primary key,
-  user_id uuid references auth.users not null,
-  title text not null,
-  subtitle text,
-  date bigint not null,
-  summary text,
-  notes text,
-  cardOrder text[],
-  groupId text,
-  glossaryId text,
-  customGlossaryStyle text,
-  shareId text,
-  shareTimestamp bigint,
-  shareMethod text,
-  sharedContent jsonb,
-  isDemo boolean default false,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  deleted boolean default false not null
+  "id" text primary key,
+  "user_id" uuid references auth.users not null,
+  "title" text not null,
+  "subtitle" text,
+  "date" bigint not null,
+  "summary" text,
+  "notes" text,
+  "cardOrder" text[],
+  "groupId" text,
+  "glossaryId" text,
+  "customGlossaryStyle" text,
+  "shareId" text,
+  "shareTimestamp" bigint,
+  "shareMethod" text,
+  "sharedContent" jsonb,
+  "isDemo" boolean default false,
+  "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "deleted" boolean default false not null,
+  "equipment" text,
+  "cameraSettings" text,
+  "generalNotes" text,
+  "location" text
 );
 
 -- AUDIOS
 create table audios (
-  id text primary key,
-  user_id uuid references auth.users not null,
-  sessionId text not null,
-  timestamp bigint not null,
-  language text not null,
-  transcript text,
-  bulletPoints text[],
-  strictSummary text[],
-  expandedInsights jsonb,
-  type text not null,
-  filename text,
-  audio_storage_path text,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  deleted boolean default false not null
+  "id" text primary key,
+  "user_id" uuid references auth.users not null,
+  "sessionId" text not null,
+  "timestamp" bigint not null,
+  "language" text not null,
+  "transcript" text,
+  "bulletPoints" text[],
+  "strictSummary" text[],
+  "expandedInsights" jsonb,
+  "type" text not null,
+  "filename" text,
+  "audio_storage_path" text,
+  "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "deleted" boolean default false not null
 );
 
 -- FINAL REPORTS
 create table finalReports (
-  id text primary key,
-  user_id uuid references auth.users not null,
-  sessionId text not null,
-  report jsonb not null,
-  timestamp bigint not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  deleted boolean default false not null
+  "id" text primary key,
+  "user_id" uuid references auth.users not null,
+  "sessionId" text not null,
+  "report" jsonb not null,
+  "timestamp" bigint not null,
+  "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "deleted" boolean default false not null
 );
 
 -- GROUPS
 create table sessionGroups (
-  id text primary key,
-  user_id uuid references auth.users not null,
-  name text not null,
-  dateCreated bigint not null,
-  sessionOrder text[],
-  folderOrder text[],
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  deleted boolean default false not null
+  "id" text primary key,
+  "user_id" uuid references auth.users not null,
+  "name" text not null,
+  "dateCreated" bigint not null,
+  "sessionOrder" text[],
+  "folderOrder" text[],
+  "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "deleted" boolean default false not null
 );
 
 -- GLOSSARIES
 create table glossaries (
-  id text primary key,
-  user_id uuid references auth.users not null,
-  name text not null,
-  terms jsonb not null,
-  isSystem boolean default false,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  deleted boolean default false not null
+  "id" text primary key,
+  "user_id" uuid references auth.users not null,
+  "name" text not null,
+  "terms" jsonb not null,
+  "isSystem" boolean default false,
+  "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "deleted" boolean default false not null
 );
 
 -- SESSION MEDIA
 create table sessionMedia (
-  id text primary key,
-  user_id uuid references auth.users not null,
-  sessionId text not null,
-  timestamp bigint not null,
-  filename text not null,
-  mimeType text not null,
-  size bigint not null,
-  storageMode text not null,
-  media_storage_path text,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  deleted boolean default false not null
+  "id" text primary key,
+  "user_id" uuid references auth.users not null,
+  "sessionId" text not null,
+  "timestamp" bigint not null,
+  "filename" text not null,
+  "mimeType" text not null,
+  "size" bigint not null,
+  "storageMode" text not null,
+  "media_storage_path" text,
+  "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "deleted" boolean default false not null
 );
 
 -- Set up Row Level Security (RLS)

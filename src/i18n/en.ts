@@ -11,6 +11,30 @@ const en = {
   // ─── Navigation ─────────────────────────────────────────────────────────────
   back: 'Back',
 
+  // ─── Cloud Sync / Auth ──────────────────────────────────────────────────────
+  auth: {
+    title: 'Zoutty Cloud',
+    loginSubtitle: 'Sign in to sync your sessions',
+    signupSubtitle: 'Create an account to backup your data',
+    emailLabel: 'Email',
+    emailPlaceholder: 'you@example.com',
+    passwordLabel: 'Password',
+    passwordPlaceholder: '••••••••',
+    signInBtn: 'Sign In',
+    createAccountBtn: 'Create Account',
+    or: 'OR',
+    continueGoogle: 'Continue with Google',
+    toggleToSignup: "Don't have an account? Sign up",
+    toggleToLogin: 'Already have an account? Sign in',
+    successTitle: 'Account Created!',
+    successMsg: 'Welcome to Zoutty Cloud. Your data will now automatically sync across your devices in the background.',
+    getStartedBtn: 'Get Started'
+  },
+  sync: {
+    title: 'Working our Zoutty magic...',
+    subtitle: 'Beaming your sessions from the cloud...'
+  },
+
   // ─── Home / List View ───────────────────────────────────────────────────────
   home: {
     newSession: 'Session',
@@ -55,6 +79,10 @@ const en = {
     resetDesc: 'Wipe all folders, sessions, settings, and audio recordings from this device.',
     resetWarning: 'Warning: This action is permanent and cannot be undone.',
     resetBtn: 'Reset App Data',
+    // Account
+    accountSection: 'Account',
+    logoutDesc: 'Log out of Zoutty Cloud.',
+    logoutWarning: 'This will clear your local data on this device so the next user starts fresh.',
     // Cloud Sync (Google Drive)
     cloudSyncSection: 'Cloud Sync',
     cloudSyncTagline: 'Recommended',
@@ -95,6 +123,12 @@ const en = {
 
   // ─── Modals ──────────────────────────────────────────────────────────────────
   modals: {
+    // Logout
+    confirmLogout: 'Log Out of Zoutty Cloud',
+    logoutMsg: 'Are you sure you want to log out?',
+    logoutWarningMsg: 'All local data on this device will be cleared so the next user starts fresh. Your data is safely backed up in the cloud.',
+    logoutBtn: 'Log Out',
+    
     // Delete (session or audio)
     confirmDeletion: 'Confirm Deletion',
     deleteSessionMsg: 'Are you sure you want to delete the session: {title}?',

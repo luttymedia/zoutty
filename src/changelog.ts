@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.2.1',
+    date: '2026-06-19',
+    changes: [
+      'Fixed a bug causing the app loading splash screen to display briefly when navigating to the Home screen',
+      'Improved the design and copy of the initial app sync loading screen'
+    ]
+  },
+  {
     version: '2.2.0',
     date: '2026-06-19',
     changes: [
