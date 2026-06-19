@@ -120,7 +120,7 @@ export const LogoAnimation: React.FC<LogoAnimationProps> = ({ onComplete }) => {
           </mask>
         </defs>
 
-        <rect id="BOX" className="logo-box" fill="#2dd4bf" y="22.92" width="191.39" height="191.39" rx="41.01" ry="41.01"/>
+        <rect id="BOX" className="logo-box" fill="#F97316" y="22.92" width="191.39" height="191.39" rx="41.01" ry="41.01"/>
         
         <g clipPath="url(#box-clip)" id="clip-wrapper">
           <g className="anim-guides">

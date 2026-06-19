@@ -46,8 +46,16 @@ export const dbStart = (): Promise<IDBDatabase> => {
   });
 };
 
-const writeToDb = async <T>(storeName: string, data: T): Promise<void> => {
+const writeToDb = async <T extends { pending_sync?: boolean; deleted?: boolean }>(storeName: string, data: T): Promise<void> => {
   const db = await dbStart();
+  
+  // Set sync flags automatically for every local write
+  const dataToSave = {
+    ...data,
+    pending_sync: true,
+    deleted: data.deleted || false
+  };
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
@@ -56,18 +64,21 @@ const writeToDb = async <T>(storeName: string, data: T): Promise<void> => {
     transaction.onerror = () => reject(transaction.error || new Error('Database write failed'));
     transaction.onabort = () => reject(transaction.error || new Error('Database write aborted'));
 
-    store.put(data);
+    store.put(dataToSave);
   });
 };
 
-const readAllFromDb = async <T>(storeName: string): Promise<T[]> => {
+const readAllFromDb = async <T extends { deleted?: boolean }>(storeName: string, includeDeleted = false): Promise<T[]> => {
   const db = await dbStart();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readonly');
     const store = transaction.objectStore(storeName);
     const request = store.getAll();
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const results = request.result as T[];
+      resolve(includeDeleted ? results : results.filter(item => !item.deleted));
+    };
     request.onerror = () => reject(request.error);
   });
 };
@@ -78,11 +89,21 @@ const deleteFromDb = async (storeName: string, id: string): Promise<void> => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
     
+    // Fetch the existing record to soft-delete it
+    const getReq = store.get(id);
+    
+    getReq.onsuccess = () => {
+      const record = getReq.result;
+      if (record) {
+        record.deleted = true;
+        record.pending_sync = true;
+        store.put(record);
+      }
+    };
+    
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error || new Error('Database delete failed'));
     transaction.onabort = () => reject(transaction.error || new Error('Database delete aborted'));
-
-    store.delete(id);
   });
 };
 
@@ -90,23 +111,23 @@ const deleteFromDb = async (storeName: string, id: string): Promise<void> => {
 export const db = {
   // Sessions
   saveSession: (session: Session) => writeToDb('sessions', session),
-  getSessions: () => readAllFromDb<Session>('sessions'),
+  getSessions: (includeDeleted = false) => readAllFromDb<Session>('sessions', includeDeleted),
   deleteSession: (id: string) => deleteFromDb('sessions', id),
 
   // Audios
   saveAudioEntry: (entry: AudioEntry) => writeToDb('audios', entry),
-  getAudioEntries: () => readAllFromDb<AudioEntry>('audios'),
+  getAudioEntries: (includeDeleted = false) => readAllFromDb<AudioEntry>('audios', includeDeleted),
   deleteAudioEntry: (id: string) => deleteFromDb('audios', id),
-  getSessionAudios: async (sessionId: string) => {
-    const all = await readAllFromDb<AudioEntry>('audios');
+  getSessionAudios: async (sessionId: string, includeDeleted = false) => {
+    const all = await readAllFromDb<AudioEntry>('audios', includeDeleted);
     return all.filter(a => a.sessionId === sessionId);
   },
 
   // Final Reports
   saveFinalReport: (report: FinalReport) => writeToDb('finalReports', report),
-  getFinalReports: () => readAllFromDb<FinalReport>('finalReports'),
-  getSessionFinalReport: async (sessionId: string) => {
-    const all = await readAllFromDb<FinalReport>('finalReports');
+  getFinalReports: (includeDeleted = false) => readAllFromDb<FinalReport>('finalReports', includeDeleted),
+  getSessionFinalReport: async (sessionId: string, includeDeleted = false) => {
+    const all = await readAllFromDb<FinalReport>('finalReports', includeDeleted);
     const sessionReports = all.filter(r => r.sessionId === sessionId);
     sessionReports.sort((a, b) => b.timestamp - a.timestamp);
     return sessionReports[0];
@@ -114,21 +135,21 @@ export const db = {
 
   // Groups
   saveGroup: (group: SessionGroup) => writeToDb('sessionGroups', group),
-  getGroups: () => readAllFromDb<SessionGroup>('sessionGroups'),
+  getGroups: (includeDeleted = false) => readAllFromDb<SessionGroup>('sessionGroups', includeDeleted),
   deleteGroup: (id: string) => deleteFromDb('sessionGroups', id),
 
   // Glossaries
   saveGlossary: (glossary: DanceGlossary) => writeToDb('glossaries', glossary),
-  getGlossaries: () => readAllFromDb<DanceGlossary>('glossaries'),
+  getGlossaries: (includeDeleted = false) => readAllFromDb<DanceGlossary>('glossaries', includeDeleted),
   deleteGlossary: (id: string) => deleteFromDb('glossaries', id),
 
   // Session Media
   saveMediaItem: (item: SessionMedia) => writeToDb('sessionMedia', item),
-  getSessionMedia: async (sessionId: string): Promise<SessionMedia[]> => {
-    const all = await readAllFromDb<SessionMedia>('sessionMedia');
+  getSessionMedia: async (sessionId: string, includeDeleted = false): Promise<SessionMedia[]> => {
+    const all = await readAllFromDb<SessionMedia>('sessionMedia', includeDeleted);
     return all.filter(m => m.sessionId === sessionId).sort((a, b) => a.timestamp - b.timestamp);
   },
-  getAllMedia: () => readAllFromDb<SessionMedia>('sessionMedia'),
+  getAllMedia: (includeDeleted = false) => readAllFromDb<SessionMedia>('sessionMedia', includeDeleted),
   deleteMediaItem: (id: string) => deleteFromDb('sessionMedia', id),
 
   // Backup & Restore

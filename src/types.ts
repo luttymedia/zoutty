@@ -22,6 +22,8 @@ export interface AudioEntry {
   audioBlob?: Blob; // The recorded or uploaded audio blob
   type: 'recording' | 'upload';
   filename?: string; // Original filename if uploaded
+  pending_sync?: boolean;
+  deleted?: boolean;
 }
 
 export interface Session {
@@ -45,6 +47,8 @@ export interface Session {
     media: boolean;
   };
   isDemo?: boolean; // Indicates if this is a mock/demo session
+  pending_sync?: boolean;
+  deleted?: boolean;
 }
 
 export interface SessionGroup {
@@ -53,6 +57,8 @@ export interface SessionGroup {
   dateCreated: number;
   sessionOrder?: string[]; // IDs of sessions in preferred order in this folder
   folderOrder?: string[]; // IDs of folders in preferred order
+  pending_sync?: boolean;
+  deleted?: boolean;
 }
 
 export interface GlossaryItem {
@@ -66,6 +72,8 @@ export interface DanceGlossary {
   name: string;
   terms: GlossaryItem[];
   isSystem?: boolean;
+  pending_sync?: boolean;
+  deleted?: boolean;
 }
 
 export interface FinalReport {
@@ -73,6 +81,8 @@ export interface FinalReport {
   sessionId: string;
   report: any; // Stored as an object from /api/gemini/process-audio, or legacy string
   timestamp: number;
+  pending_sync?: boolean;
+  deleted?: boolean;
 }
 
 export interface SessionMedia {
@@ -85,5 +95,7 @@ export interface SessionMedia {
   storageMode: 'reference' | 'blob';
   fileHandle?: any; // FileSystemFileHandle — Reference mode (Chrome/Edge desktop)
   blob?: Blob;      // Blob mode — Safari/Firefox/iOS fallback
+  pending_sync?: boolean;
+  deleted?: boolean;
 }
 

@@ -58,6 +58,10 @@ import { SearchFilters, performSearch } from './lib/search';
 import Markdown from 'react-markdown';
 import { useTranslation } from './i18n/TranslationContext';
 import { UI_LANGUAGE_NAMES } from './i18n';
+import { supabase } from './lib/supabase';
+import { syncEngine } from './lib/syncEngine';
+import { AuthScreen } from './components/AuthScreen';
+import { dbStart } from './lib/db';
 import {
   connectDriveAccount,
   uploadBackupToDrive,
@@ -211,6 +215,55 @@ const getSessionDefaultTitle = (date: Date | number, lang: string) => {
 };
 
 export default function App() {
+  const [session, setSession] = useState<any>(null);
+  const [isInitializingAuth, setIsInitializingAuth] = useState(true);
+
+  useEffect(() => {
+    const migrateOldData = async () => {
+      if (localStorage.getItem('zoutty_migrated_to_supabase')) return;
+      try {
+        const idb = await dbStart();
+        const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
+        for (const table of tables) {
+          const tx = idb.transaction(table, 'readwrite');
+          const store = tx.objectStore(table);
+          const req = store.getAll();
+          req.onsuccess = () => {
+            const items = req.result as any[];
+            for (const item of items) {
+              if (item.pending_sync === undefined) {
+                item.pending_sync = true;
+                store.put(item);
+              }
+            }
+          };
+        }
+        localStorage.setItem('zoutty_migrated_to_supabase', 'true');
+      } catch (e) {
+        console.error('Migration failed:', e);
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsInitializingAuth(false);
+      if (session) {
+        migrateOldData().then(() => syncEngine.syncAll());
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        migrateOldData().then(() => syncEngine.syncAll());
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const { t, uiLanguage, setUILanguage } = useTranslation();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
     () => localStorage.getItem('zoutty_onboarding_completed') === 'true'
@@ -1592,10 +1645,17 @@ export default function App() {
     setLogoAnimationType(null);
   };
 
-  const folders = groups.filter(g => g.id !== 'root');
-  const hasFolders = folders.length > 0;
-  const hasOrphanSessions = sessions.some(s => !s.groupId);
-  const showSessionsSection = selectedGroupId ? true : (!hasFolders || hasOrphanSessions);
+  // ------------------------------------------------------------------
+  // Render Helpers
+  // ------------------------------------------------------------------
+
+  if (isInitializingAuth) {
+    return <Spinner text="Connecting to cloud..." />;
+  }
+
+  if (!session) {
+    return <AuthScreen onSuccess={() => {}} />;
+  }
 
   if (!hasCompletedOnboarding) {
     return (

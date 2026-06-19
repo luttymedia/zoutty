@@ -494,10 +494,11 @@ app.post('/api/share', (req, res) => {
             if (typeof shareId !== 'string' || !/^[a-zA-Z0-9]{6}$/.test(shareId)) {
                 return res.status(400).json({ error: 'Invalid share ID format' });
             }
+            shareId = shareId.toUpperCase();
         }
         else {
             // Generate a random 6-character alphanumeric short code
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             shareId = '';
             for (let i = 0; i < 6; i++) {
                 shareId += characters.charAt(Math.floor(Math.random() * characters.length));
@@ -515,7 +516,10 @@ app.post('/api/share', (req, res) => {
 });
 app.get('/api/share/:shareId', (req, res) => {
     try {
-        const { shareId } = req.params;
+        let { shareId } = req.params;
+        if (shareId) {
+            shareId = shareId.toUpperCase();
+        }
         const filePath = path.join(SHARE_DIR, `${shareId}.json`);
         // Basic path traversal prevention
         const resolvedPath = path.resolve(filePath);

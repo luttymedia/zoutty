@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.2.0',
+    date: '2026-06-19',
+    changes: [
+      'Implemented Supabase Local-First Sync Architecture',
+      'Added cross-device data backup and synchronization',
+      'Added Email/Password and Google Sign-in authentication',
+      'Changed staging app logo color to Orange'
+    ]
+  },
+  {
     version: '2.1.10',
     date: '2026-06-18',
     changes: [

@@ -1,7 +1,7 @@
 {
   "name": "zoutty",
   "private": true,
-  "version": "2.1.10",
+  "version": "2.2.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -17,6 +17,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@google/genai": "^1.29.0",
+    "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "better-sqlite3": "^12.4.1",
