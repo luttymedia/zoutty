@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.2.3',
+    date: '2026-06-19',
+    changes: [
+      'Replaced manual Google Drive sync with automatic cloud sync via Supabase using Google Sign-in',
+      'Cleaned up old Google Drive backup settings, UI, and reminders',
+      'Fixed a bug related to session sharing data structures causing crashes on export'
+    ]
+  },
+  {
     version: '2.2.2',
     date: '2026-06-19',
     changes: [

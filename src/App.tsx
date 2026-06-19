@@ -64,17 +64,6 @@ import { syncEngine } from './lib/syncEngine';
 import { AuthScreen } from './components/AuthScreen';
 import { dbStart } from './lib/db';
 import {
-  connectDriveAccount,
-  uploadBackupToDrive,
-  downloadBackupFromDrive,
-  clearDriveAuth,
-  getStoredDriveAccount,
-  isDriveConnected,
-  hasSavedAccount,
-  getTokenMsUntilRefresh,
-  type DriveAccount,
-} from './lib/drive';
-import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -285,22 +274,11 @@ export default function App() {
   const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
   const [reprocessModal, setReprocessModal] = useState<string | null>(null);
   const [showVersionModal, setShowVersionModal] = useState(false);
-  const [showBackupReminderModal, setShowBackupReminderModal] = useState(false);
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isInitialSync, setIsInitialSync] = useState(() => localStorage.getItem('zoutty_initial_sync_pending') === 'true');
-
-  // Google Drive state
-  const [driveAccount, setDriveAccount] = useState<DriveAccount | null>(
-    () => getStoredDriveAccount()
-  );
-  // Connected = account is linked; token may be silently refreshed on demand
-  const [driveConnected, setDriveConnected] = useState<boolean>(() => hasSavedAccount());
-  const [driveNeedsReconnect, setDriveNeedsReconnect] = useState(false);
-  const [showDriveInfo, setShowDriveInfo] = useState(false);
-  const [showDriveDisconnectConfirm, setShowDriveDisconnectConfirm] = useState(false);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -373,7 +351,8 @@ export default function App() {
     availableEmotional: boolean;
     availableMedia: boolean;
     viewState?: 'checklist' | 'active_code' | 'active_file';
-    sharedContent?: { url: string; code: string; };
+    shareMethod?: 'code' | 'link' | 'file';
+    sharedContent?: { report: boolean; notes: boolean; transcripts: boolean; media: boolean; };
   } | null>(null);
   const [moveSessionModal, setMoveSessionModal] = useState<{ sessionId: string, currentGroupId?: string } | null>(null);
   const [sessionSortBy, setSessionSortBy] = useState<'date' | 'name' | 'created'>(
@@ -668,89 +647,7 @@ export default function App() {
     }
   };
 
-  // ─── Google Drive Handlers ───────────────────────────────────────────────────
 
-  const handleConnectDrive = async () => {
-    showSpinner('Connecting Google Drive...');
-    try {
-      await connectDriveAccount();
-      const account = getStoredDriveAccount();
-      setDriveAccount(account);
-      setDriveConnected(true);
-      setDriveNeedsReconnect(false);
-      showToast(t('toast.driveConnected'));
-    } catch (err: any) {
-      console.error('Drive connect failed:', err);
-      showToast(t('toast.driveConnectFailed'), true);
-    } finally {
-      hideSpinner();
-    }
-  };
-
-  const handleDisconnectDrive = () => {
-    setShowDriveDisconnectConfirm(true);
-  };
-
-  const confirmDisconnectDrive = () => {
-    clearDriveAuth();
-    setDriveAccount(null);
-    setDriveConnected(false);
-    setDriveNeedsReconnect(false);
-    setShowDriveDisconnectConfirm(false);
-    showToast(t('toast.driveDisconnected'));
-  };
-
-  const handleDriveBackup = async () => {
-    // If the token has expired, show the reconnect banner instead of calling GIS.
-    if (!isDriveConnected()) {
-      setDriveNeedsReconnect(true);
-      return;
-    }
-    showSpinner('Backing up to Google Drive...');
-    try {
-      const backup = await db.exportDatabase();
-      await uploadBackupToDrive(JSON.stringify(backup));
-      setDriveNeedsReconnect(false);
-      showToast(t('toast.driveBackupSuccess'));
-    } catch (err: any) {
-      console.error('Drive backup failed:', err);
-      if (err.message?.includes('drive_token_expired') || err.message?.includes('401')) {
-        setDriveNeedsReconnect(true);
-      }
-      showToast(t('toast.driveBackupFailed'), true);
-    } finally {
-      hideSpinner();
-    }
-  };
-
-  const handleDriveRestore = async () => {
-    // If the token has expired, show the reconnect banner instead of calling GIS.
-    if (!isDriveConnected()) {
-      setDriveNeedsReconnect(true);
-      return;
-    }
-    showSpinner('Restoring from Google Drive...');
-    try {
-      const backup = await downloadBackupFromDrive();
-      if (!backup) {
-        showToast(t('toast.driveNoBackup'), true);
-        return;
-      }
-      await db.importDatabase(backup);
-      setDriveNeedsReconnect(false);
-      showToast(t('toast.driveRestoreSuccess'));
-      sessionStorage.setItem('zoutty_show_restore_animation', 'true');
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (err: any) {
-      console.error('Drive restore failed:', err);
-      if (err.message?.includes('drive_token_expired') || err.message?.includes('401')) {
-        setDriveNeedsReconnect(true);
-      }
-      showToast(t('toast.driveRestoreFailed'), true);
-    } finally {
-      hideSpinner();
-    }
-  };
 
   // Migration: Update old session titles to new format
   useEffect(() => {
@@ -848,10 +745,6 @@ export default function App() {
 
       setSessions(prev => {
         const next = [newSession, ...prev];
-        if (next.length >= 5 && !localStorage.getItem('hasShownBackupHint') && !isDriveConnected()) {
-          localStorage.setItem('hasShownBackupHint', 'true');
-          setTimeout(() => setShowBackupReminderModal(true), 1000);
-        }
         return next;
       });
       navigateTo('detail', newSession.id, selectedGroupId);
@@ -1276,7 +1169,7 @@ export default function App() {
       setImportPreview(sessionData);
     } catch (err: any) {
       console.error(err);
-      showToast(t('toast.failedRetrieveShared', 'Failed to read file'), true);
+      showToast(t('toast.failedRetrieveShared'), true);
     } finally {
       hideSpinner();
       e.target.value = '';
@@ -1574,26 +1467,6 @@ export default function App() {
       } else {
         showToast(t('toast.consolidated'));
       }
-
-      // Auto-backup to Google Drive if account is linked (silent, no spinner)
-      if (hasSavedAccount()) {
-        if (!isDriveConnected()) {
-          // Token expired — show banner so user can reconnect at their convenience.
-          setDriveNeedsReconnect(true);
-        } else {
-          try {
-            const backup = await db.exportDatabase();
-            await uploadBackupToDrive(JSON.stringify(backup));
-            setDriveNeedsReconnect(false);
-            console.log('[Drive] Auto-backup after consolidation succeeded.');
-          } catch (e: any) {
-            console.warn('[Drive] Auto-backup after consolidation failed:', e);
-            if (e?.message?.includes('drive_token_expired') || e?.message?.includes('401')) {
-              setDriveNeedsReconnect(true);
-            }
-          }
-        }
-      }
     } catch (error) {
       console.error('Consolidation failed:', error);
       showToast(t('toast.consolidationFailed'), true);
@@ -1703,30 +1576,7 @@ export default function App() {
         <LogoAnimation onComplete={handleLogoAnimationComplete} />
       )}
       {spinnerText && <Spinner text={spinnerText} />}
-      {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.onAction} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
-
-      {/* Drive Reconnect Modal */}
-      {driveNeedsReconnect && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[100] p-6">
-          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 border-amber-500/30">
-            <div className="flex items-center gap-3 text-amber-500">
-              <CloudUpload size={24} />
-              <h3 className="text-xl font-bold">Google Drive</h3>
-            </div>
-            <p className="text-white/80 leading-relaxed">
-              {t('toast.driveReconnectModalBody')}
-            </p>
-            <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setDriveNeedsReconnect(false)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">
-                {t('toast.driveReconnectLaterBtn')}
-              </button>
-              <button onClick={handleConnectDrive} className="px-5 py-2.5 rounded-xl font-bold bg-brand text-brand-foreground hover:opacity-90 transition-opacity min-h-[44px]">
-                {t('toast.driveReconnectConnectBtn')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.actionText ? toastMessage.onAction : undefined} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
 
       {/* Delete Modal */}
 
@@ -1864,37 +1714,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Backup Reminder Modal */}
-      {showBackupReminderModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
-          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 text-center">
-            <div className="w-16 h-16 bg-brand/20 rounded-full flex items-center justify-center mx-auto mb-2">
-              <svg className="w-8 h-8 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29" /><polyline points="8 13 12 17 16 13" /><line x1="12" y1="17" x2="12" y2="9" /></svg>
-            </div>
-            <h3 className="text-xl font-bold">
-              {t('onboarding.hintBackupTitle')}
-            </h3>
-            <p className="text-white/70 leading-relaxed">
-              {t('onboarding.hintBackupMsg')}
-            </p>
-            <div className="flex gap-3 justify-end items-center mt-6">
-              <button
-                onClick={() => setShowBackupReminderModal(false)}
-                className="flex-1 px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm text-white"
-              >
-                {t('onboarding.hintBackupDismissBtn')}
-              </button>
-              <button
-                onClick={() => { setShowBackupReminderModal(false); setShowAppSettings(true); }}
-                className="flex-1 px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/20 text-black min-h-[44px] text-sm"
-              >
-                {t('onboarding.hintBackupBtn')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* App Settings Drawer */}
       {showAppSettings && (
         <>
@@ -1943,121 +1762,7 @@ export default function App() {
                 />
               </div>
 
-              {/* Cloud Sync (Google Drive) — PRIMARY */}
-              <div className="space-y-4">
-                {/* Header row */}
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                  </svg>
-                  <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider flex-1">
-                    {t('appSettings.cloudSyncSection')}
-                  </h4>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand/20 text-brand border border-brand/30">
-                    {t('appSettings.cloudSyncTagline')}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowDriveInfo(o => !o)}
-                    className="ml-1 w-5 h-5 rounded-full border border-white/20 text-white/40 hover:text-white hover:border-white/40 text-[10px] font-bold flex items-center justify-center shrink-0 transition-colors"
-                    title="Why use Google Drive?"
-                    aria-label="Learn about Google Drive sync"
-                  >
-                    ?
-                  </button>
-                </div>
 
-                {/* Info panel — why Drive */}
-                {showDriveInfo && (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3.5 space-y-2 animate-in fade-in duration-150">
-                    <p className="text-xs font-bold text-white/70">{t('appSettings.cloudSyncWhyTitle')}</p>
-                    <ul className="space-y-1.5">
-                      {[
-                        { emoji: '🔒', text: t('appSettings.cloudSyncWhyPrivacy') },
-                        { emoji: '⚠️', text: t('appSettings.cloudSyncWhySafety') },
-                        { emoji: '🔄', text: t('appSettings.cloudSyncWhyMultiDevice') },
-                        { emoji: '🛡️', text: t('appSettings.cloudSyncWhySandbox') },
-                        { emoji: '✨', text: t('appSettings.cloudSyncWhyAutoBackup') },
-                      ].map(({ emoji, text }, i) => (
-                        <li key={i} className="text-[11px] leading-snug flex gap-1.5 items-start">
-                          <span className="shrink-0 mt-px">{emoji}</span>
-                          <span className="text-white/60">{text}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* NOT connected — big connect CTA */}
-                {!driveConnected && (
-                  <button
-                    id="driveConnectBtn"
-                    onClick={handleConnectDrive}
-                    className="w-full flex items-center justify-center gap-2.5 p-4 rounded-xl border border-brand/30 bg-brand/10 text-white hover:bg-brand/20 hover:border-brand/50 transition-all text-sm font-bold shadow-sm shadow-brand/10"
-                  >
-                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84z" />
-                    </svg>
-                    {t('appSettings.cloudSyncConnectBtn')}
-                  </button>
-                )}
-
-                {/* CONNECTED — account row + actions */}
-                {driveConnected && (
-                  <div className="space-y-3">
-                    {/* Account pill */}
-                    <div className="flex items-center gap-3 p-3 rounded-xl border border-green-500/20 bg-green-500/5">
-                      {driveAccount?.picture ? (
-                        <img src={driveAccount.picture} alt="" className="w-8 h-8 rounded-full shrink-0" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
-                          <span className="text-brand text-xs font-bold">
-                            {driveAccount?.email?.[0]?.toUpperCase() ?? 'G'}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-white/40 uppercase tracking-wider">{t('appSettings.cloudSyncConnectedAs')}</p>
-                        <p className="text-xs font-semibold text-white truncate">{driveAccount?.email ?? 'Google Account'}</p>
-                      </div>
-                      <button
-                        id="driveDisconnectBtn"
-                        onClick={handleDisconnectDrive}
-                        className="text-[10px] text-white/30 hover:text-red-400 transition-colors shrink-0 font-semibold"
-                      >
-                        {t('appSettings.cloudSyncDisconnectBtn')}
-                      </button>
-                    </div>
-
-                    {/* Backup + Restore buttons */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        id="driveBackupBtn"
-                        onClick={handleDriveBackup}
-                        className="flex flex-col items-center justify-center gap-1.5 p-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-green-500/10 hover:border-green-500/30 transition-all"
-                      >
-                        <CloudUpload className="w-5 h-5 text-green-400" />
-                        <span className="text-[11px] font-bold text-white/80">{t('appSettings.cloudSyncBackupBtn')}</span>
-                      </button>
-                      <button
-                        id="driveRestoreBtn"
-                        onClick={handleDriveRestore}
-                        className="flex flex-col items-center justify-center gap-1.5 p-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all"
-                      >
-                        <CloudDownload className="w-5 h-5 text-blue-400" />
-                        <span className="text-[11px] font-bold text-white/80">{t('appSettings.cloudSyncRestoreBtn')}</span>
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-white/30 text-center leading-snug">{t('appSettings.cloudSyncAutoNote')}</p>
-                  </div>
-                )}
-              </div>
 
               {/* Backup & Restore (local) — SECONDARY */}
               <AppSettingsCollapsible
@@ -2303,43 +2008,6 @@ export default function App() {
         </div>
       )}
 
-
-      {/* Drive Disconnect Confirmation Modal */}
-      {showDriveDisconnectConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
-          <div className="glass p-8 max-w-sm w-full space-y-5 animate-in zoom-in-95">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-bold text-white">{t('modals.confirmDriveDisconnect')}</h3>
-            </div>
-            <p className="text-white/60 text-sm leading-relaxed">
-              {t('modals.driveDisconnectMsg')}
-            </p>
-            <div className="flex gap-3 justify-end items-center pt-1">
-              <button
-                onClick={() => setShowDriveDisconnectConfirm(false)}
-                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm"
-              >
-                {t('modals.cancelBtn')}
-              </button>
-              <button
-                id="driveDisconnectConfirmBtn"
-                onClick={confirmDisconnectDrive}
-                className="px-5 py-2.5 rounded-xl font-bold bg-white/15 hover:bg-white/25 transition-colors min-h-[44px] text-sm text-white"
-              >
-                {t('modals.driveDisconnectBtn')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Folder Create/Rename Modal */}
       {folderModal && (
@@ -3596,7 +3264,6 @@ function SessionDetail({
   const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
   const [tempSubtitle, setTempSubtitle] = useState(session.subtitle ?? '');
   const [isReordering, setIsReordering] = useState(false);
-  const [isNoteVisible, setIsNoteVisible] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const parentGroup = groups.find(g => g.id === session.groupId);

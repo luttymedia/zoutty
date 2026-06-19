@@ -85,22 +85,7 @@ const es: Translations = {
     accountSection: 'Cuenta',
     logoutDesc: 'Cerrar sesión de Zoutty Cloud.',
     logoutWarning: 'Esto borrará tus datos locales en este dispositivo para que el siguiente usuario comience desde cero.',
-    // Cloud Sync (Google Drive)
-    cloudSyncSection: 'Sincronización en la nube',
-    cloudSyncTagline: 'Recomendado',
-    cloudSyncWhyTitle: '¿Por qué hacer copia en Google Drive?',
-    cloudSyncWhyPrivacy: 'Tus datos son 100% tuyos - Zoutty no tiene servidor propio.',
-    cloudSyncWhySafety: 'Los navegadores móviles pueden borrar el almacenamiento local cuando el teléfono se queda sin espacio.',
-    cloudSyncWhyMultiDevice: 'Restaura tus sesiones, carpetas y glosarios en cualquier dispositivo al instante.',
-    cloudSyncWhySandbox: 'Solo solicitamos acceso a una carpeta privada de la app - no podemos ver ningún otro archivo de tu Google Drive.',
-    cloudSyncWhyAutoBackup: 'Hace una copia automática y silenciosa cada vez que consolidas una sesión.',
-    cloudSyncConnectBtn: 'Conectar Google Drive',
-    cloudSyncConnectedAs: 'Conectado como',
-    cloudSyncDisconnectBtn: 'Desconectar',
-    cloudSyncBackupBtn: 'Hacer copia ahora',
-    cloudSyncRestoreBtn: 'Restaurar desde Drive',
-    cloudSyncLastBackupNone: 'Aún no hay ninguna copia en tu Drive.',
-    cloudSyncAutoNote: 'También puedes hacer una copia manual en cualquier momento haciendo clic en el botón de arriba.',
+
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -428,10 +413,7 @@ const es: Translations = {
     demoTooltipReorder: '💡 Puedes reordenar los elementos de esta sesión.',
     demoTooltipNotes: '💡 Puedes añadir notas personales a tu sesión aquí.',
     hintConsolidation: '💡 ¡Zoutty está listo! Toca el botón de \'Generar informe\' (🪄) al final de tu sesión para consolidar tus grabaciones.',
-    hintBackupTitle: '¡Mantén tus datos seguros!',
-    hintBackupMsg: 'Tus datos de Zoutty viven solo en este dispositivo. Conecta Google Drive en Ajustes para copias automáticas en la nube - o descarga una copia manual como alternativa.',
-    hintBackupBtn: 'Abrir Ajustes',
-    hintBackupDismissBtn: '¡Entendido!',
+
   },
 
   // ─── Install Enforcer ───────────────────────────────────────────────────────

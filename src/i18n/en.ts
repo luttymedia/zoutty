@@ -83,22 +83,7 @@ const en = {
     accountSection: 'Account',
     logoutDesc: 'Log out of Zoutty Cloud.',
     logoutWarning: 'This will clear your local data on this device so the next user starts fresh.',
-    // Cloud Sync (Google Drive)
-    cloudSyncSection: 'Cloud Sync',
-    cloudSyncTagline: 'Recommended',
-    cloudSyncWhyTitle: 'Why back up to Google Drive?',
-    cloudSyncWhyPrivacy: 'Your data stays 100% yours - Zoutty has no server.',
-    cloudSyncWhySafety: 'Mobile browsers can wipe local storage when your phone runs low on space.',
-    cloudSyncWhyMultiDevice: 'Restore your sessions, folders, and glossaries on any device instantly.',
-    cloudSyncWhySandbox: 'We only request access to a private app folder - we cannot see any other file in your Google Drive.',
-    cloudSyncWhyAutoBackup: 'Auto-backs up silently every time you consolidate a session.',
-    cloudSyncConnectBtn: 'Connect Google Drive',
-    cloudSyncConnectedAs: 'Connected as',
-    cloudSyncDisconnectBtn: 'Disconnect',
-    cloudSyncBackupBtn: 'Backup Now',
-    cloudSyncRestoreBtn: 'Restore from Drive',
-    cloudSyncLastBackupNone: 'No backup found in your Drive yet.',
-    cloudSyncAutoNote: 'You can also back up manually at any time by clicking the button above.',
+
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -426,10 +411,7 @@ const en = {
     demoTooltipReorder: '💡 You can reorder the items in this session.',
     demoTooltipNotes: '💡 You can add personal written notes to your session here.',
     hintConsolidation: '💡 Zoutty is ready! Tap the \'Generate Report\' (🪄) button at the end of your session to consolidate your recordings.',
-    hintBackupTitle: 'Keep your data safe!',
-    hintBackupMsg: 'Your Zoutty data lives only on this device. Connect Google Drive in Settings for automatic cloud backups - or download a manual backup as a fallback.',
-    hintBackupBtn: 'Open Settings',
-    hintBackupDismissBtn: 'Got it!',
+
   },
 
   // ─── Install Enforcer ───────────────────────────────────────────────────────
