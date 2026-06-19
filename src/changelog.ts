@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.2.2',
+    date: '2026-06-19',
+    changes: [
+      'Fixed a data race condition that could cause empty data to show temporarily after logging in',
+      'Fixed an issue where the onboarding screen would incorrectly display after logging in from a fresh browser state'
+    ]
+  },
+  {
     version: '2.2.1',
     date: '2026-06-19',
     changes: [

@@ -100,33 +100,38 @@ export const syncEngine = {
       if (!data || data.length === 0) return;
 
       const idb = await dbStart();
-      const transaction = idb.transaction(localTableName, 'readwrite');
-      const store = transaction.objectStore(localTableName);
-      
-      // Get all local items to compare
-      const getReq = store.getAll();
-      getReq.onsuccess = () => {
-        const localItems = getReq.result as any[];
-        const localMap = new Map(localItems.map(i => [i.id, i]));
+      return new Promise<void>((resolve, reject) => {
+        const transaction = idb.transaction(localTableName, 'readwrite');
+        const store = transaction.objectStore(localTableName);
+        
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        
+        // Get all local items to compare
+        const getReq = store.getAll();
+        getReq.onsuccess = () => {
+          const localItems = getReq.result as any[];
+          const localMap = new Map(localItems.map(i => [i.id, i]));
 
-        for (const cloudItem of data) {
-          const localItem = localMap.get(cloudItem.id);
-          
-          // If we have a local change pending sync, don't overwrite it with cloud data yet
-          if (localItem && localItem.pending_sync) continue;
+          for (const cloudItem of data) {
+            const localItem = localMap.get(cloudItem.id);
+            
+            // If we have a local change pending sync, don't overwrite it with cloud data yet
+            if (localItem && localItem.pending_sync) continue;
 
-          if (cloudItem.deleted) {
-            if (localItem) {
-              store.delete(cloudItem.id);
+            if (cloudItem.deleted) {
+              if (localItem) {
+                store.delete(cloudItem.id);
+              }
+              continue;
             }
-            continue;
-          }
 
-          // Strip user_id before saving locally
-          const { user_id, updated_at, ...cleanCloudItem } = cloudItem;
-          store.put({ ...cleanCloudItem, pending_sync: false });
-        }
-      };
+            // Strip user_id before saving locally
+            const { user_id, updated_at, ...cleanCloudItem } = cloudItem;
+            store.put({ ...cleanCloudItem, pending_sync: false });
+          }
+        };
+      });
     };
 
     await pullTable('sessions', 'sessions');

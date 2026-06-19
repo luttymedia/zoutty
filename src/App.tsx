@@ -249,6 +249,7 @@ export default function App() {
       setSession(session);
       setIsInitializingAuth(false);
       if (session) {
+        setHasCompletedOnboarding(true);
         migrateOldData().then(() => syncEngine.syncAll());
       }
     });
@@ -258,6 +259,7 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
+        setHasCompletedOnboarding(true);
         migrateOldData().then(() => syncEngine.syncAll());
       }
     });
