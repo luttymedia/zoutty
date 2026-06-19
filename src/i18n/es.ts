@@ -224,6 +224,7 @@ const es: Translations = {
     importCodePlaceholder: 'Ej., A1B2C3',
     or: 'o',
     importFromFile: 'Importar desde archivo',
+    exportFileTooltip: 'Exportar genera un archivo de respaldo para uso sin conexión. Compartir un código permite la importación inmediata desde la nube.',
   },
 
   // ─── Session Detail ──────────────────────────────────────────────────────────

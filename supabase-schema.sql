@@ -132,3 +132,79 @@ create policy "Anyone can view sessionMedia" on storage.objects for select using
 create policy "Authenticated users can upload sessionMedia" on storage.objects for insert with check ( auth.role() = 'authenticated' and bucket_id = 'sessionMedia' );
 create policy "Users can update their own sessionMedia" on storage.objects for update using ( auth.uid() = owner and bucket_id = 'sessionMedia' );
 create policy "Users can delete their own sessionMedia" on storage.objects for delete using ( auth.uid() = owner and bucket_id = 'sessionMedia' );
+
+-- Function to securely fetch a shared session using a 6-digit code
+create or replace function public.fetch_shared_session(p_share_id text)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_session record;
+  v_report record;
+  v_audios jsonb;
+  v_media jsonb;
+  v_result jsonb;
+begin
+  -- Find session
+  select * into v_session from sessions where "shareId" = p_share_id and "deleted" = false limit 1;
+  
+  if v_session is null then
+    return null;
+  end if;
+
+  v_result := jsonb_build_object(
+    'title', v_session.title,
+    'subtitle', v_session.subtitle,
+    'date', v_session.date
+  );
+
+  if (v_session."sharedContent"->>'notes')::boolean then
+    v_result := jsonb_set(v_result, '{notes}', to_jsonb(v_session.notes));
+  end if;
+
+  if (v_session."sharedContent"->>'report')::boolean then
+    select * into v_report from "finalReports" where "sessionId" = v_session.id and "deleted" = false limit 1;
+    if v_report is not null then
+      v_result := jsonb_set(v_result, '{report}', v_report.report);
+      v_result := jsonb_set(v_result, '{reportTimestamp}', to_jsonb(v_report.timestamp));
+    end if;
+  end if;
+
+  IF (v_session."sharedContent"->>'transcripts')::boolean OR (v_session."sharedContent"->>'media')::boolean THEN
+    SELECT jsonb_agg(
+      jsonb_build_object(
+        'filename', filename,
+        'timestamp', timestamp,
+        'transcript', (CASE WHEN (v_session."sharedContent"->>'transcripts')::boolean THEN transcript ELSE NULL END),
+        'strictSummary', (CASE WHEN (v_session."sharedContent"->>'transcripts')::boolean THEN "strictSummary" ELSE NULL END),
+        'expandedInsights', (CASE WHEN (v_session."sharedContent"->>'transcripts')::boolean THEN "expandedInsights" ELSE NULL END),
+        'audio_storage_path', (CASE WHEN (v_session."sharedContent"->>'media')::boolean THEN audio_storage_path ELSE NULL END)
+      )
+    ) INTO v_audios
+    FROM audios WHERE "sessionId" = v_session.id AND "deleted" = false;
+    
+    IF v_audios IS NOT NULL THEN
+      v_result := jsonb_set(v_result, '{transcripts}', v_audios);
+    END IF;
+  END IF;
+
+  IF (v_session."sharedContent"->>'media')::boolean THEN
+    SELECT jsonb_agg(
+      jsonb_build_object(
+        'filename', filename,
+        'mimeType', "mimeType",
+        'timestamp', timestamp,
+        'media_storage_path', media_storage_path
+      )
+    ) INTO v_media
+    FROM sessionmedia WHERE "sessionId" = v_session.id AND "deleted" = false;
+
+    IF v_media IS NOT NULL THEN
+      v_result := jsonb_set(v_result, '{mediaItems}', v_media);
+    END IF;
+  END IF;
+
+  RETURN v_result;
+END;
+$$;

@@ -222,6 +222,7 @@ const en = {
     importCodePlaceholder: 'E.g., A1B2C3',
     or: 'or',
     importFromFile: 'Import from file',
+    exportFileTooltip: 'Exporting generates a backup file for offline use. Sharing a Code allows for immediate import from the cloud.',
   },
 
   // ─── Session Detail ──────────────────────────────────────────────────────────

@@ -51,7 +51,7 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [installState]);
+  }, []);
 
   if (isStandalone) {
     return <>{children}</>;

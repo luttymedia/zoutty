@@ -541,7 +541,7 @@ export default function App() {
         // Add or update current system glossaries
         for (const defaultGlossary of DEFAULT_GLOSSARIES) {
           const existing = existingGlossaries.find(g => g.id === defaultGlossary.id);
-          if (!existing || existing.isSystem) {
+          if (!existing) {
             await db.saveGlossary(defaultGlossary);
           }
         }
@@ -617,11 +617,15 @@ export default function App() {
   };
 
   const executeImportBackup = async (file: File) => {
+    setShowRestoreConfirm(false);
     setRestoreBackupFile(null);
     showSpinner('Restoring database...');
     try {
       const text = await file.text();
       const backup = JSON.parse(text);
+      if (session?.user) {
+        await syncEngine.wipeCloudData(session.user.id);
+      }
       await db.importDatabase(backup);
       showToast(t('toast.restoreSuccess'));
       sessionStorage.setItem('zoutty_show_restore_animation', 'true');
@@ -640,6 +644,9 @@ export default function App() {
     setShowResetConfirm(false);
     showSpinner('Resetting Zoutty data...');
     try {
+      if (session?.user) {
+        await syncEngine.wipeCloudData(session.user.id);
+      }
       await db.clearDatabase();
       showToast(t('toast.resetSuccess'));
       setTimeout(() => {
@@ -929,7 +936,7 @@ export default function App() {
   };
 
 
-  const handleGenerateShareLink = async () => {
+  const handleGenerateShareLink = async (exportAsFile: boolean = false) => {
     if (!shareModal || !selectedSession) return;
     showSpinner(t('toast.generatingDoc'));
     try {
@@ -999,20 +1006,24 @@ export default function App() {
           mimeType: m.mimeType,
           timestamp: m.timestamp
         }));
+      }
 
+      if (exportAsFile) {
         const zip = new JSZip();
         zip.file('session.json', JSON.stringify(payload, null, 2));
         
         for (const a of audiosWithNames) {
-          if (a.audioBlob) {
+          if (a.audioBlob && shareModal.shareTranscripts) {
             zip.file(`media/${a.exportFilename}`, a.audioBlob);
           }
         }
-        for (const m of sessionMediaItems) {
-          if (m.blob) {
-            zip.file(`media/${m.filename}`, m.blob);
-          } else if (m.fileHandle) {
-            try {
+        if (shareModal.shareMedia) {
+          const sessionMediaItems = await db.getSessionMedia(selectedSession.id);
+          for (const m of sessionMediaItems) {
+            if (m.blob) {
+              zip.file(`media/${m.filename}`, m.blob);
+            } else if (m.fileHandle) {
+              try {
               const perm = await m.fileHandle.queryPermission({ mode: 'read' });
               if (perm !== 'granted') {
                 await m.fileHandle.requestPermission({ mode: 'read' });
@@ -1021,6 +1032,7 @@ export default function App() {
               zip.file(`media/${m.filename}`, file);
             } catch (e) {
               console.error("Failed to read fileHandle for export", m.filename, e);
+              }
             }
           }
         }
@@ -1079,17 +1091,14 @@ export default function App() {
       }
 
       const isUpdating = !!selectedSession.shareId;
-
-      const res = await fetch('/api/share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shareId: selectedSession.shareId,
-          sessionData: payload
-        })
-      });
-      if (!res.ok) throw new Error('Share request failed');
-      const { shareId } = await res.json();
+      let shareId = selectedSession.shareId;
+      if (!shareId) {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        shareId = '';
+        for (let i = 0; i < 6; i++) {
+          shareId += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+      }
       const shareTimestamp = Date.now();
 
       const updatedContent = {
@@ -1099,14 +1108,12 @@ export default function App() {
         media: shareModal.shareMedia
       };
 
-      if (shareId !== selectedSession.shareId || selectedSession.shareTimestamp !== shareTimestamp || selectedSession.shareMethod !== 'code') {
-        await updateSession(selectedSession.id, { 
+      await updateSession(selectedSession.id, { 
           shareId, 
           shareTimestamp, 
           shareMethod: 'code',
           sharedContent: updatedContent
         });
-      }
 
       setShareModal(prev => prev ? { 
         ...prev, 
@@ -1211,7 +1218,19 @@ export default function App() {
       if (importPreview.transcripts && Array.isArray(importPreview.transcripts)) {
         for (const t of importPreview.transcripts) {
           const mediaFile = importPreview.parsedMediaFiles?.find((f: any) => f.isAudioEntry && f.filename === t.filename);
-          const audioBlob = mediaFile ? mediaFile.blob : new Blob([], { type: 'audio/webm' });
+          let audioBlob = mediaFile ? mediaFile.blob : new Blob([], { type: 'audio/webm' });
+          
+          if (!mediaFile && t.audio_storage_path) {
+            try {
+              const { data } = supabase.storage.from('audios').getPublicUrl(t.audio_storage_path);
+              const res = await fetch(data.publicUrl);
+              if (res.ok) {
+                audioBlob = await res.blob();
+              }
+            } catch (e) {
+              console.error("Failed to fetch shared audio from Supabase", e);
+            }
+          }
           
           const newAudio: AudioEntry = {
             id: crypto.randomUUID(),
@@ -1242,6 +1261,30 @@ export default function App() {
               size: m.blob.size,
               storageMode: 'blob'
             });
+          }
+        }
+      } else if (importPreview.mediaItems && Array.isArray(importPreview.mediaItems)) {
+        for (const m of importPreview.mediaItems) {
+          if (m.media_storage_path) {
+            try {
+              const { data } = supabase.storage.from('sessionMedia').getPublicUrl(m.media_storage_path);
+              const res = await fetch(data.publicUrl);
+              if (res.ok) {
+                const blob = await res.blob();
+                await db.saveMediaItem({
+                  id: crypto.randomUUID(),
+                  sessionId: newSessionId,
+                  timestamp: m.timestamp || Date.now(),
+                  mimeType: m.mimeType || 'image/jpeg',
+                  filename: m.filename,
+                  blob: blob,
+                  size: blob.size,
+                  storageMode: 'blob'
+                });
+              }
+            } catch (e) {
+              console.error("Failed to fetch shared media from Supabase", e);
+            }
           }
         }
       }
@@ -2329,12 +2372,29 @@ export default function App() {
                 <div className="flex gap-3 justify-end items-center">
                   <button onClick={() => setShareModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
                   <button
-                    onClick={handleGenerateShareLink}
+                    onClick={() => handleGenerateShareLink(false)}
                     disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts && !shareModal.shareMedia}
-                    className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]"
+                    className="px-5 py-2.5 flex-1 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]"
                   >
-                    {shareModal.shareMedia ? t('modals.exportFileBtn') : (selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink'))}
+                    {selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink')}
                   </button>
+                </div>
+
+                <div className="flex items-center gap-4 my-4">
+                  <div className="h-px bg-white/10 flex-1"></div>
+                  <span className="text-white/40 text-xs font-bold uppercase tracking-widest">{t('modals.or')}</span>
+                  <div className="h-px bg-white/10 flex-1"></div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => handleGenerateShareLink(true)}
+                    disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts && !shareModal.shareMedia}
+                    className="w-full py-3 rounded-xl font-bold border border-white/20 hover:bg-white/10 disabled:opacity-20 transition-colors min-h-[44px]"
+                  >
+                    {t('modals.exportFileBtn')}
+                  </button>
+                  <p className="text-center text-xs text-white/50">{t('modals.exportFileTooltip')}</p>
                 </div>
               </>
             ) : shareModal.viewState === 'active_code' ? (
@@ -2436,7 +2496,7 @@ export default function App() {
                   </div>
 
                   <button
-                    onClick={handleGenerateShareLink}
+                    onClick={() => handleGenerateShareLink(true)}
                     className="w-full py-3 bg-brand text-bg-dark rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-[0.98] shadow-lg shadow-brand/20 min-h-[44px]"
                   >
                     <Download className="w-5 h-5" />
@@ -2478,7 +2538,6 @@ export default function App() {
                 onChange={(e) => setImportCodeValue(e.target.value.toUpperCase().trim())}
                 placeholder={t('modals.importCodePlaceholder')}
                 className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-center text-lg font-mono font-bold tracking-widest text-white outline-none focus:border-brand transition-colors"
-                autoFocus
               />
             </div>
 
@@ -2504,9 +2563,8 @@ export default function App() {
                     setImportCodeValue('');
                     showSpinner(t('toast.retrievingSession'));
                     try {
-                      const res = await fetch(`/api/share/${codeToFetch}`);
-                      if (!res.ok) throw new Error('Shared session not found');
-                      const data = await res.json();
+                      const { data, error } = await supabase.rpc('fetch_shared_session', { p_share_id: codeToFetch });
+                      if (error || !data) throw new Error('Shared session not found');
                       setImportPreview(data);
                     } catch (e: any) {
                       console.error(e);
@@ -2576,11 +2634,11 @@ export default function App() {
                   <span className="text-xs text-blue-400 font-semibold block mt-1 font-sans">{t('modals.sharedClipsIncluded', { count: importPreview.transcripts.length })}</span>
                 </div>
               )}
-              {importPreview.parsedMediaFiles && importPreview.parsedMediaFiles.filter((f: any) => !f.isAudioEntry).length > 0 && (
+              {(importPreview.parsedMediaFiles?.filter((f: any) => !f.isAudioEntry).length > 0 || (importPreview.mediaItems && importPreview.mediaItems.length > 0)) && (
                 <div>
                   <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedMediaShared')}</span>
                   <span className="text-xs text-purple-400 font-semibold block mt-1 font-sans">
-                    {t('modals.sharedMediaIncluded', { count: importPreview.parsedMediaFiles.filter((f: any) => !f.isAudioEntry).length })}
+                    {t('modals.sharedMediaIncluded', { count: (importPreview.parsedMediaFiles?.filter((f: any) => !f.isAudioEntry).length || 0) + (importPreview.mediaItems?.length || 0) })}
                   </span>
                 </div>
               )}

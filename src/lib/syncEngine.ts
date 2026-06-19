@@ -43,9 +43,12 @@ export const syncEngine = {
 
       console.log(`[Sync] Pushing ${pendingItems.length} changes for ${localTableName}...`);
 
-      const payload = await Promise.all(pendingItems.map(async item => {
-        // Strip out binary blobs for Supabase DB
-        const { audioBlob, blob, fileHandle, pending_sync, ...dbData } = item;
+      const itemsToPush = pendingItems.filter(item => !(localTableName === 'glossaries' && item.isSystem));
+
+      if (itemsToPush.length > 0) {
+        const payload = await Promise.all(itemsToPush.map(async item => {
+          // Strip out binary blobs for Supabase DB
+          const { audioBlob, blob, fileHandle, pending_sync, ...dbData } = item;
         
         // Upload audio blob if present
         if (localTableName === 'audios' && audioBlob) {
@@ -91,12 +94,13 @@ export const syncEngine = {
           user_id: userId,
           updated_at: new Date().toISOString()
         };
-      }));
+        }));
 
-      const { error } = await supabase.from(supabaseTableName).upsert(payload);
-      if (error) {
-        console.error(`[Sync] Failed to push ${supabaseTableName}:`, error);
-        return;
+        const { error } = await supabase.from(supabaseTableName).upsert(payload);
+        if (error) {
+          console.error(`[Sync] Failed to push ${supabaseTableName}:`, error);
+          return;
+        }
       }
 
       // Mark as synced locally
@@ -189,5 +193,16 @@ export const syncEngine = {
     await pullTable('sessionGroups', 'sessiongroups');
     await pullTable('glossaries', 'glossaries');
     await pullTable('sessionMedia', 'sessionmedia');
+  },
+
+  async wipeCloudData(userId: string) {
+    console.log('[Sync] Wiping cloud data for user', userId);
+    const tables = ['sessions', 'audios', 'finalreports', 'sessiongroups', 'glossaries', 'sessionmedia'];
+    for (const table of tables) {
+      const { error } = await supabase.from(table).delete().eq('user_id', userId);
+      if (error) {
+        console.error(`[Sync] Failed to wipe ${table}:`, error);
+      }
+    }
   }
 };

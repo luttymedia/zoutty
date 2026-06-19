@@ -6,6 +6,25 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.2.6',
+    date: '2026-06-19',
+    changes: [
+      'Fixed a bug where sharing an untranscribed audio clip would skip the audio file',
+      'Fixed missing media items count on the shared session preview screen',
+      'Fixed "Restore Database" to cleanly replace cloud data instead of merging with it',
+      'Fixed "Reset App Data" to completely wipe cloud storage as well as local data'
+    ]
+  },
+  {
+    version: '2.2.5',
+    date: '2026-06-19',
+    changes: [
+      'Migrated session sharing to use Supabase cloud storage natively',
+      'Audio and media files are now properly transferred when sharing sessions via the 6-digit code',
+      'Removed auto-focus on import code field to improve mobile keyboard experience'
+    ]
+  },
+  {
     version: '2.2.4',
     date: '2026-06-19',
     changes: [
