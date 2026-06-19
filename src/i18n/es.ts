@@ -87,6 +87,9 @@ const es: Translations = {
     logoutDesc: 'Cerrar sesión de Zoutty Cloud.',
     logoutWarning: 'Esto borrará tus datos locales en este dispositivo para que el siguiente usuario comience desde cero.',
     signInBtn: 'Iniciar Sesión / Registrarse',
+    guestUser: 'Usuario Invitado',
+    authenticatedAccount: 'Cuenta Autenticada',
+    localSandboxMode: 'Modo Local',
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -394,13 +397,13 @@ const es: Translations = {
     other: 'Otro',
     continueBtn: 'Continuar',
     beforeWeStart: 'Antes de empezar',
-    permissionsDesc: 'Zoutty funciona completamente en tu dispositivo. Para que esto sea posible, necesitamos un par de permisos.',
-    micAccess: 'Acceso al Micrófono',
-    micDesc: 'Necesario para grabar los conceptos, correcciones y notas de tus clases. El audio es privado y solo se sube si decides conectar tu copia de Google Drive.',
+    permissionsDesc: 'Zoutty usa almacenamiento local para mayor velocidad y se sincroniza de forma segura en la nube. Esto es lo que usamos internamente:',
+    micAccess: 'Micrófono',
+    micDesc: 'Para grabar conceptos y correcciones de tus clases. Te lo pediremos cuando grabes tu primer audio.',
     localStorage: 'Almacenamiento Local',
-    storageDesc: 'Necesario para guardar tus sesiones y enlazar archivos de video. Todo se queda en tu teléfono.',
+    storageDesc: 'Para guardar tus sesiones y videos de forma segura en tu dispositivo.',
     cloudBackup: 'Copia en la nube',
-    cloudBackupDesc: 'Opcional. Conecta tu Google Drive en Ajustes para copias automáticas y evitar pérdidas si el navegador borra los datos.',
+    cloudBackupDesc: 'Tus datos se respaldan automáticamente en la nube cuando inicias sesión.',
     startExploring: 'Entrar al estudio',
     // Demo content
     demoSessionTitle: 'Sesión de Guía Práctica',

@@ -85,6 +85,9 @@ const en = {
     logoutDesc: 'Log out of Zoutty Cloud.',
     logoutWarning: 'This will clear your local data on this device so the next user starts fresh.',
     signInBtn: 'Sign In / Sign Up',
+    guestUser: 'Guest User',
+    authenticatedAccount: 'Authenticated Account',
+    localSandboxMode: 'Local Sandbox Mode',
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -392,13 +395,13 @@ const en = {
     other: 'Other',
     continueBtn: 'Continue',
     beforeWeStart: 'Before we start',
-    permissionsDesc: 'Zoutty works entirely on your device. To make that possible, we need a couple of permissions.',
-    micAccess: 'Microphone Access',
-    micDesc: 'Required to record the concepts, feedback, and notes from your lessons. Audio remains private and is only uploaded if you connect your Google Drive backup.',
+    permissionsDesc: 'Zoutty uses local storage for speed and syncs securely to the cloud. Here is what we use under the hood:',
+    micAccess: 'Microphone',
+    micDesc: 'To record concepts and feedback from your lessons. We will ask for this when you record your first audio.',
     localStorage: 'Local Storage',
-    storageDesc: 'Required to save your sessions and link video files. Everything stays on your phone.',
+    storageDesc: 'To save your sessions and videos securely on your device.',
     cloudBackup: 'Cloud Backup',
-    cloudBackupDesc: 'Optional. Connect your Google Drive in Settings for automatic backups to protect against browser data wipes.',
+    cloudBackupDesc: 'Your data is automatically backed up to the cloud when you sign in.',
     startExploring: 'Enter the Studio',
     // Demo content
     demoSessionTitle: 'Practical Guide Session',

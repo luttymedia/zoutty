@@ -415,6 +415,8 @@ export default function App() {
     setSelectedSessionId(newSessionId);
     setSelectedGroupId(newGroupId);
 
+    window.scrollTo(0, 0);
+
     if (historyAction === 'push') {
       window.history.pushState({
         view: newView,
@@ -442,6 +444,7 @@ export default function App() {
         setSelectedSessionId(null);
         setSelectedGroupId(null);
       }
+      window.scrollTo(0, 0);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -1988,6 +1991,19 @@ export default function App() {
                 <p className="text-xs text-white/60 leading-relaxed text-orange-300/80">
                   {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
                 </p>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold uppercase">
+                    {session?.user?.email ? session.user.email[0] : 'G'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-white truncate">
+                      {session?.user?.email ? session.user.email : t('appSettings.guestUser')}
+                    </div>
+                    <div className="text-xs text-white/40 truncate">
+                      {session?.user?.email ? t('appSettings.authenticatedAccount') : t('appSettings.localSandboxMode')}
+                    </div>
+                  </div>
+                </div>
                 {isGuestMode ? (
                   <button
                     onClick={() => {

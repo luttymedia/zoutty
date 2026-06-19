@@ -6,6 +6,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.2.8',
+    date: '2026-06-20',
+    changes: [
+      'Updated onboarding permissions copy to reflect the new Supabase cloud architecture',
+      'Compressed onboarding layout to ensure primary action buttons are visible without scrolling',
+      'Added scroll-to-top behavior when navigating between views and sessions',
+      'Added authenticated user profile status to the Settings Drawer',
+      'Replaced hardcoded UI strings with translation keys to ensure full localization coverage'
+    ]
+  },
+  {
     version: '2.2.7',
     date: '2026-06-19',
     changes: [
