@@ -247,25 +247,27 @@ export const db = {
     };
   },
 
-  importDatabase: async (backup: any) => {
+  importDatabase: async (backup: any, options?: { merge?: boolean }) => {
     if (!backup || !backup.data) {
       throw new Error("Invalid backup file format");
     }
     
     const { sessions, audios, groups, glossaries, finalReports } = backup.data;
     
-    // 1. Clear database stores
-    const dbInst = await dbStart();
-    const storeNames = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
-    const transaction = dbInst.transaction(storeNames, 'readwrite');
-    storeNames.forEach(name => {
-      transaction.objectStore(name).clear();
-    });
-    
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-    });
+    // 1. Clear database stores if not merging
+    if (!options?.merge) {
+      const dbInst = await dbStart();
+      const storeNames = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
+      const transaction = dbInst.transaction(storeNames, 'readwrite');
+      storeNames.forEach(name => {
+        transaction.objectStore(name).clear();
+      });
+      
+      await new Promise<void>((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+    }
 
     // 2. Restore Sessions
     if (Array.isArray(sessions)) {

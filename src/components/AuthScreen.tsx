@@ -203,6 +203,17 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
         >
           {isLogin ? t('auth.toggleToSignup') : t('auth.toggleToLogin')}
         </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            localStorage.setItem('zoutty_guest_mode', 'true');
+            onSuccess();
+          }}
+          className="w-full mt-4 text-zinc-500 hover:text-zinc-300 text-xs font-medium transition-colors uppercase tracking-wider"
+        >
+          {t('auth.continueGuest')}
+        </button>
       </div>
     </div>
   );

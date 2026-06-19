@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.2.7',
+    date: '2026-06-19',
+    changes: [
+      'Added a new intelligent Sync Conflict Modal that safely handles merging or replacing conflicting local and cloud databases',
+      'Fixed a bug where the Sync Conflict Modal would sometimes automatically dismiss itself due to a background sync process',
+      'Fixed an issue where local offline media files were getting unintentionally erased when downloading updates from the cloud',
+      'Added on-demand downloading of audio files from the cloud if they are needed for transcription and not available locally'
+    ]
+  },
+  {
     version: '2.2.6',
     date: '2026-06-19',
     changes: [

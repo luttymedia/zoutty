@@ -36,6 +36,35 @@ export const syncEngine = {
     }
   },
 
+  async checkInitialSyncConflicts(userId: string): Promise<{ hasLocalPending: boolean, hasCloudData: boolean }> {
+    // 1. Check if there are any local pending changes
+    let hasLocalPending = false;
+    const sessions = await db.getSessions(true);
+    const audios = await db.getAudioEntries(true);
+    const reports = await db.getFinalReports(true);
+    const groups = await db.getGroups(true);
+    const media = await db.getAllMedia(true);
+    
+    if (
+      sessions.some(i => i.pending_sync) ||
+      audios.some(i => i.pending_sync) ||
+      reports.some(i => i.pending_sync) ||
+      groups.some(i => i.pending_sync) ||
+      media.some(i => i.pending_sync)
+    ) {
+      hasLocalPending = true;
+    }
+
+    // 2. Check if the cloud has data
+    let hasCloudData = false;
+    const { data, error } = await supabase.from('sessions').select('id').eq('user_id', userId).limit(1);
+    if (!error && data && data.length > 0) {
+      hasCloudData = true;
+    }
+
+    return { hasLocalPending, hasCloudData };
+  },
+
   async pushLocalChanges(userId: string) {
     const pushTable = async (localTableName: string, supabaseTableName: string, localItems: any[]) => {
       const pendingItems = localItems.filter(item => item.pending_sync);
@@ -181,6 +210,14 @@ export const syncEngine = {
 
             // Strip user_id before saving locally
             const { user_id, updated_at, ...cleanCloudItem } = cloudItem;
+            
+            // Preserve local binary data so we don't accidentally delete offline files
+            if (localItem) {
+              if (localItem.blob !== undefined) cleanCloudItem.blob = localItem.blob;
+              if (localItem.audioBlob !== undefined) cleanCloudItem.audioBlob = localItem.audioBlob;
+              if (localItem.fileHandle !== undefined) cleanCloudItem.fileHandle = localItem.fileHandle;
+            }
+
             store.put({ ...cleanCloudItem, pending_sync: false });
           }
         };

@@ -37,7 +37,8 @@ import {
   CloudUpload,
   CloudDownload,
   Search,
-  LogOut
+  LogOut,
+  ArrowRight
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -204,42 +205,43 @@ const getSessionDefaultTitle = (date: Date | number, lang: string) => {
   }
 };
 
+const migrateOldData = async () => {
+  if (localStorage.getItem('zoutty_migrated_to_supabase')) return;
+  try {
+    const idb = await dbStart();
+    const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
+    for (const table of tables) {
+      const tx = idb.transaction(table, 'readwrite');
+      const store = tx.objectStore(table);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const items = req.result as any[];
+        for (const item of items) {
+          if (item.pending_sync === undefined) {
+            item.pending_sync = true;
+            store.put(item);
+          }
+        }
+      };
+    }
+    localStorage.setItem('zoutty_migrated_to_supabase', 'true');
+  } catch (e) {
+    console.error('Migration failed:', e);
+  }
+};
+
 export default function App() {
   const [session, setSession] = useState<any>(null);
   const [isInitializingAuth, setIsInitializingAuth] = useState(true);
 
   useEffect(() => {
-    const migrateOldData = async () => {
-      if (localStorage.getItem('zoutty_migrated_to_supabase')) return;
-      try {
-        const idb = await dbStart();
-        const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
-        for (const table of tables) {
-          const tx = idb.transaction(table, 'readwrite');
-          const store = tx.objectStore(table);
-          const req = store.getAll();
-          req.onsuccess = () => {
-            const items = req.result as any[];
-            for (const item of items) {
-              if (item.pending_sync === undefined) {
-                item.pending_sync = true;
-                store.put(item);
-              }
-            }
-          };
-        }
-        localStorage.setItem('zoutty_migrated_to_supabase', 'true');
-      } catch (e) {
-        console.error('Migration failed:', e);
-      }
-    };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsInitializingAuth(false);
       if (session) {
         setHasCompletedOnboarding(true);
-        migrateOldData().then(() => syncEngine.syncAll());
+        handleInitialSyncCheck(session);
       }
     });
 
@@ -249,11 +251,14 @@ export default function App() {
       setSession(session);
       if (session) {
         setHasCompletedOnboarding(true);
-        migrateOldData().then(() => syncEngine.syncAll());
+        handleInitialSyncCheck(session);
       }
     });
-
-    const handleDbWrite = () => syncEngine.scheduleSync();
+    const handleDbWrite = () => {
+      if (localStorage.getItem('zoutty_initial_sync_pending') !== 'true') {
+        syncEngine.scheduleSync();
+      }
+    };
     window.addEventListener('zoutty-db-write', handleDbWrite);
 
     return () => {
@@ -285,6 +290,33 @@ export default function App() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isInitialSync, setIsInitialSync] = useState(() => localStorage.getItem('zoutty_initial_sync_pending') === 'true');
+  const [showSyncConflict, setShowSyncConflict] = useState(false);
+  const [isGuestMode, setIsGuestMode] = useState(() => localStorage.getItem('zoutty_guest_mode') === 'true');
+  const initialSyncCheckedRef = useRef(false);
+
+  const handleInitialSyncCheck = useCallback(async (session: any) => {
+    if (initialSyncCheckedRef.current) return;
+    initialSyncCheckedRef.current = true;
+    
+    await migrateOldData();
+    if (localStorage.getItem('zoutty_initial_sync_pending') === 'true') {
+      const { hasLocalPending, hasCloudData } = await syncEngine.checkInitialSyncConflicts(session.user.id);
+      if (hasLocalPending && hasCloudData) {
+        setShowSyncConflict(true);
+      } else {
+        finishInitialSync();
+      }
+    } else {
+      syncEngine.syncAll();
+    }
+  }, []);
+
+  const finishInitialSync = useCallback(() => {
+    localStorage.removeItem('zoutty_initial_sync_pending');
+    setIsInitialSync(false);
+    setShowSyncConflict(false);
+    syncEngine.syncAll();
+  }, []);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -616,17 +648,16 @@ export default function App() {
     e.target.value = '';
   };
 
-  const executeImportBackup = async (file: File) => {
-    setShowRestoreConfirm(false);
+  const executeImportBackup = async (file: File, merge: boolean) => {
     setRestoreBackupFile(null);
     showSpinner('Restoring database...');
     try {
       const text = await file.text();
       const backup = JSON.parse(text);
-      if (session?.user) {
+      if (!merge && session?.user) {
         await syncEngine.wipeCloudData(session.user.id);
       }
-      await db.importDatabase(backup);
+      await db.importDatabase(backup, { merge });
       showToast(t('toast.restoreSuccess'));
       sessionStorage.setItem('zoutty_show_restore_animation', 'true');
       setTimeout(() => {
@@ -1344,7 +1375,28 @@ export default function App() {
 
   const handleProcessEntry = async (entryId: string) => {
     const entry = audioEntries[entryId];
-    if (!entry || !entry.audioBlob) return;
+    if (!entry) return;
+
+    let blobToProcess = entry.audioBlob;
+    if (!blobToProcess && entry.audio_storage_path) {
+      showSpinner('Downloading audio for transcription...');
+      try {
+        const { data, error } = await supabase.storage.from('audios').download(entry.audio_storage_path);
+        if (error) throw error;
+        blobToProcess = data;
+        // Save it back to IndexedDB so we don't have to download it again
+        const updatedEntry = { ...entry, audioBlob: blobToProcess };
+        await db.saveAudioEntry(updatedEntry);
+        setAudioEntries(prev => ({ ...prev, [entryId]: updatedEntry }));
+      } catch (e) {
+        console.error("Failed to download audio blob:", e);
+        showToast("Failed to download audio for transcription", true);
+        hideSpinner();
+        return;
+      }
+    }
+
+    if (!blobToProcess) return;
 
     try {
       setProcessingIds(prev => new Set(prev).add(entryId));
@@ -1359,7 +1411,7 @@ export default function App() {
 
       // Call MCP Skill
       const result: any = await callZoukAudioProcessor({
-        audio: entry.audioBlob,
+        audio: blobToProcess,
         language: entry.language,
         sessionId: entry.sessionId,
         filename: entry.filename,
@@ -1370,6 +1422,7 @@ export default function App() {
       // Update entry with result
       const finalizedEntry: any = {
         ...entry,
+        audioBlob: blobToProcess,
         ...result
       };
 
@@ -1600,11 +1653,57 @@ export default function App() {
     return <Spinner text="Connecting to cloud..." />;
   }
 
-  if (!session) {
-    return <AuthScreen onSuccess={() => {}} />;
+  if (!session && !isGuestMode) {
+    return <AuthScreen onSuccess={() => setIsGuestMode(true)} />;
   }
 
   if (isInitialSync) {
+    if (showSyncConflict) {
+      return (
+        <div className="fixed inset-0 bg-zinc-950 flex flex-col items-center justify-center p-6 z-[200] text-zinc-100 font-sans">
+          <div className="bg-zinc-900 border border-zinc-800 p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 rounded-2xl shadow-2xl">
+            <h3 className="text-xl font-bold flex items-center gap-2 text-white">
+              <CloudUpload className="w-6 h-6 text-orange-500" />
+              {t('modals.syncConflictTitle')}
+            </h3>
+            <p className="text-zinc-400 text-sm leading-relaxed">
+              {t('modals.syncConflictMsg')}
+            </p>
+            <div className="flex flex-col gap-3 mt-6">
+              <button onClick={() => finishInitialSync()} className="w-full px-5 py-3.5 rounded-xl font-bold bg-orange-500 hover:bg-orange-400 transition-colors text-zinc-950 text-sm">{t('modals.syncMergeBtn')}</button>
+              <button onClick={async () => {
+                setSpinnerText('Replacing cloud data...');
+                if (session?.user) {
+                  await syncEngine.wipeCloudData(session.user.id);
+                  // Force all local items to be pending sync so they get pushed back to the cloud
+                  const idb = await dbStart();
+                  const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
+                  for (const table of tables) {
+                    const tx = idb.transaction(table, 'readwrite');
+                    const store = tx.objectStore(table);
+                    const req = store.getAll();
+                    req.onsuccess = () => {
+                      for (const item of (req.result as any[])) {
+                        item.pending_sync = true;
+                        store.put(item);
+                      }
+                    };
+                  }
+                }
+                setSpinnerText(null);
+                finishInitialSync();
+              }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-zinc-700 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncReplaceCloudBtn')}</button>
+              <button onClick={async () => {
+                setSpinnerText('Clearing local data...');
+                await db.clearDatabase();
+                setSpinnerText(null);
+                finishInitialSync();
+              }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncUseCloudBtn')}</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return <Spinner text={t('sync.title')} />;
   }
 
@@ -1889,16 +1988,30 @@ export default function App() {
                 <p className="text-xs text-white/60 leading-relaxed text-orange-300/80">
                   {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
                 </p>
-                <button
-                  onClick={() => {
-                    setShowLogoutConfirm(true);
-                    setShowAppSettings(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
-                >
-                  <LogOut className="w-4 h-4" />
-                  {t('modals.logoutBtn')}
-                </button>
+                {isGuestMode ? (
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('zoutty_guest_mode');
+                      setIsGuestMode(false);
+                      setShowAppSettings(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                    {t('appSettings.signInBtn')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShowLogoutConfirm(true);
+                      setShowAppSettings(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    {t('modals.logoutBtn')}
+                  </button>
+                )}
               </div>
 
               {/* Reset Section */}
@@ -1982,16 +2095,15 @@ export default function App() {
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
             <h3 className="text-xl font-bold flex items-center gap-2 text-white">
               <Upload className="w-6 h-6 text-brand" />
-              {t('modals.confirmRestore')}
+              {t('modals.restoreDbTitle')}
             </h3>
             <p className="text-white/70 text-sm leading-relaxed">
-              {t('modals.restoreMsg', { filename: restoreBackupFile.name })}
-              <br /><br />
-              {t('modals.restoreWarningMsg')}
+              {t('modals.restoreDbMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
               <button onClick={() => setRestoreBackupFile(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
-              <button onClick={() => executeImportBackup(restoreBackupFile)} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">{t('modals.restoreBtn')}</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile, true)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors shadow-lg text-white min-h-[44px] text-sm">{t('modals.restoreMergeBtn')}</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile, false)} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">{t('modals.restoreReplaceBtn')}</button>
             </div>
           </div>
         </div>

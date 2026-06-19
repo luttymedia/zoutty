@@ -28,7 +28,8 @@ const en = {
     toggleToLogin: 'Already have an account? Sign in',
     successTitle: 'Account Created!',
     successMsg: 'Welcome to Zoutty Cloud. Your data will now automatically sync across your devices in the background.',
-    getStartedBtn: 'Get Started'
+    getStartedBtn: 'Get Started',
+    continueGuest: 'Continue as Guest'
   },
   sync: {
     title: 'Working our Zoutty magic...',
@@ -83,7 +84,7 @@ const en = {
     accountSection: 'Account',
     logoutDesc: 'Log out of Zoutty Cloud.',
     logoutWarning: 'This will clear your local data on this device so the next user starts fresh.',
-
+    signInBtn: 'Sign In / Sign Up',
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -113,7 +114,18 @@ const en = {
     logoutMsg: 'Are you sure you want to log out?',
     logoutWarningMsg: 'All local data on this device will be cleared so the next user starts fresh. Your data is safely backed up in the cloud.',
     logoutBtn: 'Log Out',
+    restoreDbTitle: 'Restore Database',
+    restoreDbMsg: 'Do you want to completely replace your current database with this backup, or merge the backup into your existing data?',
+    restoreReplaceBtn: 'Replace',
+    restoreMergeBtn: 'Merge',
     
+    // Sync conflict
+    syncConflictTitle: 'Sync Conflict',
+    syncConflictMsg: 'We found unsynced data on this device, but your cloud account already has data. How would you like to handle this?',
+    syncMergeBtn: 'Merge Data (Keep Both)',
+    syncUseCloudBtn: 'Use Cloud Data (Discard Local)',
+    syncReplaceCloudBtn: 'Replace Cloud (Discard Cloud)',
+
     // Delete (session or audio)
     confirmDeletion: 'Confirm Deletion',
     deleteSessionMsg: 'Are you sure you want to delete the session: {title}?',

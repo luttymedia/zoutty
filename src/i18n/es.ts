@@ -30,7 +30,8 @@ const es: Translations = {
     toggleToLogin: '¿Ya tienes cuenta? Inicia sesión',
     successTitle: '¡Cuenta Creada!',
     successMsg: 'Bienvenido a Zoutty Cloud. Tus datos se sincronizarán automáticamente en segundo plano.',
-    getStartedBtn: 'Empezar'
+    getStartedBtn: 'Empezar',
+    continueGuest: 'Continuar como Invitado'
   },
   sync: {
     title: 'Haciendo la magia de Zoutty...',
@@ -85,7 +86,7 @@ const es: Translations = {
     accountSection: 'Cuenta',
     logoutDesc: 'Cerrar sesión de Zoutty Cloud.',
     logoutWarning: 'Esto borrará tus datos locales en este dispositivo para que el siguiente usuario comience desde cero.',
-
+    signInBtn: 'Iniciar Sesión / Registrarse',
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -115,6 +116,17 @@ const es: Translations = {
     logoutMsg: '¿Estás seguro de que quieres cerrar sesión?',
     logoutWarningMsg: 'Se borrarán todos los datos locales de este dispositivo para que el próximo usuario empiece desde cero. Tus datos están a salvo en la nube.',
     logoutBtn: 'Cerrar Sesión',
+    restoreDbTitle: 'Restaurar Base de Datos',
+    restoreDbMsg: '¿Quieres reemplazar completamente tu base de datos actual con esta copia, o fusionarla con tus datos existentes?',
+    restoreReplaceBtn: 'Reemplazar',
+    restoreMergeBtn: 'Fusionar',
+    
+    // Sync conflict
+    syncConflictTitle: 'Conflicto de Sincronización',
+    syncConflictMsg: 'Hemos encontrado datos no sincronizados en este dispositivo, pero tu cuenta en la nube ya tiene datos. ¿Cómo quieres proceder?',
+    syncMergeBtn: 'Fusionar Datos (Mantener Ambos)',
+    syncUseCloudBtn: 'Usar Datos de la Nube (Descartar Local)',
+    syncReplaceCloudBtn: 'Reemplazar Nube (Descartar Nube)',
 
     // Delete (session or audio)
     confirmDeletion: 'Confirmar eliminación',
