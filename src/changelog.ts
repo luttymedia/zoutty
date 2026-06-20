@@ -6,6 +6,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.2.9',
+    date: '2026-06-20',
+    changes: [
+      'Reordered the Settings drawer sections for better logical grouping',
+      'Improved the "Backup & Restore" UI layout, allowing the backup and restore options to collapse independently',
+      'Fixed a bug where logging out did not properly clear local data. The application now awaits the local database clearing process and immediately refreshes the page to ensure a completely fresh state',
+      'Replaced the "Backup & Restore" header icon with a dedicated Database icon',
+      'Extracted hardcoded UI strings in the "Development & Testing" section to English and Spanish translation files for full localization coverage'
+    ]
+  },
+  {
     version: '2.2.8',
     date: '2026-06-20',
     changes: [

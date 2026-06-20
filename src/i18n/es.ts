@@ -90,6 +90,10 @@ const es: Translations = {
     guestUser: 'Usuario Invitado',
     authenticatedAccount: 'Cuenta Autenticada',
     localSandboxMode: 'Modo Local',
+    // Dev & Testing
+    devSection: 'Desarrollo y Pruebas',
+    devDesc: 'Activa el flujo de bienvenida o reinyecta la sesión de demostración simulada para realizar pruebas.',
+    devTestOnboardingBtn: 'Probar Flujo de Bienvenida',
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────

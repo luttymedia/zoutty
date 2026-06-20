@@ -88,6 +88,10 @@ const en = {
     guestUser: 'Guest User',
     authenticatedAccount: 'Authenticated Account',
     localSandboxMode: 'Local Sandbox Mode',
+    // Dev & Testing
+    devSection: 'Development & Testing',
+    devDesc: 'Trigger onboarding flow or re-inject the mock demo session for testing purposes.',
+    devTestOnboardingBtn: 'Test Onboarding Flow',
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────

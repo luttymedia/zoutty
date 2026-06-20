@@ -38,7 +38,8 @@ import {
   CloudDownload,
   Search,
   LogOut,
-  ArrowRight
+  ArrowRight,
+  Database
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -1913,75 +1914,6 @@ export default function App() {
                 />
               </div>
 
-
-
-              {/* Backup & Restore (local) — SECONDARY */}
-              <AppSettingsCollapsible
-                label={t('appSettings.backupRestoreSection')}
-                icon={<Download className="w-4 h-4 text-brand" />}
-              >
-                {/* Backup Section */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider flex items-center gap-2">
-                    <Download className="w-3.5 h-3.5 text-brand" />
-                    {t('appSettings.backupSection')}
-                  </h4>
-                  <p className="text-xs text-white/60 leading-relaxed">
-                    {t('appSettings.backupDesc')}
-                  </p>
-                  <button
-                    onClick={handleExportBackup}
-                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-brand/40 transition-all text-xs font-bold shadow-sm"
-                  >
-                    <Download className="w-4 h-4 text-brand" />
-                    {t('appSettings.exportBackupBtn')}
-                  </button>
-                </div>
-
-                {/* Restore Section */}
-                <div className="space-y-3 pt-4 border-t border-white/5 mt-4">
-                  <h4 className="text-xs font-bold text-white/40 uppercase tracking-wider flex items-center gap-2">
-                    <Upload className="w-3.5 h-3.5 text-brand" />
-                    {t('appSettings.restoreSection')}
-                  </h4>
-                  <p className="text-xs text-white/60 leading-relaxed text-red-300/80">
-                    {t('appSettings.restoreDesc')} <strong>{t('appSettings.restoreWarning')}</strong>
-                  </p>
-                  <label className="cursor-pointer w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 text-white hover:border-brand/45 transition-all text-xs font-bold shadow-sm">
-                    <Upload className="w-4 h-4 text-brand" />
-                    <span>{t('appSettings.importBackupBtn')}</span>
-                    <input
-                      type="file"
-                      accept=".json"
-                      className="hidden"
-                      onChange={handleImportBackup}
-                    />
-                  </label>
-                </div>
-              </AppSettingsCollapsible>
-
-              {/* Dev & Testing Section */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Wand2 className="w-4 h-4 text-brand" />
-                  Development & Testing
-                </h4>
-                <p className="text-xs text-white/60 leading-relaxed">
-                  Trigger onboarding flow or re-inject the mock demo session for testing purposes.
-                </p>
-                <button
-                  onClick={() => {
-                    setShowAppSettings(false);
-                    localStorage.removeItem('zoutty_onboarding_completed');
-                    setHasCompletedOnboarding(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-brand/20 bg-brand/5 text-brand hover:bg-brand/10 hover:text-white transition-all text-xs font-bold shadow-sm"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Test Onboarding Flow
-                </button>
-              </div>
-
               {/* Account / Logout Section */}
               <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
@@ -2030,6 +1962,55 @@ export default function App() {
                 )}
               </div>
 
+              {/* Backup & Restore (local) — SECONDARY */}
+              <div className="space-y-3 border-t border-white/5 pt-6">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <Database className="w-4 h-4 text-brand" />
+                  {t('appSettings.backupRestoreSection')}
+                </h4>
+
+                {/* Backup Section Collapsible */}
+                <AppSettingsCollapsible
+                  label={t('appSettings.backupSection')}
+                  icon={<Download className="w-4 h-4 text-brand" />}
+                >
+                  <div className="space-y-3">
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      {t('appSettings.backupDesc')}
+                    </p>
+                    <button
+                      onClick={handleExportBackup}
+                      className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-brand/40 transition-all text-xs font-bold shadow-sm"
+                    >
+                      <Download className="w-4 h-4 text-brand" />
+                      {t('appSettings.exportBackupBtn')}
+                    </button>
+                  </div>
+                </AppSettingsCollapsible>
+
+                {/* Restore Section Collapsible */}
+                <AppSettingsCollapsible
+                  label={t('appSettings.restoreSection')}
+                  icon={<Upload className="w-4 h-4 text-brand" />}
+                >
+                  <div className="space-y-3">
+                    <p className="text-xs text-white/60 leading-relaxed text-red-300/80">
+                      {t('appSettings.restoreDesc')} <strong>{t('appSettings.restoreWarning')}</strong>
+                    </p>
+                    <label className="cursor-pointer w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 text-white hover:border-brand/45 transition-all text-xs font-bold shadow-sm">
+                      <Upload className="w-4 h-4 text-brand" />
+                      <span>{t('appSettings.importBackupBtn')}</span>
+                      <input
+                        type="file"
+                        accept=".json"
+                        className="hidden"
+                        onChange={handleImportBackup}
+                      />
+                    </label>
+                  </div>
+                </AppSettingsCollapsible>
+              </div>
+
               {/* Reset Section */}
               <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
@@ -2045,6 +2026,28 @@ export default function App() {
                 >
                   <Trash2 className="w-4 h-4" />
                   {t('appSettings.resetBtn')}
+                </button>
+              </div>
+
+              {/* Dev & Testing Section */}
+              <div className="space-y-3 border-t border-white/5 pt-6">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <Wand2 className="w-4 h-4 text-brand" />
+                  {t('appSettings.devSection')}
+                </h4>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  {t('appSettings.devDesc')}
+                </p>
+                <button
+                  onClick={() => {
+                    setShowAppSettings(false);
+                    localStorage.removeItem('zoutty_onboarding_completed');
+                    setHasCompletedOnboarding(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-brand/20 bg-brand/5 text-brand hover:bg-brand/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {t('appSettings.devTestOnboardingBtn')}
                 </button>
               </div>
             </div>
@@ -2165,13 +2168,17 @@ export default function App() {
                   try {
                     const idb = await dbStart();
                     const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
-                    for (const table of tables) {
-                      const tx = idb.transaction(table, 'readwrite');
-                      tx.objectStore(table).clear();
-                    }
+                    await new Promise<void>((resolve, reject) => {
+                      const tx = idb.transaction(tables, 'readwrite');
+                      tx.oncomplete = () => resolve();
+                      tx.onerror = () => reject(tx.error);
+                      for (const table of tables) {
+                        tx.objectStore(table).clear();
+                      }
+                    });
                     localStorage.removeItem('zoutty_migrated_to_supabase');
                     await supabase.auth.signOut();
-                    setShowLogoutConfirm(false);
+                    window.location.reload();
                   } catch (e) {
                     console.error('Logout error', e);
                   }
