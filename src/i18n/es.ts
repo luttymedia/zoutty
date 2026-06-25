@@ -314,6 +314,12 @@ const es: Translations = {
     galleryFailedRemove: 'Error al eliminar el archivo.',
   },
 
+  offline: {
+    bannerTitle: 'Estás desconectado',
+    bannerDesc: 'Las transcripciones y copias de seguridad están en pausa hasta que te reconectes.',
+    dismiss: 'Entendido',
+  },
+
   // ─── Toast Messages ──────────────────────────────────────────────────────────
   storageFull: {
     bannerTitle: 'Funcionando desde la nube',

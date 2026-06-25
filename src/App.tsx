@@ -263,10 +263,19 @@ export default function App() {
     const handleStorageFull = () => setIsStorageFull(true);
     const handleStorageFullClear = () => setIsStorageFull(false);
     const handleBothFailed = () => setShowBothFailed(true);
+    
+    const handleOffline = () => {
+      setIsOffline(true);
+      setOfflineBannerDismissed(false);
+    };
+    const handleOnline = () => setIsOffline(false);
+
     window.addEventListener('zoutty-db-write', handleDbWrite);
     window.addEventListener('zoutty-storage-full', handleStorageFull);
     window.addEventListener('zoutty-storage-full-clear', handleStorageFullClear);
     window.addEventListener('zoutty-both-failed', handleBothFailed);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
 
     return () => {
       subscription.unsubscribe();
@@ -274,6 +283,8 @@ export default function App() {
       window.removeEventListener('zoutty-storage-full', handleStorageFull);
       window.removeEventListener('zoutty-storage-full-clear', handleStorageFullClear);
       window.removeEventListener('zoutty-both-failed', handleBothFailed);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 
@@ -300,7 +311,9 @@ export default function App() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isStorageFull, setIsStorageFull] = useState(false);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const [storageBannerDismissed, setStorageBannerDismissed] = useState(false);
+  const [offlineBannerDismissed, setOfflineBannerDismissed] = useState(false);
   const [showBothFailed, setShowBothFailed] = useState(false);
   const [isInitialSync, setIsInitialSync] = useState(() => localStorage.getItem('zoutty_initial_sync_pending') === 'true');
   const [showSyncConflict, setShowSyncConflict] = useState(false);
@@ -1769,22 +1782,41 @@ export default function App() {
       {spinnerText && <Spinner text={spinnerText} />}
       {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.actionText ? toastMessage.onAction : undefined} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
 
-      {/* Storage Full Banner */}
-      {isStorageFull && !storageBannerDismissed && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-start gap-3 px-4 py-3 bg-amber-500/20 border-b border-amber-400/30 backdrop-blur-md animate-in slide-in-from-top duration-300">
-          <span className="text-amber-300 text-lg leading-none mt-0.5">☁️</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-amber-200 text-sm font-semibold leading-snug">{t('storageFull.bannerTitle')}</p>
-            <p className="text-amber-200/70 text-xs mt-0.5 leading-snug">{t('storageFull.bannerDesc')}</p>
+      <div className="sticky top-0 z-40 w-full flex flex-col">
+        {/* Offline Banner */}
+        {isOffline && !offlineBannerDismissed && (
+          <div className="flex items-start gap-3 px-4 py-3 bg-zinc-800/90 border-b border-zinc-600/50 backdrop-blur-md animate-in slide-in-from-top duration-300">
+            <span className="text-zinc-300 text-lg leading-none mt-0.5">📡</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-zinc-100 text-sm font-semibold leading-snug">{t('offline.bannerTitle')}</p>
+              <p className="text-zinc-300/80 text-xs mt-0.5 leading-snug">{t('offline.bannerDesc')}</p>
+            </div>
+            <button
+              onClick={() => setOfflineBannerDismissed(true)}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-zinc-700/50 hover:bg-zinc-600/50 text-zinc-300 text-xs font-bold transition-colors min-h-[36px]"
+            >
+              {t('offline.dismiss')}
+            </button>
           </div>
-          <button
-            onClick={() => setStorageBannerDismissed(true)}
-            className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 text-xs font-bold transition-colors min-h-[36px]"
-          >
-            {t('storageFull.dismiss')}
-          </button>
-        </div>
-      )}
+        )}
+
+        {/* Storage Full Banner */}
+        {isStorageFull && !storageBannerDismissed && (
+          <div className="flex items-start gap-3 px-4 py-3 bg-amber-500/20 border-b border-amber-400/30 backdrop-blur-md animate-in slide-in-from-top duration-300">
+            <span className="text-amber-300 text-lg leading-none mt-0.5">☁️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-amber-200 text-sm font-semibold leading-snug">{t('storageFull.bannerTitle')}</p>
+              <p className="text-amber-200/70 text-xs mt-0.5 leading-snug">{t('storageFull.bannerDesc')}</p>
+            </div>
+            <button
+              onClick={() => setStorageBannerDismissed(true)}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 text-xs font-bold transition-colors min-h-[36px]"
+            >
+              {t('storageFull.dismiss')}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Both Failed Modal */}
       {showBothFailed && (

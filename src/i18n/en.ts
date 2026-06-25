@@ -312,6 +312,12 @@ const en = {
     galleryFailedRemove: 'Failed to remove media.',
   },
 
+  offline: {
+    bannerTitle: 'You are offline',
+    bannerDesc: 'Transcriptions and cloud backups are paused until you reconnect.',
+    dismiss: 'Got it',
+  },
+
   // ─── Toast Messages ──────────────────────────────────────────────────────────
   storageFull: {
     bannerTitle: 'Running on cloud',
