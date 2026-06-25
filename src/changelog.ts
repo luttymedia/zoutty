@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.3.0',
+    date: '2026-06-25',
+    changes: [
+      'Implemented a cloud-first storage fallback system that saves data directly to Supabase when the device storage is full',
+      'Added a "Running on cloud" banner to alert users when their local storage is exhausted',
+      'Ensured app data is fetched automatically from the cloud on startup if the local database was unable to save',
+      'Added fallback handling and a warning modal for cases where both local storage is full and the device is offline'
+    ]
+  },
+  {
     version: '2.2.9',
     date: '2026-06-20',
     changes: [
