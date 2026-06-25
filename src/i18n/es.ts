@@ -315,10 +315,20 @@ const es: Translations = {
   },
 
   // ─── Toast Messages ──────────────────────────────────────────────────────────
+  storageFull: {
+    bannerTitle: 'Funcionando desde la nube',
+    bannerDesc: "El almacenamiento de tu teléfono está lleno, así que estamos guardando tus sesiones directamente en la nube. ¡Todo está bien! Libera algo de espacio cuando puedas.",
+    dismiss: 'Entendido',
+    bothFailedTitle: 'Uy, nos quedamos sin salida 😬',
+    bothFailed: "Tu teléfono no tiene almacenamiento y estás sin conexión, así que no pudimos guardar esto. Conéctate a Wi-Fi o libera espacio — cualquiera de las dos funciona. ¡Tus datos estarán seguros!",
+    bothFailedBtn: 'Entendido',
+    cloudSaveFailed: 'No se pudo guardar: sin almacenamiento ni conexión. Inténtalo cuando estés en línea.',
+  },
+
   toast: {
     failedLoadData: 'Error al cargar los datos de la app',
-    failedSaveAudio: 'Error al guardar audio. El almacenamiento podría estar lleno.',
-    failedSaveSession: 'Error al guardar sesión. El almacenamiento podría estar lleno.',
+    failedSaveAudio: 'Error al guardar audio.',
+    failedSaveSession: 'Error al guardar sesión.',
     failedRetrieveShared: 'Error al recuperar los detalles de la sesión compartida',
     backupDownloaded: '¡Copia de seguridad descargada correctamente!',
     failedBackup: 'Error al crear la copia de seguridad',

@@ -1,4 +1,5 @@
 import { Session, AudioEntry, FinalReport, SessionGroup, DanceGlossary, SessionMedia } from '../types';
+import { supabase } from './supabase';
 
 const DB_NAME = 'ZouttyAppDB';
 const DB_VERSION = 4; // v4: added sessionMedia store
@@ -14,6 +15,133 @@ const base64ToBlob = (dataUrl: string): Blob => {
   }
   return new Blob([u8arr], { type: mime });
 };
+
+// ─── Storage Full Detection ─────────────────────────────────────────────────
+
+/** Set to true for the lifetime of this app session when a QuotaExceededError is caught. */
+export let isStorageFull = false;
+
+const isQuotaError = (err: unknown): boolean => {
+  if (!err) return false;
+  const e = err as DOMException;
+  return (
+    e.name === 'QuotaExceededError' ||
+    e.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    e.code === 22
+  );
+};
+
+// ─── Store → Supabase table name map ────────────────────────────────────────
+const STORE_TO_TABLE: Record<string, string> = {
+  sessions: 'sessions',
+  audios: 'audios',
+  finalReports: 'finalreports',
+  sessionGroups: 'sessiongroups',
+  glossaries: 'glossaries',
+  sessionMedia: 'sessionmedia',
+};
+
+// ─── Cloud Fallback Write ────────────────────────────────────────────────────
+
+/**
+ * Writes a record directly to Supabase, bypassing IndexedDB.
+ * Called automatically when a QuotaExceededError is detected.
+ * Binary blobs are uploaded to the appropriate Storage bucket.
+ * Throws if the user is not authenticated (guest mode).
+ */
+const cloudFallbackWrite = async (storeName: string, data: any): Promise<void> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    throw new Error('BOTH_FAILED: Not authenticated and local storage is full.');
+  }
+  const userId = session.user.id;
+  const tableName = STORE_TO_TABLE[storeName];
+  if (!tableName) throw new Error(`Unknown store: ${storeName}`);
+
+  // Strip binary fields — they cannot go into the DB row directly
+  const { audioBlob, blob, fileHandle, pending_sync, ...dbData } = data;
+
+  // Upload audio blob to Storage if present
+  if (storeName === 'audios' && audioBlob) {
+    const storagePath = `${userId}/${data.sessionId}/${data.id}.webm`;
+    const { error } = await supabase.storage.from('audios').upload(storagePath, audioBlob, { upsert: true });
+    if (error) {
+      console.error('[CloudFallback] Failed to upload audio blob:', error);
+    } else {
+      dbData.audio_storage_path = storagePath;
+    }
+  }
+
+  // Upload media blob to Storage if present
+  if (storeName === 'sessionMedia' && (blob || fileHandle)) {
+    let mediaBlob = blob;
+    if (!mediaBlob && fileHandle) {
+      try {
+        const perm = await fileHandle.queryPermission({ mode: 'read' });
+        if (perm === 'granted') mediaBlob = await fileHandle.getFile();
+      } catch (e) {
+        console.error('[CloudFallback] Failed to read fileHandle:', e);
+      }
+    }
+    if (mediaBlob) {
+      const extMatch = data.filename?.match(/\.([^.]+)$/);
+      const ext = extMatch ? `.${extMatch[1]}` : '';
+      const storagePath = `${userId}/${data.sessionId}/${data.id}${ext}`;
+      const { error } = await supabase.storage.from('sessionMedia').upload(storagePath, mediaBlob, { upsert: true });
+      if (error) {
+        console.error('[CloudFallback] Failed to upload media blob:', error);
+      } else {
+        dbData.media_storage_path = storagePath;
+      }
+    }
+  }
+
+  // Don't sync system glossaries to the cloud
+  if (storeName === 'glossaries' && data.isSystem) return;
+
+  const payload = { ...dbData, user_id: userId, updated_at: new Date().toISOString() };
+  const { error } = await supabase.from(tableName).upsert(payload);
+  if (error) throw new Error(`Cloud fallback write failed for ${tableName}: ${error.message}`);
+};
+
+// ─── Cloud Read Fallback (for app startup when local DB is empty) ─────────────
+
+/**
+ * Reads all data directly from Supabase and returns it in the same shape
+ * as the local DB helpers. Data is kept in-memory only — no IndexedDB write.
+ */
+export const readFromCloud = async (userId: string): Promise<{
+  sessions: Session[];
+  audios: AudioEntry[];
+  groups: SessionGroup[];
+  glossaries: DanceGlossary[];
+  finalReports: FinalReport[];
+  media: SessionMedia[];
+}> => {
+  const strip = (items: any[]) =>
+    items.map(({ user_id, updated_at, ...rest }) => ({ ...rest, pending_sync: false }));
+
+  const fetchTable = async (table: string) => {
+    // Note: The 'deleted' column is a boolean that defaults to false, NOT null.
+    // We cannot use .is('deleted', null). We fetch all for user and filter out deleted ones locally or using .eq('deleted', false).
+    // Some older tables might not have 'deleted' explicitly set, so doing it via JS filter is safest.
+    const { data, error } = await supabase.from(table).select('*').eq('user_id', userId);
+    if (error) { console.error(`[CloudRead] Failed to fetch ${table}:`, error); return []; }
+    return strip(data ?? []).filter((i: any) => !i.deleted);
+  };
+
+  const [sessions, audios, groups, glossaries, finalReports, media] = await Promise.all([
+    fetchTable('sessions'),
+    fetchTable('audios'),
+    fetchTable('sessiongroups'),
+    fetchTable('glossaries'),
+    fetchTable('finalreports'),
+    fetchTable('sessionmedia'),
+  ]);
+
+  return { sessions, audios, groups, glossaries, finalReports, media };
+};
+
 
 export const dbStart = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -64,8 +192,40 @@ const writeToDb = async <T extends { pending_sync?: boolean; deleted?: boolean }
       resolve();
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('zoutty-db-write'));
     };
-    transaction.onerror = () => reject(transaction.error || new Error('Database write failed'));
-    transaction.onabort = () => reject(transaction.error || new Error('Database write aborted'));
+
+    // Guard against double-firing: IndexedDB fires both onerror AND onabort
+    // when a transaction fails. Without this, handleError runs twice.
+    let handled = false;
+    const handleError = async (err: unknown) => {
+      if (handled) return;
+      handled = true;
+
+      if (isQuotaError(err) || isQuotaError(transaction.error)) {
+        // ── Storage is full: fall back to direct cloud write ──
+        try {
+          await cloudFallbackWrite(storeName, data);
+          // Cloud write succeeded — only NOW do we know storage is full but cloud is OK
+          if (!isStorageFull) {
+            isStorageFull = true;
+            if (typeof window !== 'undefined') window.dispatchEvent(new Event('zoutty-storage-full'));
+          }
+          resolve(); // Caller is unaware anything unusual happened
+        } catch (cloudErr) {
+          // Both local AND cloud failed (offline + full)
+          if (isStorageFull) {
+            isStorageFull = false;
+            if (typeof window !== 'undefined') window.dispatchEvent(new Event('zoutty-storage-full-clear'));
+          }
+          if (typeof window !== 'undefined') window.dispatchEvent(new Event('zoutty-both-failed'));
+          reject(cloudErr);
+        }
+      } else {
+        reject(transaction.error || new Error('Database write failed'));
+      }
+    };
+
+    transaction.onerror = () => handleError(transaction.error);
+    transaction.onabort = () => handleError(transaction.error);
 
     store.put(dataToSave);
   });

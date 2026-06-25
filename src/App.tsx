@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
-import { db } from './lib/db';
+import { db, readFromCloud } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
 import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia } from './types';
 import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
@@ -260,11 +260,20 @@ export default function App() {
         syncEngine.scheduleSync();
       }
     };
+    const handleStorageFull = () => setIsStorageFull(true);
+    const handleStorageFullClear = () => setIsStorageFull(false);
+    const handleBothFailed = () => setShowBothFailed(true);
     window.addEventListener('zoutty-db-write', handleDbWrite);
+    window.addEventListener('zoutty-storage-full', handleStorageFull);
+    window.addEventListener('zoutty-storage-full-clear', handleStorageFullClear);
+    window.addEventListener('zoutty-both-failed', handleBothFailed);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('zoutty-db-write', handleDbWrite);
+      window.removeEventListener('zoutty-storage-full', handleStorageFull);
+      window.removeEventListener('zoutty-storage-full-clear', handleStorageFullClear);
+      window.removeEventListener('zoutty-both-failed', handleBothFailed);
     };
   }, []);
 
@@ -290,6 +299,9 @@ export default function App() {
   const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isStorageFull, setIsStorageFull] = useState(false);
+  const [storageBannerDismissed, setStorageBannerDismissed] = useState(false);
+  const [showBothFailed, setShowBothFailed] = useState(false);
   const [isInitialSync, setIsInitialSync] = useState(() => localStorage.getItem('zoutty_initial_sync_pending') === 'true');
   const [showSyncConflict, setShowSyncConflict] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(() => localStorage.getItem('zoutty_guest_mode') === 'true');
@@ -582,10 +594,37 @@ export default function App() {
           }
         }
 
-        const loadedSessions = await db.getSessions();
-        const loadedAudios = await db.getAudioEntries();
-        const loadedGroups = await db.getGroups();
-        const loadedGlossaries = await db.getGlossaries();
+        let loadedSessions = await db.getSessions();
+        let loadedAudios = await db.getAudioEntries();
+        let loadedGroups = await db.getGroups();
+        let loadedGlossaries = await db.getGlossaries();
+
+        // ── Cloud read fallback: if local DB is empty and user is signed in, read from Supabase ──
+        // This covers the "app restart while storage is still full" scenario.
+        // We call getSession() directly here because the React `session` state may still
+        // be null at mount time (auth resolves asynchronously).
+        if (loadedSessions.length === 0) {
+          try {
+            const { data: { session: authSession } } = await supabase.auth.getSession();
+            if (authSession?.user) {
+              console.log('[LoadData] Local DB empty — attempting cloud read fallback...');
+              const cloudData = await readFromCloud(authSession.user.id);
+              if (cloudData.sessions.length > 0) {
+                console.log('[LoadData] Cloud read fallback succeeded.');
+                // Do NOT set isStorageFull here — we don’t know if storage is actually full.
+                // The banner only appears when a write fails with QuotaExceededError.
+                loadedSessions = cloudData.sessions;
+                loadedAudios = cloudData.audios;
+                loadedGroups = cloudData.groups;
+                // Merge cloud user glossaries with local system ones
+                const cloudUserGlossaries = cloudData.glossaries.filter((g: any) => !g.isSystem);
+                loadedGlossaries = [...loadedGlossaries.filter(g => g.isSystem), ...cloudUserGlossaries];
+              }
+            }
+          } catch (cloudErr) {
+            console.error('[LoadData] Cloud read fallback also failed:', cloudErr);
+          }
+        }
 
         // Sort sessions by date descending
         loadedSessions.sort((a, b) => b.date - a.date);
@@ -1729,6 +1768,40 @@ export default function App() {
       )}
       {spinnerText && <Spinner text={spinnerText} />}
       {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.actionText ? toastMessage.onAction : undefined} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
+
+      {/* Storage Full Banner */}
+      {isStorageFull && !storageBannerDismissed && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-start gap-3 px-4 py-3 bg-amber-500/20 border-b border-amber-400/30 backdrop-blur-md animate-in slide-in-from-top duration-300">
+          <span className="text-amber-300 text-lg leading-none mt-0.5">☁️</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-amber-200 text-sm font-semibold leading-snug">{t('storageFull.bannerTitle')}</p>
+            <p className="text-amber-200/70 text-xs mt-0.5 leading-snug">{t('storageFull.bannerDesc')}</p>
+          </div>
+          <button
+            onClick={() => setStorageBannerDismissed(true)}
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 text-xs font-bold transition-colors min-h-[36px]"
+          >
+            {t('storageFull.dismiss')}
+          </button>
+        </div>
+      )}
+
+      {/* Both Failed Modal */}
+      {showBothFailed && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[70] p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-5 animate-in zoom-in-95">
+            <div className="text-4xl text-center">😬</div>
+            <h3 className="text-xl font-bold text-center">{t('storageFull.bothFailedTitle')}</h3>
+            <p className="text-white/70 text-sm text-center leading-relaxed">{t('storageFull.bothFailed')}</p>
+            <button
+              onClick={() => setShowBothFailed(false)}
+              className="w-full py-3 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors text-white"
+            >
+              {t('storageFull.bothFailedBtn')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Delete Modal */}
 

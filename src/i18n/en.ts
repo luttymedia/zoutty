@@ -313,10 +313,20 @@ const en = {
   },
 
   // ─── Toast Messages ──────────────────────────────────────────────────────────
+  storageFull: {
+    bannerTitle: 'Running on cloud',
+    bannerDesc: "Your phone's storage is full, so we're saving your sessions straight to the cloud. You're all good — just free up some space when you get a chance!",
+    dismiss: 'Got it',
+    bothFailedTitle: 'Uh oh, we hit a wall 😬',
+    bothFailed: "Your phone is out of storage and you're offline, so we couldn't save this one. Connect to Wi-Fi or free up some space — either works. Your data will be safe!",
+    bothFailedBtn: 'Got it',
+    cloudSaveFailed: 'Save failed — no storage space and no connection. Try again when you\'re online.',
+  },
+
   toast: {
     failedLoadData: 'Failed to load app data',
-    failedSaveAudio: 'Error saving audio. Device storage may be full.',
-    failedSaveSession: 'Error saving session. Device storage may be full.',
+    failedSaveAudio: 'Error saving audio.',
+    failedSaveSession: 'Error saving session.',
     failedRetrieveShared: 'Failed to retrieve shared session details',
     backupDownloaded: 'Backup downloaded successfully!',
     failedBackup: 'Failed to create backup',
