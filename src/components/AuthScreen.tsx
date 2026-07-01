@@ -233,7 +233,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
                   localStorage.setItem('zoutty_guest_mode', 'true');
                   onSuccess();
                 }}
-                className="px-5 py-3 rounded-xl font-bold bg-zinc-800 hover:bg-zinc-700 transition-colors text-white text-sm"
+                className="px-5 py-3 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors text-bg-dark text-sm shadow-lg shadow-brand/20"
               >
                 {t('auth.guestConfirmProceed')}
               </button>
