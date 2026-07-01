@@ -66,7 +66,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
     return (
       <div className="fixed inset-0 bg-zinc-950 flex flex-col items-center justify-center p-6 z-[100] text-zinc-100 font-sans">
         <div className="w-full max-w-sm flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="w-20 h-20 bg-orange-500/20 text-orange-500 rounded-full flex items-center justify-center mb-6">
+          <div className="w-20 h-20 bg-brand/20 text-brand rounded-full flex items-center justify-center mb-6">
             <CheckCircle2 className="w-10 h-10" />
           </div>
           <h2 className="text-3xl font-bold tracking-tight mb-3">{t('auth.successTitle')}</h2>
@@ -75,7 +75,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           </p>
           <button
             onClick={onSuccess}
-            className="w-full bg-orange-500 hover:bg-orange-400 text-zinc-950 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
+            className="w-full bg-brand hover:bg-brand/90 text-bg-dark font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
           >
             {t('auth.getStartedBtn')}
             <ArrowRight className="w-5 h-5" />
@@ -96,7 +96,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
             onClick={() => setUILanguage(code as any)}
             className={`px-[14px] py-[6px] text-[12px] font-bold rounded-full tracking-[0.05em] transition-all duration-300 ${
               uiLanguage === code 
-                ? 'bg-orange-500 text-zinc-950 shadow-[0_2px_8px_rgba(249,115,22,0.3)]' 
+                ? 'bg-brand text-bg-dark shadow-[0_2px_8px_rgba(45,212,191,0.3)]' 
                 : 'text-white/50 hover:text-white/80 hover:bg-white/5'
             }`}
           >
@@ -132,7 +132,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
                 placeholder={t('auth.emailPlaceholder')}
               />
             </div>
@@ -147,7 +147,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-12 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-12 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
                 placeholder={t('auth.passwordPlaceholder')}
               />
               <button
@@ -163,7 +163,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-orange-500 hover:bg-orange-400 text-zinc-950 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
+            className="w-full bg-brand hover:bg-brand/90 text-bg-dark font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
               <>
