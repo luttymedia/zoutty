@@ -30,8 +30,12 @@ const es: Translations = {
     toggleToLogin: '¿Ya tienes cuenta? Inicia sesión',
     successTitle: '¡Cuenta Creada!',
     successMsg: 'Bienvenido a Zoutty Cloud. Tus datos se sincronizarán automáticamente en segundo plano.',
-    getStartedBtn: 'Empezar',
-    continueGuest: 'Continuar como Invitado'
+    getStartedBtn: 'Comenzar',
+    continueGuest: 'Continuar como Invitado',
+    guestConfirmTitle: '¿Estás seguro?',
+    guestConfirmMsg: 'Tus datos solo se guardarán localmente en este dispositivo. Por seguridad y copia en la nube, te recomendamos crear una cuenta.',
+    guestConfirmCancel: 'Cancelar',
+    guestConfirmProceed: 'Continuar de todos modos'
   },
   sync: {
     title: 'Haciendo la magia de Zoutty...',

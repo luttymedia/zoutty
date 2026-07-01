@@ -29,7 +29,11 @@ const en = {
     successTitle: 'Account Created!',
     successMsg: 'Welcome to Zoutty Cloud. Your data will now automatically sync across your devices in the background.',
     getStartedBtn: 'Get Started',
-    continueGuest: 'Continue as Guest'
+    continueGuest: 'Continue as Guest',
+    guestConfirmTitle: 'Are you sure?',
+    guestConfirmMsg: 'Your data will only be saved locally on this device. For safety and cloud backup, we recommend creating an account.',
+    guestConfirmCancel: 'Cancel',
+    guestConfirmProceed: 'Continue anyway'
   },
   sync: {
     title: 'Working our Zoutty magic...',

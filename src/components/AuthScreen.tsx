@@ -18,6 +18,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSignupSuccess, setShowSignupSuccess] = useState(false);
+  const [showGuestConfirm, setShowGuestConfirm] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,15 +207,40 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
 
         <button
           type="button"
-          onClick={() => {
-            localStorage.setItem('zoutty_guest_mode', 'true');
-            onSuccess();
-          }}
+          onClick={() => setShowGuestConfirm(true)}
           className="w-full mt-4 text-zinc-500 hover:text-zinc-300 text-xs font-medium transition-colors uppercase tracking-wider"
         >
           {t('auth.continueGuest')}
         </button>
       </div>
+
+      {showGuestConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-[110] animate-in fade-in duration-200">
+          <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-300">
+            <h3 className="text-xl font-bold mb-3">{t('auth.guestConfirmTitle')}</h3>
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+              {t('auth.guestConfirmMsg')}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowGuestConfirm(false)}
+                className="px-5 py-3 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-white text-sm"
+              >
+                {t('auth.guestConfirmCancel')}
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('zoutty_guest_mode', 'true');
+                  onSuccess();
+                }}
+                className="px-5 py-3 rounded-xl font-bold bg-zinc-800 hover:bg-zinc-700 transition-colors text-white text-sm"
+              >
+                {t('auth.guestConfirmProceed')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
