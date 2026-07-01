@@ -6,7 +6,7 @@ import type { Translations } from './en';
 const es: Translations = {
   // ─── App Header ─────────────────────────────────────────────────────────────
   appName: 'Zoutty',
-  appSubtitle: 'Notas de Clase',
+  appSubtitle: 'Asistente de Clases Privadas',
   installApp: 'Instalar App',
   goToHome: 'Ir a Inicio',
 
@@ -32,8 +32,8 @@ const es: Translations = {
     successMsg: 'Bienvenido a Zoutty Cloud. Tus datos se sincronizarán automáticamente en segundo plano.',
     getStartedBtn: 'Comenzar',
     continueGuest: 'Continuar como Invitado',
-    guestConfirmTitle: '¿Estás seguro?',
-    guestConfirmMsg: 'Tus datos solo se guardarán localmente en este dispositivo. Por seguridad y copia en la nube, te recomendamos crear una cuenta.',
+    guestConfirmTitle: '¡Solo un aviso!',
+    guestConfirmMsg: 'Si continúas como invitado, tus clases solo se guardarán en este dispositivo. ¡Si pierdes tu teléfono o borras los datos del navegador, perderás todo! Te recomendamos mucho iniciar sesión o crear una cuenta gratuita para que tus datos estén seguros en la nube.',
     guestConfirmCancel: 'Cancelar',
     guestConfirmProceed: 'Continuar de todos modos'
   },

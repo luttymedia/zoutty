@@ -4,7 +4,7 @@
 const en = {
   // ─── App Header ─────────────────────────────────────────────────────────────
   appName: 'Zoutty',
-  appSubtitle: 'Session Notes',
+  appSubtitle: 'Private Lesson Companion',
   installApp: 'Install App',
   goToHome: 'Go to Home',
 
@@ -30,8 +30,8 @@ const en = {
     successMsg: 'Welcome to Zoutty Cloud. Your data will now automatically sync across your devices in the background.',
     getStartedBtn: 'Get Started',
     continueGuest: 'Continue as Guest',
-    guestConfirmTitle: 'Are you sure?',
-    guestConfirmMsg: 'Your data will only be saved locally on this device. For safety and cloud backup, we recommend creating an account.',
+    guestConfirmTitle: 'Just a heads up!',
+    guestConfirmMsg: "If you continue as a guest, your classes will only be saved on this specific device. If you lose your phone or clear your browser data, you'll lose everything! We highly recommend signing in or creating a free account so your data is safely backed up to the cloud.",
     guestConfirmCancel: 'Cancel',
     guestConfirmProceed: 'Continue anyway'
   },

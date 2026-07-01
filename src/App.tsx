@@ -2906,7 +2906,7 @@ export default function App() {
       )}
 
       {/* Top Bar */}
-      <header className="max-w-2xl mx-auto w-full px-6 py-8 flex items-center justify-between">
+      <header className="max-w-2xl mx-auto w-full px-5 py-7 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {(view === 'detail' || (view === 'list' && selectedGroupId !== null)) && (
             <button
@@ -2929,7 +2929,7 @@ export default function App() {
             <h1 className="text-lg uppercase tracking-[0.2em] text-brand font-bold leading-none">
               {t('appName')}
             </h1>
-            <p className="text-xs font-bold tracking-tight text-white/90 mt-1 leading-none">
+            <p className="text-[10px] font-semibold tracking-[0.04em] text-white/50 mt-1 leading-none">
               {t('appSubtitle')}
             </p>
           </div>

@@ -2,7 +2,6 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -446,95 +445,6 @@ Return ONLY a valid JSON array matching this schema:
     catch (error) {
         console.error('[/api/gemini/generate-glossary] Glossary generation failed:', error);
         return res.status(500).json({ error: 'Failed to generate glossary', details: error.message });
-    }
-});
-// Sharing endpoints
-const SHARE_DIR = path.resolve(__dirname, '../shared');
-// Ensure shared directory exists
-if (!fs.existsSync(SHARE_DIR)) {
-    fs.mkdirSync(SHARE_DIR, { recursive: true });
-}
-// Cleanup shared files older than 30 days every hour
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-setInterval(() => {
-    try {
-        if (!fs.existsSync(SHARE_DIR))
-            return;
-        const now = Date.now();
-        const files = fs.readdirSync(SHARE_DIR);
-        for (const file of files) {
-            if (!file.endsWith('.json'))
-                continue;
-            const filePath = path.join(SHARE_DIR, file);
-            const stats = fs.statSync(filePath);
-            if (now - stats.mtimeMs > THIRTY_DAYS_MS) {
-                fs.unlinkSync(filePath);
-                console.log(`[server] Deleted expired shared session: ${file}`);
-            }
-        }
-    }
-    catch (e) {
-        console.error('[server] TTL cleanup failed:', e);
-    }
-}, 60 * 60 * 1000); // 1 hour
-app.post('/api/share', (req, res) => {
-    try {
-        const contentLength = req.get('content-length');
-        if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) {
-            return res.status(413).json({ error: 'Payload too large. Maximum size is 2MB.' });
-        }
-        const body = req.body;
-        const sessionData = body.sessionData || body;
-        let shareId = body.shareId;
-        if (!sessionData || !sessionData.title) {
-            return res.status(400).json({ error: 'Invalid shared session data' });
-        }
-        // Validate or generate shareId
-        if (shareId) {
-            if (typeof shareId !== 'string' || !/^[a-zA-Z0-9]{6}$/.test(shareId)) {
-                return res.status(400).json({ error: 'Invalid share ID format' });
-            }
-            shareId = shareId.toUpperCase();
-        }
-        else {
-            // Generate a random 6-character alphanumeric short code
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            shareId = '';
-            for (let i = 0; i < 6; i++) {
-                shareId += characters.charAt(Math.floor(Math.random() * characters.length));
-            }
-        }
-        const filePath = path.join(SHARE_DIR, `${shareId}.json`);
-        fs.writeFileSync(filePath, JSON.stringify(sessionData, null, 2), 'utf-8');
-        console.log(`[server] Session shared successfully with ID: ${shareId}`);
-        res.json({ shareId });
-    }
-    catch (e) {
-        console.error('Sharing failed:', e);
-        res.status(500).json({ error: 'Failed to share session', details: e.message });
-    }
-});
-app.get('/api/share/:shareId', (req, res) => {
-    try {
-        let { shareId } = req.params;
-        if (shareId) {
-            shareId = shareId.toUpperCase();
-        }
-        const filePath = path.join(SHARE_DIR, `${shareId}.json`);
-        // Basic path traversal prevention
-        const resolvedPath = path.resolve(filePath);
-        if (!resolvedPath.startsWith(path.resolve(SHARE_DIR))) {
-            return res.status(400).json({ error: 'Invalid share ID' });
-        }
-        if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ error: 'Shared session not found' });
-        }
-        const data = fs.readFileSync(filePath, 'utf-8');
-        res.json(JSON.parse(data));
-    }
-    catch (e) {
-        console.error('Retrieving shared session failed:', e);
-        res.status(500).json({ error: 'Failed to retrieve shared session', details: e.message });
     }
 });
 // Serve frontend assets (Development mode)
