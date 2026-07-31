@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '2.3.1',
+    date: '2026-07-31',
+    changes: [
+      'Added an abort/cancel feature to the loading screen ("Working our Zoutty magic...") for both audio consolidation and transcription operations'
+    ]
+  },
+  {
     version: '2.3.0',
     date: '2026-06-25',
     changes: [
