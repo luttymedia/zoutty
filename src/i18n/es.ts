@@ -368,6 +368,7 @@ const es: Translations = {
     consolidating: 'Haciendo la magia de Zoutty...',
     consolidated: '¡Sesión consolidada!',
     consolidationFailed: 'Error al consolidar',
+    consolidationCancelled: 'Consolidación cancelada',
     noAudioData: 'No se encontraron datos de audio para la sesión actual',
     generatingDoc: 'Generando documento...',
     docExported: '¡Documento exportado correctamente!',
@@ -376,6 +377,7 @@ const es: Translations = {
     processing: 'Pasando la clase a limpio...',
     processed: '¡[{filename}] procesado!',
     processingFailed: '[{filename}] no se pudo procesar',
+    processingCancelled: 'Procesamiento cancelado',
     audioProcessed: '¡Audio procesado!',
     audioProcessingFailed: 'Error al procesar',
     aiDetectedStyle: '[IA] Estilo detectado: "{style}". Glosario cambiado a "{glossary}".',
@@ -509,6 +511,9 @@ const es: Translations = {
     resultsCount_multiSession_oneFolder: '{sessionCount} sesiones, 1 carpeta',
     resultsCount_multiSession_multiFolder: '{sessionCount} sesiones, {folderCount} carpetas',
     clearSearch: 'Limpiar Búsqueda',
+  },
+  common: {
+    cancel: 'Cancelar',
   },
 };
 

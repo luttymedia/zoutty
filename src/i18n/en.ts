@@ -366,6 +366,7 @@ const en = {
     consolidating: 'Working our Zoutty magic...',
     consolidated: 'Session consolidated!',
     consolidationFailed: 'Consolidation failed',
+    consolidationCancelled: 'Consolidation cancelled',
     noAudioData: 'No audio data found for current session',
     generatingDoc: 'Generating document...',
     docExported: 'Document exported successfully!',
@@ -374,6 +375,7 @@ const en = {
     processing: 'Turning speech into steps...',
     processed: '[{filename}] processed!',
     processingFailed: '[{filename}] failed to process',
+    processingCancelled: 'Processing cancelled',
     audioProcessed: 'Audio processed!',
     audioProcessingFailed: 'Processing failed',
     aiDetectedStyle: '[AI] Detected style "{style}". Switched glossary to "{glossary}".',
@@ -507,6 +509,9 @@ const en = {
     resultsCount_multiSession_oneFolder: '{sessionCount} sessions, 1 folder',
     resultsCount_multiSession_multiFolder: '{sessionCount} sessions, {folderCount} folders',
     clearSearch: 'Clear Search',
+  },
+  common: {
+    cancel: 'Cancel',
   },
 };
 

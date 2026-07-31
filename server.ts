@@ -523,6 +523,9 @@ if (process.env.NODE_ENV !== 'production') {
 // Fallback route: in production, all non-API routes return dist/index.html
 if (process.env.NODE_ENV === 'production') {
     app.get('*', (req, res) => {
+        if (req.path.startsWith('/src/') || req.path.endsWith('.tsx') || req.path.endsWith('.ts')) {
+            return res.status(404).type('text/plain').send('Not found');
+        }
         res.sendFile(path.join(__dirname, '../dist/index.html'));
     });
 }

@@ -21,8 +21,14 @@ export const callZoukAudioProcessor = async (payload: {
     filename?: string;
     glossary?: any[];
     danceStyle?: string;
+    signal?: AbortSignal;
 }) => {
     const base64Audio = await blobToBase64(payload.audio);
+    if (payload.signal?.aborted) {
+        const err = new Error('Aborted');
+        err.name = 'AbortError';
+        throw err;
+    }
     const mimeType = payload.audio.type || 'audio/webm';
     console.log('[mcp] MIME type:', mimeType);
     console.log('[mcp] Base64 length:', base64Audio.length);
@@ -41,7 +47,8 @@ export const callZoukAudioProcessor = async (payload: {
             mimeType,
             glossary: payload.glossary,
             danceStyle: payload.danceStyle
-        })
+        }),
+        signal: payload.signal
     });
 
     if (!response.ok) {

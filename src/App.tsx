@@ -157,12 +157,23 @@ function Toast({ message, isError, actionText, onAction, onClose, duration = 500
   );
 }
 
-function Spinner({ text }: { text: string }) {
+function Spinner({ text, onCancel }: { text: string; onCancel?: () => void }) {
+  const { t } = useTranslation();
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] text-white font-sans">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] text-white font-sans animate-in fade-in duration-200">
       <div className="flex flex-col items-center gap-6">
         <LoaderIcon className="w-[60px] h-auto overflow-visible" />
         <span className="loader-text">{text}</span>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="mt-2 px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 border border-white/20 text-sm font-medium text-white/90 transition-all duration-200 shadow-sm flex items-center gap-2 backdrop-blur-md cursor-pointer"
+          >
+            <X className="w-4 h-4 text-white/70" />
+            <span>{t('common.cancel')}</span>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -300,7 +311,7 @@ export default function App() {
   const [sessionMedia, setSessionMedia] = useState<SessionMedia[]>([]);
 
   const [toastMessage, setToastMessage] = useState<{ text: string, isError: boolean, actionText?: string, onAction?: () => void, duration?: number } | null>(null);
-  const [spinnerText, setSpinnerText] = useState<string | null>(null);
+  const [spinnerConfig, setSpinnerConfig] = useState<{ text: string; onCancel?: () => void } | null>(null);
   const [logoAnimationType, setLogoAnimationType] = useState<'onboarding' | 'restore' | null>(null);
 
   const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
@@ -671,8 +682,8 @@ export default function App() {
   }, []);
 
   const showToast = (text: string, isError = false, actionText?: string, onAction?: () => void, duration?: number) => setToastMessage({ text, isError, actionText, onAction, duration });
-  const showSpinner = (text: string) => setSpinnerText(text);
-  const hideSpinner = () => setSpinnerText(null);
+  const showSpinner = (text: string, onCancel?: () => void) => setSpinnerConfig({ text, onCancel });
+  const hideSpinner = () => setSpinnerConfig(null);
 
   const handleExportBackup = async () => {
     showSpinner('Creating backup...');
@@ -1433,18 +1444,36 @@ export default function App() {
     const entry = audioEntries[entryId];
     if (!entry) return;
 
+    const controller = new AbortController();
+
+    const handleCancel = () => {
+      controller.abort();
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(entryId);
+        return next;
+      });
+      hideSpinner();
+      showToast(t('toast.processingCancelled'));
+    };
+
     let blobToProcess = entry.audioBlob;
     if (!blobToProcess && entry.audio_storage_path) {
-      showSpinner('Downloading audio for transcription...');
+      showSpinner('Downloading audio for transcription...', handleCancel);
       try {
         const { data, error } = await supabase.storage.from('audios').download(entry.audio_storage_path);
         if (error) throw error;
+        if (controller.signal.aborted) return;
         blobToProcess = data;
         // Save it back to IndexedDB so we don't have to download it again
         const updatedEntry = { ...entry, audioBlob: blobToProcess };
         await db.saveAudioEntry(updatedEntry);
         setAudioEntries(prev => ({ ...prev, [entryId]: updatedEntry }));
-      } catch (e) {
+      } catch (e: any) {
+        if (e.name === 'AbortError' || controller.signal.aborted) {
+          console.log('Download aborted by user');
+          return;
+        }
         console.error("Failed to download audio blob:", e);
         showToast("Failed to download audio for transcription", true);
         hideSpinner();
@@ -1456,7 +1485,7 @@ export default function App() {
 
     try {
       setProcessingIds(prev => new Set(prev).add(entryId));
-      showSpinner(t('toast.processing', { filename: entry.filename || 'audio' }));
+      showSpinner(t('toast.processing', { filename: entry.filename || 'audio' }), handleCancel);
 
       const isOther = selectedSession?.glossaryId === 'other';
       const activeGlossary = !isOther && (glossaries.find(g => g.id === selectedSession?.glossaryId) || glossaries.find(g => g.id === 'zouk'));
@@ -1472,8 +1501,11 @@ export default function App() {
         sessionId: entry.sessionId,
         filename: entry.filename,
         glossary,
-        danceStyle
+        danceStyle,
+        signal: controller.signal
       });
+
+      if (controller.signal.aborted) return;
 
       // Update entry with result
       const finalizedEntry: any = {
@@ -1484,6 +1516,7 @@ export default function App() {
 
       console.log('[handleProcessEntry] Finalized entry structure - hasStrictSummary:', !!(finalizedEntry as any).strictSummary, '| hasTranscript:', !!(finalizedEntry as any).transcript);
       await db.saveAudioEntry(finalizedEntry);
+      if (controller.signal.aborted) return;
       setAudioEntries(prev => ({ ...prev, [entryId]: finalizedEntry }));
 
       if (result.detectedStyle && selectedSession && selectedSession.glossaryId === 'auto') {
@@ -1497,7 +1530,11 @@ export default function App() {
       } else {
         showToast(entry.filename ? t('toast.processed', { filename: entry.filename }) : t('toast.audioProcessed'));
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError' || controller.signal.aborted) {
+        console.log('Processing aborted by user');
+        return;
+      }
       console.error('Processing failed:', error);
       showToast(entry.filename ? t('toast.processingFailed', { filename: entry.filename }) : t('toast.audioProcessingFailed'), true);
     } finally {
@@ -1525,9 +1562,19 @@ export default function App() {
 
   const handleConsolidate = async () => {
     if (!selectedSession) return;
-    showSpinner(t('toast.consolidating'));
+
+    const controller = new AbortController();
+
+    const handleCancel = () => {
+      controller.abort();
+      hideSpinner();
+      showToast(t('toast.consolidationCancelled'));
+    };
+
+    showSpinner(t('toast.consolidating'), handleCancel);
     try {
       const sessionAudios = await db.getSessionAudios(selectedSession.id);
+      if (controller.signal.aborted) return;
 
       if (sessionAudios.length === 0) {
         showToast(t('toast.noAudioData'), true);
@@ -1553,6 +1600,8 @@ export default function App() {
         })
       );
 
+      if (controller.signal.aborted) return;
+
       const isOther = selectedSession.glossaryId === 'other';
       const activeGlossary = !isOther && (glossaries.find(g => g.id === selectedSession.glossaryId) || glossaries.find(g => g.id === 'zouk'));
       const danceStyle = selectedSession.glossaryId === 'auto'
@@ -1570,7 +1619,8 @@ export default function App() {
           danceStyle,
           availableGlossaries: glossaries,
           appLanguage: uiLanguage
-        })
+        }),
+        signal: controller.signal
       });
 
       if (!response.ok) {
@@ -1578,6 +1628,8 @@ export default function App() {
       }
 
       const { report: reportResult, newTranscripts, detectedStyle } = await response.json();
+      if (controller.signal.aborted) return;
+
       console.log('[handleConsolidate] API response:', {
         hasReport: !!reportResult,
         newTranscriptsCount: newTranscripts ? Object.keys(newTranscripts).length : 0,
@@ -1595,6 +1647,8 @@ export default function App() {
           }
         }
       }
+
+      if (controller.signal.aborted) return;
 
       await db.saveFinalReport({
         id: crypto.randomUUID(),
@@ -1625,7 +1679,11 @@ export default function App() {
       } else {
         showToast(t('toast.consolidated'));
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError' || controller.signal.aborted) {
+        console.log('Consolidation aborted by user');
+        return;
+      }
       console.error('Consolidation failed:', error);
       showToast(t('toast.consolidationFailed'), true);
     } finally {
@@ -1728,7 +1786,7 @@ export default function App() {
             <div className="flex flex-col gap-3 mt-6">
               <button onClick={() => finishInitialSync()} className="w-full px-5 py-3.5 rounded-xl font-bold bg-orange-500 hover:bg-orange-400 transition-colors text-zinc-950 text-sm">{t('modals.syncMergeBtn')}</button>
               <button onClick={async () => {
-                setSpinnerText('Replacing cloud data...');
+                showSpinner('Replacing cloud data...');
                 if (session?.user) {
                   await syncEngine.wipeCloudData(session.user.id);
                   // Force all local items to be pending sync so they get pushed back to the cloud
@@ -1746,13 +1804,13 @@ export default function App() {
                     };
                   }
                 }
-                setSpinnerText(null);
+                hideSpinner();
                 finishInitialSync();
               }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-zinc-700 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncReplaceCloudBtn')}</button>
               <button onClick={async () => {
-                setSpinnerText('Clearing local data...');
+                showSpinner('Clearing local data...');
                 await db.clearDatabase();
-                setSpinnerText(null);
+                hideSpinner();
                 finishInitialSync();
               }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncUseCloudBtn')}</button>
             </div>
@@ -1779,7 +1837,7 @@ export default function App() {
       {logoAnimationType && (
         <LogoAnimation onComplete={handleLogoAnimationComplete} />
       )}
-      {spinnerText && <Spinner text={spinnerText} />}
+      {spinnerConfig && <Spinner text={spinnerConfig.text} onCancel={spinnerConfig.onCancel} />}
       {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.actionText ? toastMessage.onAction : undefined} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
 
       <div className="sticky top-0 z-40 w-full flex flex-col">
