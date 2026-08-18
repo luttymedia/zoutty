@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { checkGatekeeper, recordUsageIncrement } from './server/gatekeeper.js';
+import { createCheckoutSession, createPortalSession } from './server/stripe.js';
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
@@ -545,6 +546,64 @@ Return ONLY a valid JSON array matching this schema:
         return res.status(500).json({ error: 'Failed to generate glossary', details: error.message });
     }
 });
+// Stripe Create Checkout Session Route
+app.post('/api/stripe/create-checkout-session', async (req, res) => {
+    try {
+        console.log('[/api/stripe/create-checkout-session] Request received');
+        const { targetTier, referralCode, successUrl, cancelUrl } = req.body;
+        const authHeader = req.headers.authorization;
+        const devOverride = req.headers['x-dev-override'] || (req.body.devState ? JSON.stringify(req.body.devState) : undefined);
+        if (!targetTier || (targetTier !== 'student' && targetTier !== 'teacher')) {
+            return res.status(400).json({ error: 'Invalid targetTier: "student" or "teacher" is required.' });
+        }
+        const host = req.get('host') || 'localhost:8181';
+        const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+        const baseUrl = `${protocol}://${host}`;
+        const result = await createCheckoutSession({
+            targetTier,
+            referralCode,
+            successUrl,
+            cancelUrl,
+            baseUrl,
+            authHeader,
+            devOverride,
+        });
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/create-checkout-session] Error:', error);
+        const statusCode = error?.statusCode || 500;
+        return res.status(statusCode).json({
+            error: error?.error || error?.message || 'Failed to create checkout session',
+            details: error?.details || String(error),
+        });
+    }
+});
+// Stripe Create Customer Portal Session Route
+app.post('/api/stripe/create-portal-session', async (req, res) => {
+    try {
+        console.log('[/api/stripe/create-portal-session] Request received');
+        const { returnUrl } = req.body;
+        const authHeader = req.headers.authorization;
+        const host = req.get('host') || 'localhost:8181';
+        const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+        const baseUrl = `${protocol}://${host}`;
+        const result = await createPortalSession({
+            authHeader,
+            baseUrl,
+            returnUrl,
+        });
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/create-portal-session] Error:', error);
+        const statusCode = error?.statusCode || 500;
+        return res.status(statusCode).json({
+            error: error?.error || error?.message || 'Failed to create billing portal session',
+            details: error?.details || String(error),
+        });
+    }
+});
 // Serve frontend assets (Development mode)
 if (process.env.NODE_ENV !== 'production') {
     console.log('[server] Mounting Vite dev middleware...');
@@ -561,6 +620,7 @@ if (process.env.NODE_ENV === 'production') {
         if (req.path.startsWith('/src/') || req.path.endsWith('.tsx') || req.path.endsWith('.ts')) {
             return res.status(404).type('text/plain').send('Not found');
         }
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.sendFile(path.join(__dirname, '../dist/index.html'));
     });
 }

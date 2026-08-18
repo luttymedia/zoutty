@@ -42,13 +42,14 @@ import {
   Database,
   FlaskConical,
   Bot,
-  Gift
+  Gift,
+  ShieldCheck
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
 import { db, readFromCloud } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
-import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia, TIER_LIMITS } from './types';
+import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia, TIER_LIMITS, UserTier } from './types';
 import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
 import { DevState, getDevState, saveDevState } from './lib/devLab';
 import { TestLabModal } from './components/TestLabModal';
@@ -57,7 +58,10 @@ import { AudioDurationExceededModal } from './components/AudioDurationExceededMo
 import { RecordingAutoStoppedModal } from './components/RecordingAutoStoppedModal';
 import { PricingModal } from './components/PricingModal';
 import { ReferralModal } from './components/ReferralModal';
+import { SubscriptionSuccessModal } from './components/SubscriptionSuccessModal';
+import { ManageSubscriptionModal } from './components/ManageSubscriptionModal';
 import { getMediaDuration } from './lib/audioDuration';
+import { openStripeCustomerPortal, startStripeCheckout } from './lib/stripe';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
@@ -310,6 +314,11 @@ export default function App() {
   const [showAutoStoppedModal, setShowAutoStoppedModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
+  const [showSubscriptionSuccessModal, setShowSubscriptionSuccessModal] = useState<{ isOpen: boolean; tier: UserTier }>({ isOpen: false, tier: 'student' });
+  const [showManageSubscriptionModal, setShowManageSubscriptionModal] = useState(false);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [showGlossaryModal, setShowGlossaryModal] = useState(false);
+  const [editingGlossary, setEditingGlossary] = useState<DanceGlossary | null>(null);
   const [userReferralCode, setUserReferralCode] = useState(() => localStorage.getItem('zoutty_referral_code') || 'ZOU-DANCE');
   const [devState, setDevState] = useState<DevState>(() => getDevState());
   const [showAppSettings, setShowAppSettings] = useState(false);
@@ -319,8 +328,37 @@ export default function App() {
       setDevState(e.detail || getDevState());
     };
     window.addEventListener('zoutty-dev-state-changed', handleDevChange);
+
+    // Handle Stripe checkout return params
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('checkout_success') === 'true') {
+        const rawTier = urlParams.get('tier') || '';
+        // If Stripe appended duplicate query strings (e.g. "student/?checkout_success..."),
+        // use .includes() to safely extract the correct tier.
+        const targetTier: 'student' | 'teacher' = rawTier.includes('teacher') ? 'teacher' : 'student';
+        const updated = saveDevState({
+          tier: targetTier,
+          subscription_status: 'active',
+          period_sessions: 0,
+          period_clips: 0,
+        });
+        setDevState(updated);
+        setShowSubscriptionSuccessModal({ isOpen: true, tier: targetTier });
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (urlParams.get('checkout_canceled') === 'true') {
+        showToast(t('billing.plans.checkoutCanceledToast'), false, undefined, undefined, undefined, 'warning');
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (urlParams.get('portal_simulated') === 'true') {
+        showToast(t('billing.plans.portalSimulated'));
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch (e) {
+      console.warn('[Stripe] Query param parsing error:', e);
+    }
+
     return () => window.removeEventListener('zoutty-dev-state-changed', handleDevChange);
-  }, []);
+  }, [t]);
   const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -2204,11 +2242,24 @@ export default function App() {
 
               {/* Plan & AI Quota Section */}
               {(() => {
+                const currentTier: UserTier = (devState.tier === 'student' || devState.tier === 'teacher') ? devState.tier : 'free';
+                const isFree = currentTier === 'free';
+                const isStudent = currentTier === 'student';
+                const isTeacher = currentTier === 'teacher';
+
                 const isBoost = Boolean(devState.referral_boost_active && devState.referral_boost_expires_at && new Date(devState.referral_boost_expires_at).getTime() > Date.now());
-                const maxSessions = devState.tier === 'free' ? (TIER_LIMITS.free.lifetime_sessions + (isBoost ? devState.referral_boost_extra_sessions || TIER_LIMITS.referral_boost.extra_sessions : 0)) : devState.tier === 'student' ? TIER_LIMITS.student.monthly_sessions : TIER_LIMITS.teacher.monthly_sessions;
-                const currentSessions = devState.tier === 'free' ? devState.lifetime_sessions : devState.period_sessions;
-                const maxClips = devState.tier === 'free' ? (TIER_LIMITS.free.lifetime_clips + (isBoost ? devState.referral_boost_extra_clips || TIER_LIMITS.referral_boost.extra_clips : 0)) : devState.tier === 'student' ? TIER_LIMITS.student.monthly_clips : Infinity;
-                const currentClips = devState.tier === 'free' ? devState.lifetime_clips : devState.period_clips;
+                const maxSessions = isFree
+                  ? (TIER_LIMITS.free.lifetime_sessions + (isBoost ? devState.referral_boost_extra_sessions || TIER_LIMITS.referral_boost.extra_sessions : 0))
+                  : isStudent
+                  ? TIER_LIMITS.student.monthly_sessions
+                  : TIER_LIMITS.teacher.monthly_sessions;
+                const currentSessions = isFree ? (devState.lifetime_sessions || 0) : (devState.period_sessions || 0);
+                const maxClips = isFree
+                  ? (TIER_LIMITS.free.lifetime_clips + (isBoost ? devState.referral_boost_extra_clips || TIER_LIMITS.referral_boost.extra_clips : 0))
+                  : isStudent
+                  ? TIER_LIMITS.student.monthly_clips
+                  : Infinity;
+                const currentClips = isFree ? (devState.lifetime_clips || 0) : (devState.period_clips || 0);
                 const nextResetDate = new Intl.DateTimeFormat(uiLanguage === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
 
                 return (
@@ -2219,13 +2270,13 @@ export default function App() {
                         {t('billing.usage.sectionTitle')}
                       </h4>
                       <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold uppercase ${
-                        devState.tier === 'student'
+                        isStudent
                           ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : devState.tier === 'teacher'
+                          : isTeacher
                           ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
                           : 'bg-white/10 text-white/70 border border-white/10'
                       }`}>
-                        {devState.tier === 'student' ? t('billing.plans.studentName') : devState.tier === 'teacher' ? t('billing.plans.teacherName') : t('billing.plans.freeName')}
+                        {isStudent ? t('billing.plans.studentName') : isTeacher ? t('billing.plans.teacherName') : t('billing.plans.freeName')}
                       </span>
                     </div>
 
@@ -2240,20 +2291,22 @@ export default function App() {
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-white/70 flex items-center gap-1.5">
                             <Zap className="w-3.5 h-3.5 text-brand" />
-                            <span>{devState.tier === 'free' ? t('billing.usage.lifetimeSessionsUsed', { used: currentSessions, total: maxSessions }) : t('billing.usage.monthlySessionsUsed', { used: currentSessions, total: maxSessions })}</span>
+                            <span>{isFree ? t('billing.usage.lifetimeSessionsUsed', { used: currentSessions, total: maxSessions === Infinity ? t('billing.usage.infinite') : maxSessions }) : t('billing.usage.monthlySessionsUsed', { used: currentSessions, total: maxSessions === Infinity ? t('billing.usage.infinite') : maxSessions })}</span>
                           </span>
                           <span className="font-mono font-semibold text-white/90">
-                            {Math.min(currentSessions, maxSessions)} / {maxSessions}
+                            {maxSessions === Infinity ? `${currentSessions} / ∞` : `${Math.min(currentSessions, maxSessions)} / ${maxSessions}`}
                           </span>
                         </div>
-                        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              currentSessions >= maxSessions ? 'bg-red-500' : 'bg-brand'
-                            }`}
-                            style={{ width: `${Math.min(100, Math.round((currentSessions / maxSessions) * 100))}%` }}
-                          />
-                        </div>
+                        {maxSessions !== Infinity && (
+                          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                currentSessions >= maxSessions ? 'bg-red-500' : 'bg-brand'
+                              }`}
+                              style={{ width: `${Math.min(100, Math.round((currentSessions / maxSessions) * 100))}%` }}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {/* Audio Clips Usage */}
@@ -2262,18 +2315,18 @@ export default function App() {
                           <span className="text-white/70 flex items-center gap-1.5">
                             <AudioLines className="w-3.5 h-3.5 text-brand" />
                             <span>
-                              {devState.tier === 'teacher'
+                              {isTeacher || maxClips === Infinity
                                 ? t('billing.usage.unlimitedClips')
-                                : devState.tier === 'free'
+                                : isFree
                                 ? t('billing.usage.lifetimeClipsUsed', { used: currentClips, total: maxClips })
                                 : t('billing.usage.monthlyClipsUsed', { used: currentClips, total: maxClips })}
                             </span>
                           </span>
                           <span className="font-mono font-semibold text-white/90">
-                            {devState.tier === 'teacher' ? '∞' : `${Math.min(currentClips, maxClips)} / ${maxClips}`}
+                            {maxClips === Infinity ? `${currentClips} / ∞` : `${Math.min(currentClips, maxClips)} / ${maxClips}`}
                           </span>
                         </div>
-                        {devState.tier !== 'teacher' && (
+                        {maxClips !== Infinity && (
                           <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                             <div
                               className={`h-full rounded-full transition-all duration-500 ${
@@ -2286,7 +2339,7 @@ export default function App() {
                       </div>
 
                       {/* Next Reset Date (Paid Users) */}
-                      {devState.tier !== 'free' && (
+                      {!isFree && (
                         <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-white/50">
                           <span className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 text-sky-400" />
@@ -2296,7 +2349,7 @@ export default function App() {
                       )}
 
                       {/* Active Referral Boost (Free Users) */}
-                      {devState.tier === 'free' && isBoost && (
+                      {isFree && isBoost && (
                         <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-medium flex items-center gap-1.5">
                           <Gift className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                           <span>{t('billing.usage.referralBoostActive', { sessions: devState.referral_boost_extra_sessions || 2, clips: devState.referral_boost_extra_clips || 10 })}</span>
@@ -2309,7 +2362,11 @@ export default function App() {
                       <button
                         onClick={() => {
                           setShowAppSettings(false);
-                          setShowPricingModal(true);
+                          if (devState.tier === 'free') {
+                            setShowPricingModal(true);
+                          } else {
+                            setShowManageSubscriptionModal(true);
+                          }
                         }}
                         className="flex-1 py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                       >
@@ -2431,39 +2488,103 @@ export default function App() {
                   icon={<Upload className="w-4 h-4 text-brand" />}
                 >
                   <div className="space-y-3">
-                    <p className="text-xs text-white/60 leading-relaxed text-red-300/80">
-                      {t('appSettings.restoreDesc')} <strong>{t('appSettings.restoreWarning')}</strong>
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      {t('appSettings.restoreDesc')}
                     </p>
-                    <label className="cursor-pointer w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 text-white hover:border-brand/45 transition-all text-xs font-bold shadow-sm">
+                    <label className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-brand/40 transition-all text-xs font-bold shadow-sm cursor-pointer">
                       <Upload className="w-4 h-4 text-brand" />
-                      <span>{t('appSettings.importBackupBtn')}</span>
+                      <span>{t('appSettings.restoreBackupBtn')}</span>
                       <input
                         type="file"
                         accept=".json"
                         className="hidden"
-                        onChange={handleImportBackup}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setRestoreBackupFile(file);
+                          }
+                          e.target.value = '';
+                        }}
                       />
                     </label>
                   </div>
                 </AppSettingsCollapsible>
               </div>
 
-              {/* Reset Section */}
+              {/* Data & Privacy — SECONDARY */}
               <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Trash2 className="w-4 h-4 text-red-400" />
-                  {t('appSettings.resetSection')}
+                  <ShieldCheck className="w-4 h-4 text-brand" />
+                  {t('appSettings.dataPrivacySection')}
                 </h4>
-                <p className="text-xs text-white/60 leading-relaxed text-red-300/80">
-                  {t('appSettings.resetDesc')} <strong>{t('appSettings.resetWarning')}</strong>
-                </p>
-                <button
-                  onClick={() => setShowResetConfirm(true)}
-                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+
+                {/* Reset App Data Collapsible */}
+                <AppSettingsCollapsible
+                  label={t('appSettings.resetSection')}
+                  icon={<AlertTriangle className="w-4 h-4 text-red-400" />}
                 >
-                  <Trash2 className="w-4 h-4" />
-                  {t('appSettings.resetBtn')}
-                </button>
+                  <div className="space-y-3">
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      {t('appSettings.resetDesc')}
+                    </p>
+                    <button
+                      onClick={() => setShowResetConfirm(true)}
+                      className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 transition-all text-xs font-bold shadow-sm"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                      {t('appSettings.resetAppBtn')}
+                    </button>
+                  </div>
+                </AppSettingsCollapsible>
+              </div>
+
+              {/* Custom Glossaries Section */}
+              <div className="space-y-3 border-t border-white/5 pt-6">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <BookOpen className="w-4 h-4 text-brand" />
+                  {t('appSettings.customGlossariesSection')}
+                </h4>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  {t('appSettings.customGlossariesDesc')}
+                </p>
+                <div className="space-y-2">
+                  {glossaries.map(g => (
+                    <div key={g.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
+                      <span className="text-sm font-medium text-white">{g.name}</span>
+                      <button
+                        onClick={() => {
+                          setEditingGlossary(g);
+                          setShowGlossaryModal(true);
+                        }}
+                        className="p-1.5 hover:bg-white/10 rounded-lg text-brand transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      setEditingGlossary(null);
+                      setShowGlossaryModal(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-white/20 text-xs font-bold text-white/70 hover:text-white hover:border-brand/40 transition-colors mt-2"
+                  >
+                    + {t('glossary.addTitle')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Offline Usage Guidance */}
+              <div className="space-y-3 border-t border-white/5 pt-6">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <Globe className="w-4 h-4 text-brand" />
+                  {t('appSettings.offlineGuideSection')}
+                </h4>
+                <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs text-white/70 leading-relaxed">
+                  <p>• {t('appSettings.offlineGuide1')}</p>
+                  <p>• {t('appSettings.offlineGuide2')}</p>
+                  <p>• {t('appSettings.offlineGuide3')}</p>
+                </div>
               </div>
 
               {/* Dev & Testing Section */}
@@ -2524,19 +2645,8 @@ export default function App() {
                   <Gift className="w-4 h-4 text-purple-400" />
                   {t('billing.referrals.title')}
                 </button>
-
-                <button
-                  onClick={() => {
-                    setShowAppSettings(false);
-                    localStorage.removeItem('zoutty_onboarding_completed');
-                    setHasCompletedOnboarding(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-all text-xs font-medium shadow-sm cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  {t('appSettings.devTestOnboardingBtn')}
-                </button>
               </div>
+
             </div>
 
             {/* Drawer Footer / Version Info */}
@@ -2564,17 +2674,83 @@ export default function App() {
         isOpen={showPricingModal}
         onClose={() => setShowPricingModal(false)}
         currentTier={devState.tier}
-        onSelectPlan={(targetTier) => {
+        onCheckoutSuccess={(targetTier) => {
           setShowPricingModal(false);
-          const targetPlan = targetTier === 'teacher' ? t('billing.plans.teacherName') : t('billing.plans.studentName');
-          const targetPrice = targetTier === 'teacher' ? t('billing.plans.teacherPrice') : t('billing.plans.studentPrice');
-          showToast(`${targetPlan}: ${targetPrice}`);
+          const updated = saveDevState({
+            tier: targetTier,
+            subscription_status: 'active',
+            period_sessions: 0,
+            period_clips: 0,
+          });
+          setDevState(updated);
+          setShowSubscriptionSuccessModal({ isOpen: true, tier: targetTier });
         }}
         onOpenReferrals={() => {
           setShowPricingModal(false);
           setShowReferralModal(true);
         }}
       />
+
+      {/* Subscription Activation Celebration Modal */}
+      <SubscriptionSuccessModal
+        isOpen={showSubscriptionSuccessModal.isOpen}
+        onClose={() => setShowSubscriptionSuccessModal(prev => ({ ...prev, isOpen: false }))}
+        tier={showSubscriptionSuccessModal.tier}
+      />
+
+      {/* Manage Subscription In-App Hub */}
+      {(devState.tier === 'student' || devState.tier === 'teacher') && (
+        <ManageSubscriptionModal
+          isOpen={showManageSubscriptionModal}
+          onClose={() => setShowManageSubscriptionModal(false)}
+          currentTier={devState.tier}
+          onUpgrade={async () => {
+            const result = await startStripeCheckout('teacher');
+            if (result.mock) {
+              setShowManageSubscriptionModal(false);
+              const updated = saveDevState({
+                tier: 'teacher',
+                subscription_status: 'active',
+                period_sessions: 0,
+                period_clips: 0,
+              });
+              setDevState(updated);
+              setShowSubscriptionSuccessModal({ isOpen: true, tier: 'teacher' });
+            } else if (!result.success) {
+              showToast(result.error || t('billing.plans.checkoutError'), false, undefined, undefined, undefined, 'error');
+            }
+          }}
+          onDowngrade={() => {
+            const updated = saveDevState({
+              tier: 'student',
+              subscription_status: 'active',
+            });
+            setDevState(updated);
+            showToast(t('billing.manage.downgradeSuccessToast', { plan: t('billing.plans.studentName') }), false, undefined, undefined, undefined, 'info');
+          }}
+          onCancelSubscription={() => {
+            const updated = saveDevState({
+              tier: 'free',
+              subscription_status: 'none',
+            });
+            setDevState(updated);
+            const nextMonth = new Date();
+            nextMonth.setDate(nextMonth.getDate() + 30);
+            const dateStr = nextMonth.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+            showToast(t('billing.manage.cancelSuccessToast', { date: dateStr }), false, undefined, undefined, undefined, 'info');
+          }}
+          isPortalLoading={isPortalLoading}
+          onOpenCustomerPortal={async () => {
+            setIsPortalLoading(true);
+            showToast(t('billing.plans.portalRedirecting'));
+            const portalRes = await openStripeCustomerPortal();
+            setIsPortalLoading(false);
+            if (portalRes.mock) {
+              showToast(t('billing.plans.portalSimulated'));
+            }
+          }}
+        />
+      )}
 
       {/* Quota Exceeded Interceptor Modal */}
       <QuotaExceededModal
@@ -2583,12 +2759,9 @@ export default function App() {
         tier={devState.tier}
         reason={showQuotaModal.reason}
         canBoost={!devState.referral_boost_active}
-        onUpgradeClick={(targetTier) => {
+        onUpgradeClick={() => {
           setShowQuotaModal({ isOpen: false, reason: 'sessions' });
-          setShowAppSettings(true);
-          const targetPlan = targetTier === 'teacher' ? t('billing.plans.teacherName') : t('billing.plans.studentName');
-          const targetPrice = targetTier === 'teacher' ? t('billing.plans.teacherPrice') : t('billing.plans.studentPrice');
-          showToast(`${targetPlan}: ${targetPrice}`);
+          setShowPricingModal(true);
         }}
         onReferralClick={() => {
           setShowQuotaModal({ isOpen: false, reason: 'sessions' });
