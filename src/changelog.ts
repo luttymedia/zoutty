@@ -6,6 +6,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.0.0',
+    date: '2026-08-18',
+    changes: [
+      'Slice 1 - Stripe & Pricing Foundation: Student (€2.99/mo) & Teacher (€12.99/mo) Stripe Checkout, Webhook handlers, and live Supabase profile syncing',
+      'Slice 2 - Quota & Usage Enforcement: Server gatekeeper enforcing session & clip limits, 3-minute hard audio cap modal, and Quota Exceeded Modal',
+      'Slice 3 - Subscription Management: Manage Subscription modal, upgrade/downgrade/cancel retention flows, and Stripe Customer Portal integration',
+      'Slice 4 - Offline-First Resilience: Dexie / SQLite local storage caching, network failure resilience, and offline guides',
+      'Slice 5 - Test Lab Sandbox Suite: Complete DevState simulator with 5 presets, mock Gemini toggle, and real-time counter manipulation',
+      'Slice 6 - Referral Program Ecosystem: Referral link tracking (?ref=CODE), Sign-Up invite badge, 14-day refund window, 10-day non-stackable boosts for Free tier, dynamic discount allocations (€1–€8/mo) for Paid tiers, and responsive modal styling',
+      'Slice 7 - One-Time AI Top-Up Pack: €3.99 Top-Up Pack (+10 Sessions / +100 Clips), Plan-First consumption, rollover protection across renewals, celebratory Top-Up Success modal, in-drawer action buttons, and Unlimited clips terminology'
+    ]
+  },
+  {
     version: '2.3.1',
     date: '2026-07-31',
     changes: [
