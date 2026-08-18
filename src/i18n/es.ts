@@ -37,7 +37,11 @@ const es: Translations = {
     getStartedBtn: 'Comenzar',
     continueGuest: 'Continuar como Invitado',
     guestConfirmTitle: '¡Solo un aviso!',
-    guestConfirmMsg: 'Si continúas como invitado, tus clases solo se guardarán en este dispositivo. ¡Si pierdes tu teléfono o borras los datos del navegador, perderás todo! Te recomendamos mucho iniciar sesión o crear una cuenta gratuita para que tus datos estén seguros en la nube.',
+    guestConfirmMsg: 'El Modo Invitado es un entorno local sin acceso a las funciones más potentes de Zoutty.',
+    guestConfirmList1: 'El procesamiento de IA y consolidación están bloqueados',
+    guestConfirmList2: 'Tus datos NO se guardan en la nube',
+    guestConfirmList3: 'Si pierdes tu teléfono, pierdes todos tus datos',
+    guestAILocked: 'Inicia sesión para usar funciones de IA.',
     guestConfirmCancel: 'Cancelar',
     guestConfirmProceed: 'Continuar de todos modos'
   },
@@ -74,11 +78,17 @@ const es: Translations = {
   appSettings: {
     drawerTitle: 'Ajustes de Zoutty',
     // Language section
-    languageSection: 'Idioma de la app',
-    languageSectionDesc: 'Elige el idioma de la interfaz de Zoutty.',
+    languageSection: 'Idioma de la App',
+    languageSectionDesc: 'Elige el idioma para la interfaz de Zoutty.',
+    // Guest Section
+    cloudAndAiSection: 'Funciones de IA y Nube',
+    guestCloudDesc: 'Inicia sesión o regístrate para desbloquear funciones de IA y almacenamiento en la nube.',
+    signInSignUpBtn: 'Iniciar sesión / Registrarse',
+    guestModalTitle: 'Funciones de IA Bloqueadas',
+    guestModalDesc: 'Actualmente estás en Modo Invitado. Las funciones de IA, como el procesamiento de audio y la consolidación de sesiones, requieren una cuenta gratuita. Inicia sesión o regístrate para desbloquear estas funciones y guardar tus datos de forma segura en la nube.',
     // Backup & Restore (collapsible)
-    backupRestoreSection: 'Copia de seguridad',
-    backupSection: 'Guardar base de datos',
+    backupRestoreSection: 'Copia de Seguridad y Restauración',
+    backupSection: 'Copia de Seguridad de la Base de Datos',
     backupDesc: 'Descarga una copia completa de todas tus sesiones, carpetas, glosarios y grabaciones de audio en tu dispositivo.',
     exportBackupBtn: 'Exportar copia JSON',
     restoreSection: 'Restaurar base de datos',
@@ -108,7 +118,7 @@ const es: Translations = {
     signInBtn: 'Iniciar Sesión / Registrarse',
     guestUser: 'Usuario Invitado',
     authenticatedAccount: 'Cuenta Autenticada',
-    localSandboxMode: 'Modo Local',
+    localSandboxMode: 'Solo en este dispositivo',
     // Dev & Testing
     devSection: 'Desarrollo y Pruebas',
     devDesc: 'Activa el flujo de bienvenida o reinyecta la sesión de demostración simulada para realizar pruebas.',

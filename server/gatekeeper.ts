@@ -306,7 +306,12 @@ export async function checkGatekeeper(
   }
 
   // Default: Guest or unauthenticated local usage
-  return { allowed: true, tier: 'free' };
+  return { 
+    allowed: false, 
+    statusCode: 401, 
+    code: 'UNAUTHORIZED', 
+    error: 'Authentication is required to use AI features.' 
+  };
 }
 
 /**

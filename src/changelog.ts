@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.0.1',
+    date: '2026-08-18',
+    changes: [
+      'Guest Mode enhancements: strict backend quota enforcement, new Guest AI locked modal, and non-technical terminology updates'
+    ]
+  },
+  {
     version: '3.0.0',
     date: '2026-08-18',
     changes: [

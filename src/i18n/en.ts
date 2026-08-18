@@ -35,7 +35,11 @@ const en = {
     getStartedBtn: 'Get Started',
     continueGuest: 'Continue as Guest',
     guestConfirmTitle: 'Just a heads up!',
-    guestConfirmMsg: "If you continue as a guest, your classes will only be saved on this specific device. If you lose your phone or clear your browser data, you'll lose everything! We highly recommend signing in or creating a free account so your data is safely backed up to the cloud.",
+    guestConfirmMsg: "As a guest, your classes are only saved locally on this device and you won't have access to Zoutty's best features.",
+    guestConfirmList1: 'AI Processing & Class Consolidation are locked',
+    guestConfirmList2: 'Data is NOT backed up to the cloud',
+    guestConfirmList3: 'If you lose your phone, you lose your data',
+    guestAILocked: "Sign in to use AI features.",
     guestConfirmCancel: 'Cancel',
     guestConfirmProceed: 'Continue anyway'
   },
@@ -74,6 +78,12 @@ const en = {
     // Language section
     languageSection: 'App Language',
     languageSectionDesc: 'Choose the language for the Zoutty interface.',
+    // Guest Section
+    cloudAndAiSection: 'Cloud & AI Features',
+    guestCloudDesc: 'Sign in or sign up to unlock AI features and cloud backup storage.',
+    signInSignUpBtn: 'Sign In / Sign Up',
+    guestModalTitle: 'AI Features Locked',
+    guestModalDesc: 'You are currently in Guest Mode. AI features like audio processing and session consolidation require a free account. Sign in or sign up to unlock these features and securely back up your data to the cloud.',
     // Backup & Restore (collapsible)
     backupRestoreSection: 'Backup & Restore',
     backupSection: 'Backup Database',
@@ -106,7 +116,7 @@ const en = {
     signInBtn: 'Sign In / Sign Up',
     guestUser: 'Guest User',
     authenticatedAccount: 'Authenticated Account',
-    localSandboxMode: 'Local Sandbox Mode',
+    localSandboxMode: 'Offline Device Only',
     // Dev & Testing
     devSection: 'Development & Testing',
     devDesc: 'Trigger onboarding flow or re-inject the mock demo session for testing purposes.',

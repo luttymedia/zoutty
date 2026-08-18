@@ -43,7 +43,9 @@ import {
   FlaskConical,
   Bot,
   Gift,
-  ShieldCheck
+  ShieldCheck,
+  Lock,
+  Cloud
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -341,6 +343,7 @@ export default function App() {
   });
   const [devState, setDevState] = useState<DevState>(() => getDevState());
   const [showAppSettings, setShowAppSettings] = useState(false);
+  const [showGuestLockModal, setShowGuestLockModal] = useState(false);
 
   const fetchReferralStats = useCallback(async () => {
     try {
@@ -530,14 +533,14 @@ export default function App() {
 
   // Safety timeout: Never leave user stuck on initial sync spinner for more than 5s
   useEffect(() => {
-    if (isInitialSync) {
+    if (isInitialSync && !showSyncConflict) {
       const timer = setTimeout(() => {
         console.warn('[InitialSync] Safety timeout reached (5s), unlocking UI...');
         finishInitialSync();
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [isInitialSync, finishInitialSync]);
+  }, [isInitialSync, showSyncConflict, finishInitialSync]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -2274,6 +2277,39 @@ export default function App() {
         />
       )}
 
+      {/* Guest Lock Modal */}
+      {showGuestLockModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-[110] animate-in fade-in duration-200">
+          <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-300">
+            <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+              <Lock className="w-6 h-6 text-brand" />
+              {t('appSettings.guestModalTitle')}
+            </h3>
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+              {t('appSettings.guestModalDesc')}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowGuestLockModal(false)}
+                className="px-5 py-3 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-white text-sm cursor-pointer"
+              >
+                {t('auth.guestConfirmCancel')}
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('zoutty_guest_mode');
+                  window.location.reload();
+                }}
+                className="px-5 py-3 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors text-bg-dark text-sm shadow-lg shadow-brand/20 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 rotate-180" />
+                {t('appSettings.signInSignUpBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isSearching && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[70]">
           <div className="glass p-6 rounded-2xl flex flex-col items-center gap-4">
@@ -2413,7 +2449,29 @@ export default function App() {
             <div className="flex-1 overflow-y-auto space-y-8 pr-6">
 
               {/* Plan & AI Quota Section */}
-              {(() => {
+              {isGuestMode ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                      <Cloud className="w-4 h-4 text-brand" />
+                      {t('appSettings.cloudAndAiSection')}
+                    </h4>
+                  </div>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    {t('appSettings.guestCloudDesc')}
+                  </p>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('zoutty_guest_mode');
+                      window.location.reload();
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm mt-2"
+                  >
+                    <LogOut className="w-3.5 h-3.5 rotate-180" />
+                    <span>{t('appSettings.signInSignUpBtn')}</span>
+                  </button>
+                </div>
+              ) : (() => {
                 const currentTier: UserTier = (devState.tier === 'student' || devState.tier === 'teacher') ? devState.tier : 'free';
                 const isFree = currentTier === 'free';
                 const isStudent = currentTier === 'student';
@@ -4199,18 +4257,20 @@ export default function App() {
             onRecording={(blob, lang, silent) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipRecord'), false) : addAudioEntry(selectedSession.id, blob, lang, 'recording', undefined, silent)}
             onAutoStoppedLimit={() => setShowAutoStoppedModal(true)}
             onUpload={(e, lang) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipUpload'), false) : handleFileUpload(e, lang)}
-            onConsolidate={selectedSession.isDemo ? () => showToast(t('onboarding.demoTooltipConsolidate'), false) : handleConsolidate}
+            onConsolidate={isGuestMode ? () => setShowGuestLockModal(true) : selectedSession.isDemo ? () => showToast(t('onboarding.demoTooltipConsolidate'), false) : handleConsolidate}
             onUpdateSession={(changes) => updateSession(selectedSession.id, changes)}
             onUpdateEntry={(id, changes) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipEdit'), false) : updateAudioEntry(id, changes)}
             onDeleteEntry={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipDelete'), false) : requestDeleteAudio(id, 'Audio Entry')}
             onProcessEntry={async (id) => {
-              if (selectedSession.isDemo) {
+              if (isGuestMode) {
+                setShowGuestLockModal(true);
+              } else if (selectedSession.isDemo) {
                 showToast(t('onboarding.demoTooltipConsolidate'), false);
               } else {
                 await handleProcessEntry(id);
               }
             }}
-            onRequestReprocess={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipReprocess'), false) : setReprocessModal(id)}
+            onRequestReprocess={(id) => isGuestMode ? setShowGuestLockModal(true) : selectedSession.isDemo ? showToast(t('onboarding.demoTooltipReprocess'), false) : setReprocessModal(id)}
             showToast={showToast}
             groups={groups}
             glossaries={glossaries}

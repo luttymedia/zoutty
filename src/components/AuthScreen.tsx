@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, CheckCircle2, Gift } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, CheckCircle2, Gift, CloudOff, AlertTriangle } from 'lucide-react';
 import { ZouttyIcon } from './ZouttyIcon';
 import { useTranslation } from '../i18n/TranslationContext';
 import { UI_LANGUAGE_NAMES } from '../i18n';
@@ -273,10 +273,27 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
       {showGuestConfirm && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-[110] animate-in fade-in duration-200">
           <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mb-4 border border-amber-500/20">
+              <AlertTriangle className="w-6 h-6 text-amber-500" />
+            </div>
             <h3 className="text-xl font-bold mb-3">{t('auth.guestConfirmTitle')}</h3>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+            <p className="text-zinc-400 text-sm leading-relaxed mb-4">
               {t('auth.guestConfirmMsg')}
             </p>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6 space-y-3">
+              <div className="flex items-start gap-3">
+                <Lock className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <span className="text-sm text-white/80 leading-snug">{t('auth.guestConfirmList1')}</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <CloudOff className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
+                <span className="text-sm text-white/80 leading-snug">{t('auth.guestConfirmList2')}</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span className="text-sm text-white/80 leading-snug">{t('auth.guestConfirmList3')}</span>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowGuestConfirm(false)}
