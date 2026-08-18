@@ -7,6 +7,7 @@ export interface DevState {
   lifetime_sessions: number;
   lifetime_clips: number;
   period_sessions: number;
+  period_clips: number;
   referral_boost_active: boolean;
   referral_boost_expires_at: string | null;
   referral_boost_extra_sessions: number;
@@ -23,6 +24,7 @@ export const DEFAULT_DEV_STATE: DevState = {
   lifetime_sessions: 0,
   lifetime_clips: 0,
   period_sessions: 0,
+  period_clips: 0,
   referral_boost_active: false,
   referral_boost_expires_at: null,
   referral_boost_extra_sessions: 0,

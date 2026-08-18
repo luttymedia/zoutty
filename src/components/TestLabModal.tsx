@@ -231,7 +231,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     period_sessions: 5,
                   })
                 }
-                className="p-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/15 text-left transition-all text-xs font-semibold text-cyan-300"
+                className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-left transition-all text-xs font-semibold text-amber-300"
               >
                 {t('billing.dev.presetStudent')}
               </button>
@@ -244,7 +244,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     period_sessions: 15,
                   })
                 }
-                className="p-2.5 rounded-xl border border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/15 text-left transition-all text-xs font-semibold text-purple-300"
+                className="p-2.5 rounded-xl border border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/15 text-left transition-all text-xs font-semibold text-sky-300"
               >
                 {t('billing.dev.presetTeacher')}
               </button>

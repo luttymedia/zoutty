@@ -164,11 +164,13 @@ export const TIER_LIMITS = {
   },
   student: {
     monthly_sessions: 20,
+    monthly_clips: 200,
     price_eur: 2.99,
     referral_discount_per_month_eur: 1.0,
   },
   teacher: {
     monthly_sessions: 100,
+    monthly_clips: Infinity,
     price_eur: 12.99,
     referral_credit_eur: 2.0,
     max_monthly_credit_eur: 8.0,

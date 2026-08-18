@@ -41,16 +41,23 @@ import {
   ArrowRight,
   Database,
   FlaskConical,
-  Bot
+  Bot,
+  Gift
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
 import { db, readFromCloud } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
-import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia } from './types';
+import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia, TIER_LIMITS } from './types';
 import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
 import { DevState, getDevState, saveDevState } from './lib/devLab';
 import { TestLabModal } from './components/TestLabModal';
+import { QuotaExceededModal } from './components/QuotaExceededModal';
+import { AudioDurationExceededModal } from './components/AudioDurationExceededModal';
+import { RecordingAutoStoppedModal } from './components/RecordingAutoStoppedModal';
+import { PricingModal } from './components/PricingModal';
+import { ReferralModal } from './components/ReferralModal';
+import { getMediaDuration } from './lib/audioDuration';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
@@ -109,7 +116,23 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 };
 
 // --- Toast & Spinner Components ---
-function Toast({ message, isError, actionText, onAction, onClose, duration = 5000 }: { message: string, isError: boolean, actionText?: string, onAction?: () => void, onClose: () => void, duration?: number }) {
+function Toast({
+  message,
+  isError,
+  variant,
+  actionText,
+  onAction,
+  onClose,
+  duration = 5000,
+}: {
+  message: string;
+  isError?: boolean;
+  variant?: 'success' | 'error' | 'warning' | 'info';
+  actionText?: string;
+  onAction?: () => void;
+  onClose: () => void;
+  duration?: number;
+}) {
   const [offset, setOffset] = useState(0);
   const touchStart = useRef<number | null>(null);
 
@@ -140,6 +163,13 @@ function Toast({ message, isError, actionText, onAction, onClose, duration = 500
 
   const isDragging = touchStart.current !== null;
 
+  const bgStyle =
+    variant === 'warning'
+      ? 'bg-amber-600 border border-amber-400 text-amber-50 shadow-amber-900/40'
+      : isError || variant === 'error'
+      ? 'bg-red-600'
+      : 'bg-green-600';
+
   return (
     <div
       onTouchStart={handleTouchStart}
@@ -148,12 +178,19 @@ function Toast({ message, isError, actionText, onAction, onClose, duration = 500
       style={{
         transform: `translateX(calc(-50% + ${offset}px))`,
         opacity: 1 - Math.abs(offset) / 200,
-        transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.2s ease-out'
+        transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.2s ease-out',
       }}
-      className={`fixed bottom-6 left-1/2 w-[90%] md:w-auto max-w-md md:max-w-lg px-5 py-3.5 rounded-2xl text-white font-medium text-sm z-[60] shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 ${isError ? 'bg-red-600' : 'bg-green-600'}`}>
+      className={`fixed bottom-6 left-1/2 w-[90%] md:w-auto max-w-md md:max-w-lg px-5 py-3.5 rounded-2xl text-white font-medium text-sm z-[60] shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 ${bgStyle}`}
+    >
       <span className="flex-1">{message}</span>
       {actionText && onAction && (
-        <button onClick={() => { onAction(); onClose(); }} className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shrink-0">
+        <button
+          onClick={() => {
+            onAction();
+            onClose();
+          }}
+          className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shrink-0"
+        >
           {actionText}
         </button>
       )}
@@ -260,7 +297,7 @@ export default function App() {
   const [audioEntries, setAudioEntries] = useState<Record<string, AudioEntry>>({});
   const [sessionMedia, setSessionMedia] = useState<SessionMedia[]>([]);
 
-  const [toastMessage, setToastMessage] = useState<{ text: string, isError: boolean, actionText?: string, onAction?: () => void, duration?: number } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; isError?: boolean; variant?: 'success' | 'error' | 'warning' | 'info'; actionText?: string; onAction?: () => void; duration?: number } | null>(null);
   const [spinnerConfig, setSpinnerConfig] = useState<{ text: string; onCancel?: () => void } | null>(null);
   const [logoAnimationType, setLogoAnimationType] = useState<'onboarding' | 'restore' | null>(null);
 
@@ -268,6 +305,12 @@ export default function App() {
   const [reprocessModal, setReprocessModal] = useState<string | null>(null);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showTestLabModal, setShowTestLabModal] = useState(false);
+  const [showQuotaModal, setShowQuotaModal] = useState<{ isOpen: boolean; reason: 'sessions' | 'clips' }>({ isOpen: false, reason: 'sessions' });
+  const [showDurationExceededModal, setShowDurationExceededModal] = useState<{ isOpen: boolean; duration: number; filename?: string }>({ isOpen: false, duration: 0 });
+  const [showAutoStoppedModal, setShowAutoStoppedModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [userReferralCode, setUserReferralCode] = useState(() => localStorage.getItem('zoutty_referral_code') || 'ZOU-DANCE');
   const [devState, setDevState] = useState<DevState>(() => getDevState());
   const [showAppSettings, setShowAppSettings] = useState(false);
 
@@ -722,7 +765,14 @@ export default function App() {
     };
   }, []);
 
-  const showToast = (text: string, isError = false, actionText?: string, onAction?: () => void, duration?: number) => setToastMessage({ text, isError, actionText, onAction, duration });
+  const showToast = (
+    text: string,
+    isError = false,
+    actionText?: string,
+    onAction?: () => void,
+    duration?: number,
+    variant?: 'success' | 'error' | 'warning' | 'info'
+  ) => setToastMessage({ text, isError, actionText, onAction, duration, variant });
   const showSpinner = (text: string, onCancel?: () => void) => setSpinnerConfig({ text, onCancel });
   const hideSpinner = () => setSpinnerConfig(null);
 
@@ -1450,7 +1500,14 @@ export default function App() {
     }
   };
 
-  const addAudioEntry = async (sessionId: string, blob: Blob, language: Language, type: 'recording' | 'upload', filename?: string) => {
+  const addAudioEntry = async (
+    sessionId: string,
+    blob: Blob,
+    language: Language,
+    type: 'recording' | 'upload',
+    filename?: string,
+    silent = false
+  ) => {
     const entryId = crypto.randomUUID();
 
     const newEntry: AudioEntry = {
@@ -1467,6 +1524,7 @@ export default function App() {
       // Save to IndexedDB and update UI
       await db.saveAudioEntry(newEntry);
       setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
+      if (silent) return;
       const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === sessionId);
       if (sessionEntries.length === 1 && !localStorage.getItem('hasShownConsolidationHint')) {
         localStorage.setItem('hasShownConsolidationHint', 'true');
@@ -1577,7 +1635,12 @@ export default function App() {
         return;
       }
       console.error('Processing failed:', error);
-      showToast(entry.filename ? t('toast.processingFailed', { filename: entry.filename }) : t('toast.audioProcessingFailed'), true);
+      const isQuota = error?.isQuota || error?.code === 'QUOTA_EXCEEDED' || (error?.message || '').toLowerCase().includes('quota') || (error?.message || '').includes('403') || (error?.message || '').toLowerCase().includes('limit');
+      if (isQuota) {
+        setShowQuotaModal({ isOpen: true, reason: 'clips' });
+      } else {
+        showToast(entry.filename ? t('toast.processingFailed', { filename: entry.filename }) : t('toast.audioProcessingFailed'), true);
+      }
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
@@ -1594,7 +1657,12 @@ export default function App() {
     const files = e.target.files;
     if (!files || files.length === 0 || !selectedSession) return;
 
-    for (const file of files) {
+    for (const file of Array.from(files)) {
+      const duration = await getMediaDuration(file);
+      if (duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
+        setShowDurationExceededModal({ isOpen: true, duration, filename: file.name });
+        continue;
+      }
       await addAudioEntry(selectedSession.id, file, language, 'upload', file.name);
     }
     // reset input
@@ -1680,11 +1748,18 @@ export default function App() {
 
       if (!response.ok) {
         let errMessage = `Failed to process audio on backend. Status: ${response.status}`;
+        let isQuota = response.status === 403;
         try {
           const errData = await response.json();
+          if (errData.code === 'QUOTA_EXCEEDED' || response.status === 403) {
+            setShowQuotaModal({ isOpen: true, reason: 'sessions' });
+            return;
+          }
           if (errData.error) errMessage = errData.error;
         } catch (_) {}
-        throw new Error(errMessage);
+        const err: any = new Error(errMessage);
+        err.isQuota = isQuota;
+        throw err;
       }
 
       const { report: reportResult, newTranscripts, detectedStyle } = await response.json();
@@ -1752,7 +1827,12 @@ export default function App() {
         return;
       }
       console.error('Consolidation failed:', error);
-      showToast(t('toast.consolidationFailed'), true);
+      const isQuota = error?.isQuota || error?.code === 'QUOTA_EXCEEDED' || (error?.message || '').toLowerCase().includes('quota') || (error?.message || '').includes('403') || (error?.message || '').toLowerCase().includes('limit');
+      if (isQuota) {
+        setShowQuotaModal({ isOpen: true, reason: 'sessions' });
+      } else {
+        showToast(t('toast.consolidationFailed'), true);
+      }
     } finally {
       hideSpinner();
     }
@@ -2122,8 +2202,138 @@ export default function App() {
             {/* Drawer Content */}
             <div className="flex-1 overflow-y-auto space-y-8 pr-6">
 
+              {/* Plan & AI Quota Section */}
+              {(() => {
+                const isBoost = Boolean(devState.referral_boost_active && devState.referral_boost_expires_at && new Date(devState.referral_boost_expires_at).getTime() > Date.now());
+                const maxSessions = devState.tier === 'free' ? (TIER_LIMITS.free.lifetime_sessions + (isBoost ? devState.referral_boost_extra_sessions || TIER_LIMITS.referral_boost.extra_sessions : 0)) : devState.tier === 'student' ? TIER_LIMITS.student.monthly_sessions : TIER_LIMITS.teacher.monthly_sessions;
+                const currentSessions = devState.tier === 'free' ? devState.lifetime_sessions : devState.period_sessions;
+                const maxClips = devState.tier === 'free' ? (TIER_LIMITS.free.lifetime_clips + (isBoost ? devState.referral_boost_extra_clips || TIER_LIMITS.referral_boost.extra_clips : 0)) : devState.tier === 'student' ? TIER_LIMITS.student.monthly_clips : Infinity;
+                const currentClips = devState.tier === 'free' ? devState.lifetime_clips : devState.period_clips;
+                const nextResetDate = new Intl.DateTimeFormat(uiLanguage === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                        <Sparkles className="w-4 h-4 text-brand" />
+                        {t('billing.usage.sectionTitle')}
+                      </h4>
+                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold uppercase ${
+                        devState.tier === 'student'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          : devState.tier === 'teacher'
+                          ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                          : 'bg-white/10 text-white/70 border border-white/10'
+                      }`}>
+                        {devState.tier === 'student' ? t('billing.plans.studentName') : devState.tier === 'teacher' ? t('billing.plans.teacherName') : t('billing.plans.freeName')}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      {t('billing.usage.sectionDesc')}
+                    </p>
+
+                    {/* Quota Progress Cards */}
+                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                      {/* Sessions Usage */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-white/70 flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-brand" />
+                            <span>{devState.tier === 'free' ? t('billing.usage.lifetimeSessionsUsed', { used: currentSessions, total: maxSessions }) : t('billing.usage.monthlySessionsUsed', { used: currentSessions, total: maxSessions })}</span>
+                          </span>
+                          <span className="font-mono font-semibold text-white/90">
+                            {Math.min(currentSessions, maxSessions)} / {maxSessions}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              currentSessions >= maxSessions ? 'bg-red-500' : 'bg-brand'
+                            }`}
+                            style={{ width: `${Math.min(100, Math.round((currentSessions / maxSessions) * 100))}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Audio Clips Usage */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-white/70 flex items-center gap-1.5">
+                            <AudioLines className="w-3.5 h-3.5 text-brand" />
+                            <span>
+                              {devState.tier === 'teacher'
+                                ? t('billing.usage.unlimitedClips')
+                                : devState.tier === 'free'
+                                ? t('billing.usage.lifetimeClipsUsed', { used: currentClips, total: maxClips })
+                                : t('billing.usage.monthlyClipsUsed', { used: currentClips, total: maxClips })}
+                            </span>
+                          </span>
+                          <span className="font-mono font-semibold text-white/90">
+                            {devState.tier === 'teacher' ? '∞' : `${Math.min(currentClips, maxClips)} / ${maxClips}`}
+                          </span>
+                        </div>
+                        {devState.tier !== 'teacher' && (
+                          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                currentClips >= maxClips ? 'bg-red-500' : 'bg-brand'
+                              }`}
+                              style={{ width: `${Math.min(100, Math.round((currentClips / maxClips) * 100))}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Next Reset Date (Paid Users) */}
+                      {devState.tier !== 'free' && (
+                        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-white/50">
+                          <span className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-sky-400" />
+                            <span>{t('billing.usage.resetDate', { date: nextResetDate })}</span>
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Active Referral Boost (Free Users) */}
+                      {devState.tier === 'free' && isBoost && (
+                        <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-medium flex items-center gap-1.5">
+                          <Gift className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                          <span>{t('billing.usage.referralBoostActive', { sessions: devState.referral_boost_extra_sessions || 2, clips: devState.referral_boost_extra_clips || 10 })}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upgrade & Referral Trigger Buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setShowAppSettings(false);
+                          setShowPricingModal(true);
+                        }}
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        <Zap className="w-3.5 h-3.5 fill-zinc-950" />
+                        <span>{devState.tier === 'free' ? t('billing.limits.upgradeAction') : t('billing.plans.manageSubscription')}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowAppSettings(false);
+                          setShowReferralModal(true);
+                        }}
+                        className="py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        title={t('billing.referrals.title')}
+                      >
+                        <Gift className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="hidden sm:inline">{t('billing.referrals.title')}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Language Section */}
-              <div className="space-y-3">
+              <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
                   <Globe className="w-4 h-4 text-brand" />
                   {t('appSettings.languageSection')}
@@ -2303,6 +2513,18 @@ export default function App() {
                   {t('billing.dev.panelTitle')}
                 </button>
 
+                {/* Referral Program Button */}
+                <button
+                  onClick={() => {
+                    setShowAppSettings(false);
+                    setShowReferralModal(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all text-xs font-bold shadow-sm cursor-pointer"
+                >
+                  <Gift className="w-4 h-4 text-purple-400" />
+                  {t('billing.referrals.title')}
+                </button>
+
                 <button
                   onClick={() => {
                     setShowAppSettings(false);
@@ -2335,6 +2557,68 @@ export default function App() {
         isOpen={showTestLabModal}
         onClose={() => setShowTestLabModal(false)}
         onStateApplied={(s) => setDevState(s)}
+      />
+
+      {/* Pricing / Plan Selection Modal */}
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
+        currentTier={devState.tier}
+        onSelectPlan={(targetTier) => {
+          setShowPricingModal(false);
+          const targetPlan = targetTier === 'teacher' ? t('billing.plans.teacherName') : t('billing.plans.studentName');
+          const targetPrice = targetTier === 'teacher' ? t('billing.plans.teacherPrice') : t('billing.plans.studentPrice');
+          showToast(`${targetPlan}: ${targetPrice}`);
+        }}
+        onOpenReferrals={() => {
+          setShowPricingModal(false);
+          setShowReferralModal(true);
+        }}
+      />
+
+      {/* Quota Exceeded Interceptor Modal */}
+      <QuotaExceededModal
+        isOpen={showQuotaModal.isOpen}
+        onClose={() => setShowQuotaModal(prev => ({ ...prev, isOpen: false }))}
+        tier={devState.tier}
+        reason={showQuotaModal.reason}
+        canBoost={!devState.referral_boost_active}
+        onUpgradeClick={(targetTier) => {
+          setShowQuotaModal({ isOpen: false, reason: 'sessions' });
+          setShowAppSettings(true);
+          const targetPlan = targetTier === 'teacher' ? t('billing.plans.teacherName') : t('billing.plans.studentName');
+          const targetPrice = targetTier === 'teacher' ? t('billing.plans.teacherPrice') : t('billing.plans.studentPrice');
+          showToast(`${targetPlan}: ${targetPrice}`);
+        }}
+        onReferralClick={() => {
+          setShowQuotaModal({ isOpen: false, reason: 'sessions' });
+          setShowReferralModal(true);
+        }}
+      />
+
+      {/* Audio Duration Exceeded Modal */}
+      <AudioDurationExceededModal
+        isOpen={showDurationExceededModal.isOpen}
+        onClose={() => setShowDurationExceededModal({ isOpen: false, duration: 0 })}
+        durationSeconds={showDurationExceededModal.duration}
+        filename={showDurationExceededModal.filename}
+      />
+
+      {/* Recording Auto-Stopped Hard Cap Modal */}
+      <RecordingAutoStoppedModal
+        isOpen={showAutoStoppedModal}
+        onClose={() => setShowAutoStoppedModal(false)}
+      />
+
+      {/* Referral Share Modal */}
+      <ReferralModal
+        isOpen={showReferralModal}
+        onClose={() => setShowReferralModal(false)}
+        tier={devState.tier}
+        referralCode={userReferralCode}
+        boostActive={devState.referral_boost_active}
+        boostExpiresAt={devState.referral_boost_expires_at}
+        creditsBalance={devState.referral_credits_balance}
       />
 
       {/* Version & Changelog Modal */}
@@ -3480,7 +3764,8 @@ export default function App() {
             session={selectedSession}
             entries={Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp)}
             processingIds={processingIds}
-            onRecording={(blob, lang) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipRecord'), false) : addAudioEntry(selectedSession.id, blob, lang, 'recording')}
+            onRecording={(blob, lang, silent) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipRecord'), false) : addAudioEntry(selectedSession.id, blob, lang, 'recording', undefined, silent)}
+            onAutoStoppedLimit={() => setShowAutoStoppedModal(true)}
             onUpload={(e, lang) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipUpload'), false) : handleFileUpload(e, lang)}
             onConsolidate={selectedSession.isDemo ? () => showToast(t('onboarding.demoTooltipConsolidate'), false) : handleConsolidate}
             onUpdateSession={(changes) => updateSession(selectedSession.id, changes)}
@@ -3514,6 +3799,7 @@ function SessionDetail({
   entries,
   processingIds,
   onRecording,
+  onAutoStoppedLimit,
   onUpload,
   onConsolidate,
   onUpdateSession,
@@ -3531,7 +3817,8 @@ function SessionDetail({
   session: Session;
   entries: AudioEntry[];
   processingIds: Set<string>;
-  onRecording: (blob: Blob, lang: Language) => void;
+  onRecording: (blob: Blob, lang: Language, silent?: boolean) => void;
+  onAutoStoppedLimit?: () => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>, lang: Language) => void;
   onConsolidate: () => void;
   onUpdateSession: (changes: Partial<Session>) => void;
@@ -3539,7 +3826,7 @@ function SessionDetail({
   onDeleteEntry: (entryId: string) => void;
   onProcessEntry: (entryId: string) => Promise<void>;
   onRequestReprocess: (id: string) => void;
-  showToast: (msg: string, isError?: boolean) => void;
+  showToast: (msg: string, isError?: boolean, actionText?: string, onAction?: () => void, duration?: number, variant?: 'success' | 'error' | 'warning' | 'info') => void;
   groups: SessionGroup[];
   glossaries: DanceGlossary[];
   onDeleteSession: () => void;
@@ -3782,6 +4069,7 @@ function SessionDetail({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const isCancelledRef = useRef(false);
+  const isAutoStopRef = useRef(false);
   const wakeLockRef = useRef<any>(null);
 
   const startRecording = async () => {
@@ -3791,6 +4079,7 @@ function SessionDetail({
     }
     try {
       isCancelledRef.current = false;
+      isAutoStopRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 48000 }
       });
@@ -3846,6 +4135,9 @@ function SessionDetail({
 
         if (isCancelledRef.current) {
           console.log('[MediaRecorder] Recording cancelled, discarding chunks.');
+        } else if (isAutoStopRef.current) {
+          onRecording(audioBlob, language, true);
+          if (onAutoStoppedLimit) onAutoStoppedLimit();
         } else {
           onRecording(audioBlob, language);
         }
@@ -3858,7 +4150,20 @@ function SessionDetail({
       setRecordingDuration(0);
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
+        setRecordingDuration(prev => {
+          const next = prev + 1;
+          // 2:30 warning toast (150s) with warning orange style
+          if (next === TIER_LIMITS.CLIP_WARNING_SECONDS) {
+            showToast(t('billing.limits.recordingApproachingLimit'), false, undefined, undefined, 6000, 'warning');
+          }
+          // 3:00 auto-stop (180s)
+          if (next >= TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
+            setTimeout(() => {
+              stopRecording(true);
+            }, 0);
+          }
+          return next;
+        });
       }, 1000);
 
       // Request wake lock to keep screen on while recording
@@ -3876,10 +4181,11 @@ function SessionDetail({
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = (isAutoStop = false) => {
     if (animFrameRef.current !== null) cancelAnimationFrame(animFrameRef.current);
     if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
     setMicLevel(0);
+    isAutoStopRef.current = isAutoStop;
     mediaRecorder.current?.stop();
     setIsRecording(false);
     if (timerRef.current) {
@@ -4094,9 +4400,20 @@ function SessionDetail({
       <div className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 glass p-4 rounded-full flex items-center justify-center gap-4 sm:gap-6 shadow-2xl z-40 border border-white/10 bg-black/60 backdrop-blur-md print-hide">
 
         {isRecording && (
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-600/90 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg border border-red-500/30 backdrop-blur-md animate-in slide-in-from-bottom-2 duration-300">
+          <div className={`absolute -top-12 left-1/2 -translate-x-1/2 text-white text-xs font-semibold px-3.5 py-1 rounded-full flex items-center gap-1.5 shadow-lg border backdrop-blur-md animate-in slide-in-from-bottom-2 duration-300 ${
+            recordingDuration >= TIER_LIMITS.CLIP_COUNTDOWN_SECONDS
+              ? 'bg-amber-600/95 border-amber-400 animate-pulse text-amber-100 shadow-amber-500/30 ring-2 ring-amber-400/50'
+              : recordingDuration >= TIER_LIMITS.CLIP_WARNING_SECONDS
+              ? 'bg-amber-500/90 border-amber-300 text-amber-50 animate-pulse ring-2 ring-amber-400/60 shadow-amber-500/30'
+              : 'bg-red-600/90 border-red-500/30'
+          }`}>
             <span className="w-2 h-2 rounded-full bg-white animate-ping shrink-0" />
             <span className="font-mono">{formatDuration(recordingDuration)}</span>
+            {recordingDuration >= TIER_LIMITS.CLIP_COUNTDOWN_SECONDS && (
+              <span className="font-bold text-[11px] ml-1 text-amber-200">
+                ({TIER_LIMITS.MAX_CLIP_DURATION_SECONDS - recordingDuration}s)
+              </span>
+            )}
           </div>
         )}
 
@@ -4127,12 +4444,12 @@ function SessionDetail({
 
         <button
           id="recordBtn"
-          onClick={isRecording ? stopRecording : startRecording}
+          onClick={isRecording ? () => stopRecording(false) : startRecording}
           style={isRecording ? {
-            boxShadow: `0 0 0 ${4 + micLevel * 16}px rgba(239,68,68,${0.3 + micLevel * 0.6})`
+            boxShadow: `0 0 0 ${4 + micLevel * 16}px rgba(${recordingDuration >= TIER_LIMITS.CLIP_WARNING_SECONDS ? '245,158,11' : '239,68,68'},${0.3 + micLevel * 0.6})`
           } : {}}
           className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full font-bold transition-all shadow-lg ${isRecording
-            ? 'bg-red-500 text-white hover:bg-red-600 scale-95 animate-pulse'
+            ? (recordingDuration >= TIER_LIMITS.CLIP_WARNING_SECONDS ? 'bg-amber-500 text-white hover:bg-amber-600 scale-95 animate-pulse ring-4 ring-amber-400/50' : 'bg-red-500 text-white hover:bg-red-600 scale-95 animate-pulse')
             : 'bg-brand text-black hover:bg-brand-light hover:scale-105'
             } min-h-[64px] min-w-[64px]`}
           title={isRecording ? t('session.stopRecording') : t('session.startRecording')}

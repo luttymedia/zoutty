@@ -1,0 +1,233 @@
+import React from 'react';
+import {
+  Sparkles,
+  Zap,
+  Gift,
+  X,
+  ArrowRight,
+  CheckCircle2,
+  GraduationCap,
+  Sparkle,
+  Calendar,
+} from 'lucide-react';
+import { useTranslation } from '../i18n/TranslationContext';
+import { UserTier, TIER_LIMITS } from '../types';
+
+interface QuotaExceededModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  tier: UserTier;
+  reason?: 'sessions' | 'clips';
+  canBoost?: boolean;
+  resetDate?: string | null;
+  onUpgradeClick: (targetTier?: 'student' | 'teacher') => void;
+  onReferralClick: () => void;
+}
+
+export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
+  isOpen,
+  onClose,
+  tier,
+  reason = 'sessions',
+  canBoost = true,
+  resetDate,
+  onUpgradeClick,
+  onReferralClick,
+}) => {
+  const { t, uiLanguage } = useTranslation();
+
+  const isFree = tier === 'free';
+  const isStudent = tier === 'student';
+
+  const formattedResetDate = React.useMemo(() => {
+    const d = resetDate ? new Date(resetDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    return new Intl.DateTimeFormat(uiLanguage === 'es' ? 'es-ES' : 'en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(d);
+  }, [resetDate, uiLanguage]);
+
+  if (!isOpen) return null;
+
+  const freeDescription =
+    reason === 'clips'
+      ? t('billing.limits.quotaExceededFreeClipsDesc', { limit: TIER_LIMITS.free.lifetime_clips })
+      : t('billing.limits.quotaExceededFreeSessionsDesc', { limit: TIER_LIMITS.free.lifetime_sessions });
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-[80] p-4 sm:p-6 overflow-y-auto">
+      <div
+        className="glass border border-brand/40 p-6 sm:p-8 max-w-md w-full rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col text-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Header Icon */}
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand/20 to-brand/40 border border-brand/50 flex items-center justify-center text-brand mx-auto shadow-lg shadow-brand/10 mb-4 animate-bounce duration-1000">
+          <Sparkles className="w-8 h-8" />
+        </div>
+
+        {/* Title & Badge */}
+        <div className="space-y-1 mb-3">
+          <span className="text-[10px] px-3 py-1 rounded-full bg-brand/20 text-brand border border-brand/30 uppercase tracking-widest font-mono font-bold">
+            {isFree ? t('billing.limits.freeLimitBadge') : t('billing.limits.monthlyLimitBadge')}
+          </span>
+          <h3 className="text-xl font-extrabold text-white tracking-tight mt-2">
+            {t('billing.limits.quotaExceededTitle')}
+          </h3>
+        </div>
+
+        {/* Body Description */}
+        <p className="text-sm text-white/70 leading-relaxed mb-4">
+          {isFree ? freeDescription : t('billing.limits.quotaExceededPaidDesc')}
+        </p>
+
+        {/* Reset Date Notice for Paid Users */}
+        {!isFree && (
+          <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-sky-200 text-xs font-semibold mb-5 flex items-center justify-center gap-2">
+            <Calendar className="w-4 h-4 text-sky-400 shrink-0" />
+            <span>{t('billing.usage.resetDate', { date: formattedResetDate })}</span>
+          </div>
+        )}
+
+        {/* Subscription Plan Options for Free Tier */}
+        {isFree ? (
+          <div className="space-y-2.5 mb-5 text-left">
+            {/* Student Plan Card / Button (Warm Amber) */}
+            <button
+              onClick={() => {
+                onClose();
+                onUpgradeClick('student');
+              }}
+              className="w-full p-3.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all flex items-center justify-between group cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                      {t('billing.plans.studentName')}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase font-mono">
+                      {t('billing.plans.studentPrice')}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-white/60 mt-0.5">
+                    {t('billing.limits.studentFeature')}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-amber-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
+            </button>
+
+            {/* Teacher Plan Card / Button (Styled in Sky/Cyan to contrast with purple referral) */}
+            <button
+              onClick={() => {
+                onClose();
+                onUpgradeClick('teacher');
+              }}
+              className="w-full p-3.5 rounded-2xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition-all flex items-center justify-between group cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center text-sky-400 shrink-0">
+                  <Sparkle className="w-5 h-5 text-sky-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white group-hover:text-sky-300 transition-colors">
+                      {t('billing.plans.teacherName')}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 uppercase font-mono">
+                      {t('billing.plans.teacherPrice')}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-white/60 mt-0.5">
+                    {t('billing.limits.teacherFeature')}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-sky-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
+            </button>
+          </div>
+        ) : (
+          /* Plan Highlights for Paid Users */
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2.5 mb-5">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-2">
+              {isStudent
+                ? t('billing.limits.unlockTeacherHeading', { price: t('billing.plans.teacherPrice') })
+                : t('billing.usage.unlimitedStorage')}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-white/90">
+              <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+              <span>
+                {isStudent
+                  ? t('billing.limits.featureTeacherSessions')
+                  : t('billing.usage.unlimitedStorage')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-white/90">
+              <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+              <span>{t('billing.limits.featureSmartOrganization')}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-white/90">
+              <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+              <span>{t('billing.limits.featureTeacherReferralDiscount')}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-2.5">
+          {/* For Student tier, show direct Upgrade to Teacher button */}
+          {isStudent && (
+            <button
+              onClick={() => {
+                onClose();
+                onUpgradeClick('teacher');
+              }}
+              className="w-full py-3.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-sm font-bold shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Zap className="w-4 h-4 fill-zinc-950" />
+              <span>{t('billing.limits.unlockTeacherHeading', { price: t('billing.plans.teacherPrice') })}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Referral Button: available for Free, Student, and Teacher tiers */}
+          <button
+            onClick={() => {
+              onClose();
+              onReferralClick();
+            }}
+            className="w-full py-3 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+          >
+            <Gift className="w-4 h-4 text-purple-400" />
+            <span>
+              {isFree
+                ? t('billing.limits.referralAction')
+                : t('billing.limits.referralActionPaid')}
+            </span>
+          </button>
+
+          <button
+            onClick={onClose}
+            className="w-full py-2 text-xs font-semibold text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+          >
+            {t('common.cancel')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QuotaExceededModal;

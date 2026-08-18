@@ -70,8 +70,12 @@ export const callZoukAudioProcessor = async (payload: {
 
     if (!response.ok) {
         let errorMessage = `Backend error: ${response.statusText}`;
+        let isQuota = response.status === 403;
         try {
             const errorBody = await response.json();
+            if (errorBody.code === 'QUOTA_EXCEEDED' || response.status === 403) {
+                isQuota = true;
+            }
             if (errorBody.error) {
                 errorMessage = errorBody.error;
                 if (errorBody.details) {
@@ -84,7 +88,9 @@ export const callZoukAudioProcessor = async (payload: {
         } catch (_) {
             // ignore parse errors, keep default message
         }
-        throw new Error(errorMessage);
+        const err: any = new Error(errorMessage);
+        err.isQuota = isQuota;
+        throw err;
     }
 
     const data = await response.json();
