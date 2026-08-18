@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import { checkGatekeeper, recordUsageIncrement } from './server/gatekeeper.js';
-import { createCheckoutSession, createPortalSession } from './server/stripe.js';
+import { createCheckoutSession, createPortalSession, handleStripeWebhook } from './server/stripe.js';
 
 dotenv.config();
 
@@ -34,7 +34,12 @@ if (__dirname.includes('dist-server') || __dirname.includes('dist_server')) {
     process.env.NODE_ENV = 'production';
 }
 
-// Body parsing — MUST come before routes
+// Stripe Webhook Endpoint — MUST receive raw buffer for signature verification before express.json()
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    return handleStripeWebhook(req, res);
+});
+
+// Body parsing — MUST come before other routes
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
