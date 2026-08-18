@@ -39,7 +39,9 @@ import {
   Search,
   LogOut,
   ArrowRight,
-  Database
+  Database,
+  FlaskConical,
+  Bot
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -47,6 +49,8 @@ import { db, readFromCloud } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
 import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia } from './types';
 import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
+import { DevState, getDevState, saveDevState } from './lib/devLab';
+import { TestLabModal } from './components/TestLabModal';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
@@ -243,18 +247,108 @@ const migrateOldData = async () => {
 };
 
 export default function App() {
+  const { t, uiLanguage, setUILanguage } = useTranslation();
   const [session, setSession] = useState<any>(null);
   const [isInitializingAuth, setIsInitializingAuth] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
+    () => localStorage.getItem('zoutty_onboarding_completed') === 'true'
+  );
+  const [view, setView] = useState<'list' | 'detail'>('list');
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [audioEntries, setAudioEntries] = useState<Record<string, AudioEntry>>({});
+  const [sessionMedia, setSessionMedia] = useState<SessionMedia[]>([]);
+
+  const [toastMessage, setToastMessage] = useState<{ text: string, isError: boolean, actionText?: string, onAction?: () => void, duration?: number } | null>(null);
+  const [spinnerConfig, setSpinnerConfig] = useState<{ text: string; onCancel?: () => void } | null>(null);
+  const [logoAnimationType, setLogoAnimationType] = useState<'onboarding' | 'restore' | null>(null);
+
+  const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
+  const [reprocessModal, setReprocessModal] = useState<string | null>(null);
+  const [showVersionModal, setShowVersionModal] = useState(false);
+  const [showTestLabModal, setShowTestLabModal] = useState(false);
+  const [devState, setDevState] = useState<DevState>(() => getDevState());
+  const [showAppSettings, setShowAppSettings] = useState(false);
 
   useEffect(() => {
+    const handleDevChange = (e: any) => {
+      setDevState(e.detail || getDevState());
+    };
+    window.addEventListener('zoutty-dev-state-changed', handleDevChange);
+    return () => window.removeEventListener('zoutty-dev-state-changed', handleDevChange);
+  }, []);
+  const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isStorageFull, setIsStorageFull] = useState(false);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
+  const [storageBannerDismissed, setStorageBannerDismissed] = useState(false);
+  const [offlineBannerDismissed, setOfflineBannerDismissed] = useState(false);
+  const [showBothFailed, setShowBothFailed] = useState(false);
+  const [isInitialSync, setIsInitialSync] = useState(() => localStorage.getItem('zoutty_initial_sync_pending') === 'true');
+  const [showSyncConflict, setShowSyncConflict] = useState(false);
+  const [isGuestMode, setIsGuestMode] = useState(() => localStorage.getItem('zoutty_guest_mode') === 'true');
+  const initialSyncCheckedRef = useRef(false);
 
+  const finishInitialSync = useCallback(() => {
+    localStorage.removeItem('zoutty_initial_sync_pending');
+    setIsInitialSync(false);
+    setShowSyncConflict(false);
+    try {
+      syncEngine.syncAll();
+    } catch (err) {
+      console.warn('[Sync] Background syncAll error:', err);
+    }
+  }, []);
+
+  const handleInitialSyncCheck = useCallback(async (currentSession: any) => {
+    if (initialSyncCheckedRef.current) return;
+    initialSyncCheckedRef.current = true;
+    
+    try {
+      await migrateOldData();
+      if (localStorage.getItem('zoutty_initial_sync_pending') === 'true') {
+        const { hasLocalPending, hasCloudData } = await syncEngine.checkInitialSyncConflicts(currentSession.user.id);
+        if (hasLocalPending && hasCloudData) {
+          setShowSyncConflict(true);
+        } else {
+          finishInitialSync();
+        }
+      } else {
+        syncEngine.syncAll();
+      }
+    } catch (err) {
+      console.error('[InitialSyncCheck] Error checking sync conflicts, finishing sync gracefully:', err);
+      finishInitialSync();
+    }
+  }, [finishInitialSync]);
+
+  // Safety timeout: Never leave user stuck on initial sync spinner for more than 5s
+  useEffect(() => {
+    if (isInitialSync) {
+      const timer = setTimeout(() => {
+        console.warn('[InitialSync] Safety timeout reached (5s), unlocking UI...');
+        finishInitialSync();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialSync, finishInitialSync]);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsInitializingAuth(false);
       if (session) {
         setHasCompletedOnboarding(true);
         handleInitialSyncCheck(session);
+      } else {
+        finishInitialSync();
       }
+    }).catch(err => {
+      console.error('[Auth] getSession error:', err);
+      setIsInitializingAuth(false);
+      finishInitialSync();
     });
 
     const {
@@ -264,8 +358,11 @@ export default function App() {
       if (session) {
         setHasCompletedOnboarding(true);
         handleInitialSyncCheck(session);
+      } else {
+        finishInitialSync();
       }
     });
+
     const handleDbWrite = () => {
       if (localStorage.getItem('zoutty_initial_sync_pending') !== 'true') {
         syncEngine.scheduleSync();
@@ -297,63 +394,7 @@ export default function App() {
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
     };
-  }, []);
-
-  const { t, uiLanguage, setUILanguage } = useTranslation();
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
-    () => localStorage.getItem('zoutty_onboarding_completed') === 'true'
-  );
-  const [view, setView] = useState<'list' | 'detail'>('list');
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [audioEntries, setAudioEntries] = useState<Record<string, AudioEntry>>({});
-  const [sessionMedia, setSessionMedia] = useState<SessionMedia[]>([]);
-
-  const [toastMessage, setToastMessage] = useState<{ text: string, isError: boolean, actionText?: string, onAction?: () => void, duration?: number } | null>(null);
-  const [spinnerConfig, setSpinnerConfig] = useState<{ text: string; onCancel?: () => void } | null>(null);
-  const [logoAnimationType, setLogoAnimationType] = useState<'onboarding' | 'restore' | null>(null);
-
-  const [deleteModal, setDeleteModal] = useState<{ id: string, type: 'session' | 'audio', title: string } | null>(null);
-  const [reprocessModal, setReprocessModal] = useState<string | null>(null);
-  const [showVersionModal, setShowVersionModal] = useState(false);
-  const [showAppSettings, setShowAppSettings] = useState(false);
-  const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isStorageFull, setIsStorageFull] = useState(false);
-  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
-  const [storageBannerDismissed, setStorageBannerDismissed] = useState(false);
-  const [offlineBannerDismissed, setOfflineBannerDismissed] = useState(false);
-  const [showBothFailed, setShowBothFailed] = useState(false);
-  const [isInitialSync, setIsInitialSync] = useState(() => localStorage.getItem('zoutty_initial_sync_pending') === 'true');
-  const [showSyncConflict, setShowSyncConflict] = useState(false);
-  const [isGuestMode, setIsGuestMode] = useState(() => localStorage.getItem('zoutty_guest_mode') === 'true');
-  const initialSyncCheckedRef = useRef(false);
-
-  const handleInitialSyncCheck = useCallback(async (session: any) => {
-    if (initialSyncCheckedRef.current) return;
-    initialSyncCheckedRef.current = true;
-    
-    await migrateOldData();
-    if (localStorage.getItem('zoutty_initial_sync_pending') === 'true') {
-      const { hasLocalPending, hasCloudData } = await syncEngine.checkInitialSyncConflicts(session.user.id);
-      if (hasLocalPending && hasCloudData) {
-        setShowSyncConflict(true);
-      } else {
-        finishInitialSync();
-      }
-    } else {
-      syncEngine.syncAll();
-    }
-  }, []);
-
-  const finishInitialSync = useCallback(() => {
-    localStorage.removeItem('zoutty_initial_sync_pending');
-    setIsInitialSync(false);
-    setShowSyncConflict(false);
-    syncEngine.syncAll();
-  }, []);
+  }, [handleInitialSyncCheck, finishInitialSync]);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -1609,26 +1650,52 @@ export default function App() {
         : (isOther ? (selectedSession.customGlossaryStyle || 'Other') : (activeGlossary ? activeGlossary.name : 'Brazilian Zouk'));
       const glossary = (selectedSession.glossaryId === 'auto' || isOther) ? undefined : (activeGlossary ? activeGlossary.terms : undefined);
 
+      const currentDev = getDevState();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-dev-override': JSON.stringify(currentDev),
+      };
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.access_token) {
+          headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
+        }
+      } catch (_) {}
+
       const response = await fetch('/api/gemini/process-audio', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           sessionId: selectedSession.id,
           audios: audiosPayload,
           glossary,
           danceStyle,
           availableGlossaries: glossaries,
-          appLanguage: uiLanguage
+          appLanguage: uiLanguage,
+          mockMode: currentDev.mockGemini
         }),
         signal: controller.signal
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to process audio on backend. Status: ${response.status}`);
+        let errMessage = `Failed to process audio on backend. Status: ${response.status}`;
+        try {
+          const errData = await response.json();
+          if (errData.error) errMessage = errData.error;
+        } catch (_) {}
+        throw new Error(errMessage);
       }
 
       const { report: reportResult, newTranscripts, detectedStyle } = await response.json();
       if (controller.signal.aborted) return;
+
+      if (currentDev.mockGemini) {
+        saveDevState({
+          lifetime_sessions: currentDev.lifetime_sessions + 1,
+          period_sessions: currentDev.period_sessions + 1,
+        });
+      }
 
       console.log('[handleConsolidate] API response:', {
         hasReport: !!reportResult,
@@ -1771,54 +1838,51 @@ export default function App() {
     return <AuthScreen onSuccess={() => setIsGuestMode(true)} />;
   }
 
-  if (isInitialSync) {
-    if (showSyncConflict) {
-      return (
-        <div className="fixed inset-0 bg-zinc-950 flex flex-col items-center justify-center p-6 z-[200] text-zinc-100 font-sans">
-          <div className="bg-zinc-900 border border-zinc-800 p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 rounded-2xl shadow-2xl">
-            <h3 className="text-xl font-bold flex items-center gap-2 text-white">
-              <CloudUpload className="w-6 h-6 text-orange-500" />
-              {t('modals.syncConflictTitle')}
-            </h3>
-            <p className="text-zinc-400 text-sm leading-relaxed">
-              {t('modals.syncConflictMsg')}
-            </p>
-            <div className="flex flex-col gap-3 mt-6">
-              <button onClick={() => finishInitialSync()} className="w-full px-5 py-3.5 rounded-xl font-bold bg-orange-500 hover:bg-orange-400 transition-colors text-zinc-950 text-sm">{t('modals.syncMergeBtn')}</button>
-              <button onClick={async () => {
-                showSpinner('Replacing cloud data...');
-                if (session?.user) {
-                  await syncEngine.wipeCloudData(session.user.id);
-                  // Force all local items to be pending sync so they get pushed back to the cloud
-                  const idb = await dbStart();
-                  const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
-                  for (const table of tables) {
-                    const tx = idb.transaction(table, 'readwrite');
-                    const store = tx.objectStore(table);
-                    const req = store.getAll();
-                    req.onsuccess = () => {
-                      for (const item of (req.result as any[])) {
-                        item.pending_sync = true;
-                        store.put(item);
-                      }
-                    };
-                  }
+  if (showSyncConflict) {
+    return (
+      <div className="fixed inset-0 bg-zinc-950 flex flex-col items-center justify-center p-6 z-[200] text-zinc-100 font-sans">
+        <div className="bg-zinc-900 border border-zinc-800 p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 rounded-2xl shadow-2xl">
+          <h3 className="text-xl font-bold flex items-center gap-2 text-white">
+            <CloudUpload className="w-6 h-6 text-orange-500" />
+            {t('modals.syncConflictTitle')}
+          </h3>
+          <p className="text-zinc-400 text-sm leading-relaxed">
+            {t('modals.syncConflictMsg')}
+          </p>
+          <div className="flex flex-col gap-3 mt-6">
+            <button onClick={() => finishInitialSync()} className="w-full px-5 py-3.5 rounded-xl font-bold bg-orange-500 hover:bg-orange-400 transition-colors text-zinc-950 text-sm">{t('modals.syncMergeBtn')}</button>
+            <button onClick={async () => {
+              showSpinner('Replacing cloud data...');
+              if (session?.user) {
+                await syncEngine.wipeCloudData(session.user.id);
+                // Force all local items to be pending sync so they get pushed back to the cloud
+                const idb = await dbStart();
+                const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
+                for (const table of tables) {
+                  const tx = idb.transaction(table, 'readwrite');
+                  const store = tx.objectStore(table);
+                  const req = store.getAll();
+                  req.onsuccess = () => {
+                    for (const item of (req.result as any[])) {
+                      item.pending_sync = true;
+                      store.put(item);
+                    }
+                  };
                 }
-                hideSpinner();
-                finishInitialSync();
-              }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-zinc-700 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncReplaceCloudBtn')}</button>
-              <button onClick={async () => {
-                showSpinner('Clearing local data...');
-                await db.clearDatabase();
-                hideSpinner();
-                finishInitialSync();
-              }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncUseCloudBtn')}</button>
-            </div>
+              }
+              hideSpinner();
+              finishInitialSync();
+            }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-zinc-700 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncReplaceCloudBtn')}</button>
+            <button onClick={async () => {
+              showSpinner('Clearing local data...');
+              await db.clearDatabase();
+              hideSpinner();
+              finishInitialSync();
+            }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncUseCloudBtn')}</button>
           </div>
         </div>
-      );
-    }
-    return <Spinner text={t('sync.title')} />;
+      </div>
+    );
   }
 
   if (!hasCompletedOnboarding) {
@@ -2195,19 +2259,57 @@ export default function App() {
               {/* Dev & Testing Section */}
               <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Wand2 className="w-4 h-4 text-brand" />
+                  <FlaskConical className="w-4 h-4 text-brand" />
                   {t('appSettings.devSection')}
                 </h4>
                 <p className="text-xs text-white/60 leading-relaxed">
                   {t('appSettings.devDesc')}
                 </p>
+
+                {/* Quick Gemini Mock Mode Toggle */}
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Bot className={`w-4 h-4 ${devState.mockGemini ? 'text-brand animate-pulse' : 'text-zinc-400'}`} />
+                    <div>
+                      <div className="text-xs font-bold text-white">
+                        {t('billing.dev.geminiMockToggle')}
+                      </div>
+                      <div className="text-[10px] text-white/50">
+                        {devState.mockGemini ? t('billing.dev.mockActiveBadge') : t('billing.dev.mockInactiveBadge')}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveDevState({ mockGemini: !devState.mockGemini })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                      devState.mockGemini ? 'bg-brand' : 'bg-zinc-700'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        devState.mockGemini ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Open Test Lab Full Modal Button */}
+                <button
+                  onClick={() => setShowTestLabModal(true)}
+                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 hover:text-white transition-all text-xs font-bold shadow-sm cursor-pointer"
+                >
+                  <FlaskConical className="w-4 h-4" />
+                  {t('billing.dev.panelTitle')}
+                </button>
+
                 <button
                   onClick={() => {
                     setShowAppSettings(false);
                     localStorage.removeItem('zoutty_onboarding_completed');
                     setHasCompletedOnboarding(false);
                   }}
-                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-brand/20 bg-brand/5 text-brand hover:bg-brand/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-all text-xs font-medium shadow-sm cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   {t('appSettings.devTestOnboardingBtn')}
@@ -2227,6 +2329,13 @@ export default function App() {
           </div>
         </>
       )}
+
+      {/* Test Lab Modal */}
+      <TestLabModal
+        isOpen={showTestLabModal}
+        onClose={() => setShowTestLabModal(false)}
+        onStateApplied={(s) => setDevState(s)}
+      />
 
       {/* Version & Changelog Modal */}
       {showVersionModal && (
@@ -2993,7 +3102,23 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Quick Test Lab Access Button */}
+          <button
+            onClick={() => setShowTestLabModal(true)}
+            className={`h-10 px-3 flex items-center gap-1.5 glass rounded-full hover:bg-white/10 transition-all text-xs font-semibold cursor-pointer ${
+              devState.mockGemini
+                ? 'border-brand/40 text-brand bg-brand/10 shadow-xs shadow-brand/20'
+                : 'border-white/10 text-white/60 hover:text-white'
+            }`}
+            title={t('billing.dev.panelTitle')}
+          >
+            <FlaskConical className={`w-4 h-4 ${devState.mockGemini ? 'text-brand animate-pulse' : 'text-zinc-400'}`} />
+            <span className="hidden sm:inline text-[11px] font-mono tracking-wider">
+              {devState.mockGemini ? 'Mock Active' : 'Lab'}
+            </span>
+          </button>
+
           {view === 'list' && (
             <>
               <button

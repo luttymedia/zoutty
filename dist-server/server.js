@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
+import { checkGatekeeper, recordUsageIncrement } from './server/gatekeeper.js';
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
@@ -241,6 +242,41 @@ Return ONLY valid JSON matching this schema:
 app.post('/api/gemini/process-single-audio', async (req, res) => {
     try {
         console.log('[/api/gemini/process-single-audio] Request received');
+        const { sessionId, language, filename, base64Audio, mimeType, glossary, danceStyle, mockMode, durationSeconds } = req.body;
+        const authHeader = req.headers.authorization;
+        const devOverride = req.headers['x-dev-override'] || (req.body.devState ? JSON.stringify(req.body.devState) : undefined);
+        // 1. Gatekeeper: Enforce 3-minute hard cap and user tier quotas
+        const gate = await checkGatekeeper(authHeader, 'single_clip', durationSeconds, devOverride);
+        if (!gate.allowed) {
+            console.warn(`[/api/gemini/process-single-audio] Gatekeeper rejected: ${gate.code} - ${gate.error}`);
+            return res.status(gate.statusCode || 403).json(gate);
+        }
+        // 2. Mock Mode: return simulated transcription to save Gemini tokens during testing
+        if (mockMode) {
+            console.log('[/api/gemini/process-single-audio] Gemini Mock Mode active. Simulating AI output (0 tokens used).');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            const style = (!danceStyle || danceStyle.toLowerCase() === 'auto') ? 'Brazilian Zouk' : danceStyle;
+            return res.json({
+                status: 'success',
+                processedAt: new Date().toISOString(),
+                strictSummary: [
+                    "Maintain soft, elastic connection in closed frame.",
+                    "Transfer weight through the balls of the feet on counts 1 and 2."
+                ],
+                expandedInsights: {
+                    drills: ["Basic step practice with eyes closed to internalize rhythm"],
+                    homework: ["5-minute daily balance and footwork routine"],
+                    technicalExpansion: ["Lead turn from torso rotation rather than arm pushing"],
+                    emotionalNotes: ["Great focus on rhythm and partnership breathing!"]
+                },
+                transcript: `Simulated lesson transcript (Mock Mode active): Focus on soft frame connection, weight transfer through the balls of the feet, and fluid timing during the basic ${style} lateral movement.`,
+                detectedStyle: style,
+                mockData: true,
+                tier: gate.tier,
+                usage: gate.usage,
+                limits: gate.limits
+            });
+        }
         const now = Date.now();
         while (audioRequestTimestamps.length > 0 && audioRequestTimestamps[0] < now - RATE_LIMIT_WINDOW_MS) {
             audioRequestTimestamps.shift();
@@ -250,7 +286,6 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
             return res.status(429).json({ error: 'Too many audio requests. Maximum 10 per minute allowed.' });
         }
         audioRequestTimestamps.push(now);
-        const { sessionId, language, filename, base64Audio, mimeType, glossary, danceStyle } = req.body;
         if (!sessionId || !base64Audio) {
             console.error('[/api/gemini/process-single-audio] Missing required fields:', {
                 hasSessionId: !!sessionId,
@@ -291,6 +326,8 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
                 details: geminiError?.message || String(geminiError)
             });
         }
+        // Record database increment on success
+        await recordUsageIncrement(authHeader, 'single_clip');
         const emptyResult = {
             strictSummary: [],
             expandedInsights: { drills: [], homework: [], technicalExpansion: [], emotionalNotes: [] },
@@ -301,7 +338,10 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
             processedAt: new Date().toISOString(),
             ...emptyResult,
             ...result,
-            mockData: false
+            mockData: false,
+            tier: gate.tier,
+            usage: gate.usage,
+            limits: gate.limits
         });
     }
     catch (error) {
@@ -319,6 +359,60 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
 app.post('/api/gemini/process-audio', async (req, res) => {
     try {
         console.log('[/api/gemini/process-audio] Request received');
+        const { sessionId, audios, glossary, danceStyle, availableGlossaries, appLanguage, mockMode, maxAudioDuration } = req.body;
+        const authHeader = req.headers.authorization;
+        const devOverride = req.headers['x-dev-override'] || (req.body.devState ? JSON.stringify(req.body.devState) : undefined);
+        // 1. Gatekeeper: Enforce 3-minute hard cap and user tier quotas
+        const gate = await checkGatekeeper(authHeader, 'consolidation', maxAudioDuration, devOverride);
+        if (!gate.allowed) {
+            console.warn(`[/api/gemini/process-audio] Gatekeeper rejected: ${gate.code} - ${gate.error}`);
+            return res.status(gate.statusCode || 403).json(gate);
+        }
+        // 2. Mock Mode: return simulated consolidated report to save Gemini tokens during testing
+        if (mockMode) {
+            console.log('[/api/gemini/process-audio] Gemini Mock Mode active. Simulating consolidated report (0 tokens used).');
+            await new Promise(resolve => setTimeout(resolve, 1800));
+            const newTranscriptsRecord = {};
+            if (Array.isArray(audios)) {
+                for (let i = 0; i < audios.length; i++) {
+                    const audioId = audios[i]?.audioId || `audio-${i}`;
+                    if (!audios[i]?.transcript) {
+                        newTranscriptsRecord[audioId] = `Simulated transcript for clip ${i + 1} (Mock Mode active): Key technical concepts and movement timing.`;
+                    }
+                }
+            }
+            const style = (!danceStyle || danceStyle.toLowerCase() === 'auto') ? 'Brazilian Zouk' : danceStyle;
+            return res.json({
+                report: {
+                    strictSummary: [
+                        "Maintain soft, elastic connection in closed frame without tension in the shoulders.",
+                        "Initiate lateral steps by shifting body weight smoothly on counts 1 and 2.",
+                        "Use torso rotation rather than arm pushing to indicate direction changes."
+                    ],
+                    expandedInsights: {
+                        drills: [
+                            "Practice 8 counts of basic step in place with eyes closed to build balance and weight sensation.",
+                            "Lead-and-follow resistance drill with a small ball between torsos."
+                        ],
+                        homework: [
+                            "Daily 5-minute footwork drill maintaining constant ground contact."
+                        ],
+                        technicalExpansion: [
+                            "Ensure ribcage leads the turn before the feet step to prevent balance breakdown."
+                        ],
+                        emotionalNotes: [
+                            "Great musicality on the slow sections; focus on breathing together through the transitions."
+                        ]
+                    }
+                },
+                newTranscripts: newTranscriptsRecord,
+                detectedStyle: style,
+                mockData: true,
+                tier: gate.tier,
+                usage: gate.usage,
+                limits: gate.limits
+            });
+        }
         const now = Date.now();
         while (audioRequestTimestamps.length > 0 && audioRequestTimestamps[0] < now - RATE_LIMIT_WINDOW_MS) {
             audioRequestTimestamps.shift();
@@ -328,7 +422,6 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             return res.status(429).json({ error: 'Too many audio requests. Maximum 10 per minute allowed.' });
         }
         audioRequestTimestamps.push(now);
-        const { sessionId, audios, glossary, danceStyle, availableGlossaries, appLanguage } = req.body;
         if (!sessionId || !audios || !Array.isArray(audios)) {
             console.error('[/api/gemini/process-audio] Invalid payload:', { sessionId, audiosType: typeof audios });
             return res.status(400).json({ error: 'Invalid payload: sessionId and audios array are required' });
@@ -385,6 +478,8 @@ app.post('/api/gemini/process-audio', async (req, res) => {
         console.log(`[/api/gemini/process-audio] Total transcripts gathered: ${allTranscripts.length}. Synthesizing...`);
         // 3. Synthesize the final consolidated report
         const reportResult = await consolidateTranscriptsWithGemini(allTranscripts, activeGlossary, activeStyle, appLanguage);
+        // Record database increment on success
+        await recordUsageIncrement(authHeader, 'consolidation');
         let finalDetectedStyle = detectedStyleName;
         if (reportResult && reportResult.detectedStyle) {
             finalDetectedStyle = reportResult.detectedStyle;
@@ -393,7 +488,10 @@ app.post('/api/gemini/process-audio', async (req, res) => {
         return res.json({
             report: reportResult,
             newTranscripts: newTranscriptsRecord,
-            detectedStyle: finalDetectedStyle
+            detectedStyle: finalDetectedStyle,
+            tier: gate.tier,
+            usage: gate.usage,
+            limits: gate.limits
         });
     }
     catch (error) {

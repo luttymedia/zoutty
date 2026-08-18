@@ -1,3 +1,6 @@
+import { getDevState, saveDevState } from './devLab';
+import { supabase } from './supabase';
+
 const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -34,11 +37,24 @@ export const callZoukAudioProcessor = async (payload: {
     console.log('[mcp] Base64 length:', base64Audio.length);
     console.log('[mcp] Base64 head:', base64Audio.slice(0, 40));
 
+    const dev = getDevState();
+    const isMock = dev.mockGemini;
+
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-dev-override': JSON.stringify(dev),
+    };
+
+    try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.access_token) {
+            headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
+        }
+    } catch (_) {}
+
     const response = await fetch('/api/gemini/process-single-audio', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
             sessionId: payload.sessionId,
             language: payload.language,
@@ -46,7 +62,8 @@ export const callZoukAudioProcessor = async (payload: {
             base64Audio,
             mimeType,
             glossary: payload.glossary,
-            danceStyle: payload.danceStyle
+            danceStyle: payload.danceStyle,
+            mockMode: isMock
         }),
         signal: payload.signal
     });
@@ -70,6 +87,15 @@ export const callZoukAudioProcessor = async (payload: {
         throw new Error(errorMessage);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    if (isMock) {
+        saveDevState({
+            lifetime_clips: dev.lifetime_clips + 1
+        });
+    }
+
+    return data;
 };
+
 

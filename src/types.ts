@@ -101,3 +101,83 @@ export interface SessionMedia {
   deleted?: boolean;
 }
 
+// ─── Monetization, Tiers & Billing Types ─────────────────────────────────────
+
+export type UserTier = 'free' | 'student' | 'teacher';
+
+export type SubscriptionStatus =
+  | 'none'
+  | 'active'
+  | 'trialing'
+  | 'past_due'
+  | 'canceled'
+  | 'unpaid';
+
+export interface UserProfile {
+  id: string;
+  tier: UserTier;
+  subscription_status: SubscriptionStatus;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  current_period_end?: string | null;
+  cancel_at_period_end: boolean;
+  referral_code: string;
+  referred_by?: string | null;
+  referral_boost_expires_at?: string | null;
+  referral_boost_extra_sessions: number;
+  referral_boost_extra_clips: number;
+  referral_credits_balance: number; // count of €1 discount units remaining
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UsageTracking {
+  user_id: string;
+  lifetime_sessions: number;
+  lifetime_clips: number;
+  period_sessions: number;
+  period_start: string;
+  period_end?: string | null;
+  updated_at: string;
+}
+
+export interface ReferralLog {
+  id: string;
+  referrer_id?: string | null;
+  referred_user_id: string;
+  reward_type: 'free_boost' | 'student_credit' | 'teacher_credit';
+  reward_value: number;
+  status: 'pending' | 'active' | 'revoked';
+  stripe_invoice_id?: string | null;
+  created_at: string;
+  activated_at?: string | null;
+  revoked_at?: string | null;
+}
+
+export const TIER_LIMITS = {
+  MAX_CLIP_DURATION_SECONDS: 180, // 3 minutes hard cap
+  CLIP_WARNING_SECONDS: 150, // 2:30 warning
+  CLIP_COUNTDOWN_SECONDS: 170, // 2:50 countdown start (10s before 180)
+  free: {
+    lifetime_sessions: 3,
+    lifetime_clips: 15,
+  },
+  student: {
+    monthly_sessions: 20,
+    price_eur: 2.99,
+    referral_discount_per_month_eur: 1.0,
+  },
+  teacher: {
+    monthly_sessions: 100,
+    price_eur: 12.99,
+    referral_credit_eur: 2.0,
+    max_monthly_credit_eur: 8.0,
+  },
+  referral_boost: {
+    duration_days: 10,
+    extra_sessions: 2,
+    extra_clips: 10,
+  },
+} as const;
+
+

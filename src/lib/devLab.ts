@@ -1,0 +1,85 @@
+import { UserTier, SubscriptionStatus, TIER_LIMITS } from '../types';
+
+export interface DevState {
+  mockGemini: boolean;
+  tier: UserTier;
+  subscription_status: SubscriptionStatus;
+  lifetime_sessions: number;
+  lifetime_clips: number;
+  period_sessions: number;
+  referral_boost_active: boolean;
+  referral_boost_expires_at: string | null;
+  referral_boost_extra_sessions: number;
+  referral_boost_extra_clips: number;
+  referral_credits_balance: number;
+}
+
+const STORAGE_KEY = 'zoutty_dev_state';
+
+export const DEFAULT_DEV_STATE: DevState = {
+  mockGemini: false,
+  tier: 'free',
+  subscription_status: 'none',
+  lifetime_sessions: 0,
+  lifetime_clips: 0,
+  period_sessions: 0,
+  referral_boost_active: false,
+  referral_boost_expires_at: null,
+  referral_boost_extra_sessions: 0,
+  referral_boost_extra_clips: 0,
+  referral_credits_balance: 0,
+};
+
+export const getDevState = (): DevState => {
+  if (typeof window === 'undefined') return DEFAULT_DEV_STATE;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_DEV_STATE;
+    return { ...DEFAULT_DEV_STATE, ...JSON.parse(raw) };
+  } catch (e) {
+    console.warn('[DevLab] Failed to parse dev state, using defaults:', e);
+    return DEFAULT_DEV_STATE;
+  }
+};
+
+export const saveDevState = (updates: Partial<DevState>): DevState => {
+  const current = getDevState();
+  const next = { ...current, ...updates };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent('zoutty-dev-state-changed', { detail: next }));
+  } catch (e) {
+    console.error('[DevLab] Failed to save dev state:', e);
+  }
+  return next;
+};
+
+export const resetDevState = (): DevState => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DEV_STATE));
+    window.dispatchEvent(new CustomEvent('zoutty-dev-state-changed', { detail: DEFAULT_DEV_STATE }));
+  } catch (e) {
+    console.error('[DevLab] Failed to reset dev state:', e);
+  }
+  return DEFAULT_DEV_STATE;
+};
+
+export const inject10DayBoost = (): DevState => {
+  const expires = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString();
+  return saveDevState({
+    referral_boost_active: true,
+    referral_boost_expires_at: expires,
+    referral_boost_extra_sessions: TIER_LIMITS.referral_boost.extra_sessions,
+    referral_boost_extra_clips: TIER_LIMITS.referral_boost.extra_clips,
+  });
+};
+
+export const expireBoostNow = (): DevState => {
+  const past = new Date(Date.now() - 60 * 1000).toISOString();
+  return saveDevState({
+    referral_boost_active: false,
+    referral_boost_expires_at: past,
+    referral_boost_extra_sessions: 0,
+    referral_boost_extra_clips: 0,
+  });
+};
