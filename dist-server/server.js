@@ -4,7 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { checkGatekeeper, recordUsageIncrement } from './server/gatekeeper.js';
-import { createCheckoutSession, createPortalSession, handleStripeWebhook } from './server/stripe.js';
+import { createCheckoutSession, createTopupCheckoutSession, createPortalSession, handleStripeWebhook, getAuthenticatedUser, confirmCheckoutSession } from './server/stripe.js';
+import { redeemReferralCode, getReferralStats, backfillMissingReferralCodes } from './server/referrals.js';
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
@@ -583,6 +584,51 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
         });
     }
 });
+// Stripe Confirm Checkout Session Route (Client-side sync on return)
+app.post('/api/stripe/confirm-session', async (req, res) => {
+    try {
+        const { sessionId, tier } = req.body;
+        const authHeader = req.headers.authorization;
+        const result = await confirmCheckoutSession({
+            sessionId,
+            targetTier: tier,
+            authHeader,
+        });
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/confirm-session] Error:', error);
+        return res.status(500).json({ error: error?.message || 'Failed to confirm session' });
+    }
+});
+// Stripe Create One-Time Top-Up Checkout Route (+10 Sessions, +100 Clips for €3.99)
+app.post('/api/stripe/create-topup-checkout', async (req, res) => {
+    try {
+        console.log('[/api/stripe/create-topup-checkout] Request received');
+        const { successUrl, cancelUrl } = req.body;
+        const authHeader = req.headers.authorization;
+        const devOverride = req.headers['x-dev-override'] || (req.body.devState ? JSON.stringify(req.body.devState) : undefined);
+        const host = req.get('host') || 'localhost:8181';
+        const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+        const baseUrl = `${protocol}://${host}`;
+        const result = await createTopupCheckoutSession({
+            successUrl,
+            cancelUrl,
+            baseUrl,
+            authHeader,
+            devOverride,
+        });
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/create-topup-checkout] Error:', error);
+        const statusCode = error?.statusCode || 500;
+        return res.status(statusCode).json({
+            error: error?.error || error?.message || 'Failed to create top-up checkout session',
+            details: error?.details || String(error),
+        });
+    }
+});
 // Stripe Create Customer Portal Session Route
 app.post('/api/stripe/create-portal-session', async (req, res) => {
     try {
@@ -608,6 +654,44 @@ app.post('/api/stripe/create-portal-session', async (req, res) => {
         });
     }
 });
+// Referral Redeem Route
+app.post('/api/referrals/redeem', async (req, res) => {
+    try {
+        const { referralCode } = req.body;
+        const authHeader = req.headers.authorization;
+        const user = await getAuthenticatedUser(authHeader);
+        if (!user) {
+            return res.status(401).json({ error: 'Authentication required to redeem referral code.' });
+        }
+        const result = await redeemReferralCode(user.id, referralCode);
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/referrals/redeem] Error:', error);
+        return res.status(500).json({ error: error?.message || 'Failed to redeem referral code' });
+    }
+});
+// Referral Stats Route
+app.get('/api/referrals/stats', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const user = await getAuthenticatedUser(authHeader);
+        if (!user) {
+            return res.status(401).json({ error: 'Authentication required to fetch referral stats.' });
+        }
+        const stats = await getReferralStats(user.id);
+        return res.json(stats);
+    }
+    catch (error) {
+        console.error('[/api/referrals/stats] Error:', error);
+        return res.status(500).json({ error: error?.message || 'Failed to fetch referral stats' });
+    }
+});
+// Backfill missing referral codes for existing users in background
+backfillMissingReferralCodes().catch(err => console.warn('[server] Referral code backfill error:', err));
 // Serve frontend assets (Development mode)
 if (process.env.NODE_ENV !== 'production') {
     console.log('[server] Mounting Vite dev middleware...');

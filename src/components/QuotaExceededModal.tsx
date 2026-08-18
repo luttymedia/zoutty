@@ -22,6 +22,7 @@ interface QuotaExceededModalProps {
   resetDate?: string | null;
   onUpgradeClick: (targetTier?: 'student' | 'teacher') => void;
   onReferralClick: () => void;
+  onTopupClick?: () => void;
 }
 
 export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
@@ -33,6 +34,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
   resetDate,
   onUpgradeClick,
   onReferralClick,
+  onTopupClick,
 }) => {
   const { t, uiLanguage } = useTranslation();
 
@@ -187,6 +189,30 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
 
         {/* Action Buttons */}
         <div className="space-y-2.5">
+          {/* For Paid Users (Student & Teacher), offer one-time Top-Up Pack */}
+          {!isFree && onTopupClick && (
+            <button
+              onClick={() => {
+                onClose();
+                onTopupClick();
+              }}
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-zinc-950 text-xs font-extrabold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-between group cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-zinc-950/20 flex items-center justify-center">
+                  <Zap className="w-4 h-4 fill-zinc-950 text-zinc-950" />
+                </div>
+                <div className="text-left">
+                  <span className="font-extrabold block text-xs">{t('billing.topup.buyBtn')}</span>
+                  <span className="block text-[10px] font-medium text-zinc-900/80">{t('billing.topup.noExpireNote')}</span>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-lg bg-zinc-950/15 text-zinc-950 text-xs font-mono font-black shrink-0 ml-2">
+                {t('billing.topup.price')}
+              </span>
+            </button>
+          )}
+
           {/* For Student tier, show direct Upgrade to Teacher button */}
           {isStudent && (
             <button
@@ -194,11 +220,13 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                 onClose();
                 onUpgradeClick('teacher');
               }}
-              className="w-full py-3.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-sm font-bold shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold transition-all flex items-center justify-between group cursor-pointer"
             >
-              <Zap className="w-4 h-4 fill-zinc-950" />
-              <span>{t('billing.limits.unlockTeacherHeading', { price: t('billing.plans.teacherPrice') })}</span>
-              <ArrowRight className="w-4 h-4" />
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-sky-400" />
+                <span>{t('billing.limits.unlockTeacherHeading', { price: t('billing.plans.teacherPrice') })}</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-sky-400 group-hover:translate-x-1 transition-all" />
             </button>
           )}
 
@@ -208,7 +236,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
               onClose();
               onReferralClick();
             }}
-            className="w-full py-3 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
           >
             <Gift className="w-4 h-4 text-purple-400" />
             <span>

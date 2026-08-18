@@ -21,6 +21,8 @@ create table if not exists public.profiles (
   referral_boost_extra_sessions integer default 0 not null,
   referral_boost_extra_clips integer default 0 not null,
   referral_credits_balance integer default 0 not null, -- count of €1 discount units remaining
+  topup_extra_sessions integer default 0 not null, -- non-expiring one-time top-up sessions
+  topup_extra_clips integer default 0 not null, -- non-expiring one-time top-up clips
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -43,8 +45,9 @@ create table if not exists public.referral_logs (
   referred_user_id uuid references auth.users(id) on delete cascade not null,
   reward_type text check (reward_type in ('free_boost', 'student_credit', 'teacher_credit')) not null,
   reward_value numeric default 0 not null,
-  status text check (status in ('pending', 'active', 'revoked')) default 'pending' not null,
+  status text check (status in ('pending', 'pending_refund_period', 'active', 'revoked')) default 'pending' not null,
   stripe_invoice_id text,
+  paid_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   activated_at timestamp with time zone,
   revoked_at timestamp with time zone

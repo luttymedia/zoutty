@@ -59,9 +59,10 @@ import { RecordingAutoStoppedModal } from './components/RecordingAutoStoppedModa
 import { PricingModal } from './components/PricingModal';
 import { ReferralModal } from './components/ReferralModal';
 import { SubscriptionSuccessModal } from './components/SubscriptionSuccessModal';
+import { TopupSuccessModal } from './components/TopupSuccessModal';
 import { ManageSubscriptionModal } from './components/ManageSubscriptionModal';
 import { getMediaDuration } from './lib/audioDuration';
-import { openStripeCustomerPortal, startStripeCheckout } from './lib/stripe';
+import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout } from './lib/stripe';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
@@ -315,13 +316,89 @@ export default function App() {
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
   const [showSubscriptionSuccessModal, setShowSubscriptionSuccessModal] = useState<{ isOpen: boolean; tier: UserTier }>({ isOpen: false, tier: 'student' });
+  const [showTopupSuccessModal, setShowTopupSuccessModal] = useState(false);
   const [showManageSubscriptionModal, setShowManageSubscriptionModal] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
   const [showGlossaryModal, setShowGlossaryModal] = useState(false);
   const [editingGlossary, setEditingGlossary] = useState<DanceGlossary | null>(null);
   const [userReferralCode, setUserReferralCode] = useState(() => localStorage.getItem('zoutty_referral_code') || 'ZOU-DANCE');
+  const [referralStats, setReferralStats] = useState<{
+    totalReferrals: number;
+    pendingRefundCount: number;
+    creditsBalance: number;
+    boostActive: boolean;
+    boostExpiresAt: string | null;
+    boostExtraSessions: number;
+    boostExtraClips: number;
+  }>({
+    totalReferrals: 0,
+    pendingRefundCount: 0,
+    creditsBalance: 0,
+    boostActive: false,
+    boostExpiresAt: null,
+    boostExtraSessions: 0,
+    boostExtraClips: 0,
+  });
   const [devState, setDevState] = useState<DevState>(() => getDevState());
   const [showAppSettings, setShowAppSettings] = useState(false);
+
+  const fetchReferralStats = useCallback(async () => {
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const token = currentSession?.access_token;
+      if (!token) return;
+
+      const res = await fetch('/api/referrals/stats', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const stats = await res.json();
+        setReferralStats({
+          totalReferrals: stats.totalReferrals || 0,
+          pendingRefundCount: stats.pendingRefundCount || 0,
+          creditsBalance: stats.creditsBalance || 0,
+          boostActive: stats.boostActive || false,
+          boostExpiresAt: stats.boostExpiresAt || null,
+          boostExtraSessions: stats.boostExtraSessions || 0,
+          boostExtraClips: stats.boostExtraClips || 0,
+        });
+        if (stats.referralCode) {
+          setUserReferralCode(stats.referralCode);
+          localStorage.setItem('zoutty_referral_code', stats.referralCode);
+        }
+      }
+    } catch (err) {
+      console.warn('[Referral] Could not fetch referral stats:', err);
+    }
+  }, []);
+
+  const redeemPendingReferral = useCallback(async (token?: string) => {
+    const pendingCode = localStorage.getItem('zoutty_referral_signup_code');
+    if (!pendingCode) return;
+
+    try {
+      const res = await fetch('/api/referrals/redeem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ referralCode: pendingCode }),
+      });
+      const data = await res.json();
+      localStorage.removeItem('zoutty_referral_signup_code');
+      if (data.success) {
+        showToast(t('billing.referrals.linkedToast'), false, undefined, undefined, undefined, 'success');
+        fetchReferralStats();
+      } else if (data.error && (data.error.includes('own referral code') || data.error.includes('own code'))) {
+        showToast(t('billing.referrals.ownCodeNotice'), false, undefined, undefined, undefined, 'warning');
+      }
+    } catch (err) {
+      console.warn('[Referral] Could not redeem referral code:', err);
+    }
+  }, [fetchReferralStats, t]);
 
   useEffect(() => {
     const handleDevChange = (e: any) => {
@@ -329,11 +406,35 @@ export default function App() {
     };
     window.addEventListener('zoutty-dev-state-changed', handleDevChange);
 
-    // Handle Stripe checkout return params
+    // Handle Stripe checkout return params & Referral URL params
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('checkout_success') === 'true') {
+      
+      // Capture referral link param (?ref=...)
+      const refParam = urlParams.get('ref');
+      if (refParam) {
+        const cleanRef = refParam.trim().toUpperCase();
+        if (cleanRef) {
+          localStorage.setItem('zoutty_referral_signup_code', cleanRef);
+          console.log(`[Referral] Captured referral code from URL: ${cleanRef}`);
+        }
+      }
+
+      if (urlParams.get('topup_success') === 'true') {
+        const current = getDevState();
+        const updated = saveDevState({
+          topup_extra_sessions: (current.topup_extra_sessions || 0) + 10,
+          topup_extra_clips: (current.topup_extra_clips || 0) + 100,
+        });
+        setDevState(updated);
+        setShowTopupSuccessModal(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (urlParams.get('topup_canceled') === 'true') {
+        showToast(t('billing.topup.canceledToast'), false, undefined, undefined, undefined, 'warning');
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (urlParams.get('checkout_success') === 'true') {
         const rawTier = urlParams.get('tier') || '';
+        const sessionId = urlParams.get('session_id') || '';
         // If Stripe appended duplicate query strings (e.g. "student/?checkout_success..."),
         // use .includes() to safely extract the correct tier.
         const targetTier: 'student' | 'teacher' = rawTier.includes('teacher') ? 'teacher' : 'student';
@@ -346,6 +447,22 @@ export default function App() {
         setDevState(updated);
         setShowSubscriptionSuccessModal({ isOpen: true, tier: targetTier });
         window.history.replaceState({}, '', window.location.pathname);
+
+        // Confirm session on backend to immediately update DB & transition referral rewards
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.access_token) {
+            fetch('/api/stripe/confirm-session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ sessionId, tier: targetTier }),
+            })
+              .then(() => fetchReferralStats())
+              .catch((err) => console.warn('[Stripe] Could not confirm session:', err));
+          }
+        });
       } else if (urlParams.get('checkout_canceled') === 'true') {
         showToast(t('billing.plans.checkoutCanceledToast'), false, undefined, undefined, undefined, 'warning');
         window.history.replaceState({}, '', window.location.pathname);
@@ -354,11 +471,17 @@ export default function App() {
         window.history.replaceState({}, '', window.location.pathname);
       }
     } catch (e) {
-      console.warn('[Stripe] Query param parsing error:', e);
+      console.warn('[Stripe/Referral] Query param parsing error:', e);
     }
 
     return () => window.removeEventListener('zoutty-dev-state-changed', handleDevChange);
   }, [t]);
+
+  useEffect(() => {
+    if (showReferralModal) {
+      fetchReferralStats();
+    }
+  }, [showReferralModal, fetchReferralStats]);
   const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -423,6 +546,8 @@ export default function App() {
       if (session) {
         setHasCompletedOnboarding(true);
         handleInitialSyncCheck(session);
+        redeemPendingReferral(session.access_token);
+        fetchReferralStats();
       } else {
         finishInitialSync();
       }
@@ -439,6 +564,8 @@ export default function App() {
       if (session) {
         setHasCompletedOnboarding(true);
         handleInitialSyncCheck(session);
+        redeemPendingReferral(session.access_token);
+        fetchReferralStats();
       } else {
         finishInitialSync();
       }
@@ -1804,9 +1931,54 @@ export default function App() {
       if (controller.signal.aborted) return;
 
       if (currentDev.mockGemini) {
+        const isFree = currentDev.tier === 'free';
+        const isStudent = currentDev.tier === 'student';
+        const isTeacher = currentDev.tier === 'teacher';
+        const clipsCount = sessionAudios.length;
+
+        // 1. Session deduction (1 consolidation = 1 session)
+        const baseSessionLimit = isStudent ? TIER_LIMITS.student.monthly_sessions : isTeacher ? TIER_LIMITS.teacher.monthly_sessions : TIER_LIMITS.free.lifetime_sessions;
+        const isBeyondBaseSessions = !isFree && currentDev.period_sessions >= baseSessionLimit;
+        const hasTopupSessions = (currentDev.topup_extra_sessions || 0) > 0;
+
+        let nextTopupSessions = currentDev.topup_extra_sessions || 0;
+        let nextPeriodSessions = currentDev.period_sessions || 0;
+
+        if (isBeyondBaseSessions && hasTopupSessions) {
+          nextTopupSessions = Math.max(0, nextTopupSessions - 1);
+        } else {
+          nextPeriodSessions = nextPeriodSessions + 1;
+        }
+
+        // 2. Clips deduction (clipsCount clips are processed during consolidation)
+        let nextTopupClips = currentDev.topup_extra_clips || 0;
+        let nextPeriodClips = currentDev.period_clips || 0;
+        const baseClipLimit = isStudent ? TIER_LIMITS.student.monthly_clips : TIER_LIMITS.free.lifetime_clips;
+
+        if (isFree) {
+          // Free tier tracks lifetime_clips
+        } else if (isStudent) {
+          const currentPeriodClips = currentDev.period_clips || 0;
+          const spaceInBase = Math.max(0, baseClipLimit - currentPeriodClips);
+
+          if (clipsCount <= spaceInBase) {
+            nextPeriodClips = currentPeriodClips + clipsCount;
+          } else {
+            nextPeriodClips = baseClipLimit;
+            const overflowClips = clipsCount - spaceInBase;
+            nextTopupClips = Math.max(0, nextTopupClips - overflowClips);
+          }
+        } else if (isTeacher) {
+          nextPeriodClips = (currentDev.period_clips || 0) + clipsCount;
+        }
+
         saveDevState({
-          lifetime_sessions: currentDev.lifetime_sessions + 1,
-          period_sessions: currentDev.period_sessions + 1,
+          topup_extra_sessions: nextTopupSessions,
+          topup_extra_clips: nextTopupClips,
+          period_sessions: nextPeriodSessions,
+          period_clips: nextPeriodClips,
+          lifetime_sessions: (currentDev.lifetime_sessions || 0) + 1,
+          lifetime_clips: (currentDev.lifetime_clips || 0) + clipsCount,
         });
       }
 
@@ -2247,17 +2419,29 @@ export default function App() {
                 const isStudent = currentTier === 'student';
                 const isTeacher = currentTier === 'teacher';
 
-                const isBoost = Boolean(devState.referral_boost_active && devState.referral_boost_expires_at && new Date(devState.referral_boost_expires_at).getTime() > Date.now());
+                const isBoost = Boolean(
+                  isFree &&
+                  devState.referral_boost_active &&
+                  devState.referral_boost_expires_at &&
+                  new Date(devState.referral_boost_expires_at).getTime() > Date.now()
+                );
+                const topupSessions = !isFree ? (devState.topup_extra_sessions || 0) : 0;
+                const topupClips = !isFree ? (devState.topup_extra_clips || 0) : 0;
+
+                const boostSessions = isBoost ? (devState.referral_boost_extra_sessions || TIER_LIMITS.referral_boost.extra_sessions) : 0;
+                const boostClips = isBoost ? (devState.referral_boost_extra_clips || TIER_LIMITS.referral_boost.extra_clips) : 0;
+
                 const maxSessions = isFree
-                  ? (TIER_LIMITS.free.lifetime_sessions + (isBoost ? devState.referral_boost_extra_sessions || TIER_LIMITS.referral_boost.extra_sessions : 0))
+                  ? (TIER_LIMITS.free.lifetime_sessions + boostSessions)
                   : isStudent
-                  ? TIER_LIMITS.student.monthly_sessions
-                  : TIER_LIMITS.teacher.monthly_sessions;
+                  ? TIER_LIMITS.student.monthly_sessions + topupSessions
+                  : TIER_LIMITS.teacher.monthly_sessions + topupSessions;
                 const currentSessions = isFree ? (devState.lifetime_sessions || 0) : (devState.period_sessions || 0);
+
                 const maxClips = isFree
-                  ? (TIER_LIMITS.free.lifetime_clips + (isBoost ? devState.referral_boost_extra_clips || TIER_LIMITS.referral_boost.extra_clips : 0))
+                  ? (TIER_LIMITS.free.lifetime_clips + boostClips)
                   : isStudent
-                  ? TIER_LIMITS.student.monthly_clips
+                  ? TIER_LIMITS.student.monthly_clips + topupClips
                   : Infinity;
                 const currentClips = isFree ? (devState.lifetime_clips || 0) : (devState.period_clips || 0);
                 const nextResetDate = new Intl.DateTimeFormat(uiLanguage === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
@@ -2350,40 +2534,97 @@ export default function App() {
 
                       {/* Active Referral Boost (Free Users) */}
                       {isFree && isBoost && (
-                        <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-medium flex items-center gap-1.5">
-                          <Gift className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                          <span>{t('billing.usage.referralBoostActive', { sessions: devState.referral_boost_extra_sessions || 2, clips: devState.referral_boost_extra_clips || 10 })}</span>
+                        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-medium flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Gift className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                            <span>{t('billing.usage.referralBoostActive', { sessions: devState.referral_boost_extra_sessions || 2, clips: devState.referral_boost_extra_clips || 10 })}</span>
+                          </div>
+                          {devState.referral_boost_expires_at && (
+                            <span className="text-[10px] text-purple-300/80 font-normal">
+                              {t('billing.usage.boostExpiresOn', {
+                                date: new Date(devState.referral_boost_expires_at).toLocaleDateString(),
+                                days: Math.max(1, Math.ceil((new Date(devState.referral_boost_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Banked Top-Up Allowance */}
+                      {topupSessions > 0 && (
+                        <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-medium flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>{t('billing.topup.badge', { count: topupSessions })}</span>
+                          </div>
+                          <span className="text-[10px] text-emerald-400/80 font-medium">
+                            {t('billing.topup.noExpireNote')}
+                          </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Upgrade & Referral Trigger Buttons */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setShowAppSettings(false);
-                          if (devState.tier === 'free') {
-                            setShowPricingModal(true);
-                          } else {
-                            setShowManageSubscriptionModal(true);
-                          }
-                        }}
-                        className="flex-1 py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                      >
-                        <Zap className="w-3.5 h-3.5 fill-zinc-950" />
-                        <span>{devState.tier === 'free' ? t('billing.limits.upgradeAction') : t('billing.plans.manageSubscription')}</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowAppSettings(false);
-                          setShowReferralModal(true);
-                        }}
-                        className="py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                        title={t('billing.referrals.title')}
-                      >
-                        <Gift className="w-3.5 h-3.5 text-purple-400" />
-                        <span className="hidden sm:inline">{t('billing.referrals.title')}</span>
-                      </button>
+                    {/* Action Trigger Buttons */}
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setShowAppSettings(false);
+                            if (devState.tier === 'free') {
+                              setShowPricingModal(true);
+                            } else {
+                              setShowManageSubscriptionModal(true);
+                            }
+                          }}
+                          className="flex-1 py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                        >
+                          <Zap className="w-3.5 h-3.5 fill-zinc-950" />
+                          <span>{devState.tier === 'free' ? t('billing.limits.upgradeAction') : t('billing.plans.manageSubscription')}</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAppSettings(false);
+                            setShowReferralModal(true);
+                          }}
+                          className="py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          title={t('billing.referrals.title')}
+                        >
+                          <Gift className="w-3.5 h-3.5 text-purple-400" />
+                          <span className="hidden sm:inline">{devState.tier === 'free' ? t('billing.limits.referralAction') : t('billing.referrals.title')}</span>
+                        </button>
+                      </div>
+
+                      {/* Prominent Boost Button for Free Tier when limits are reached */}
+                      {isFree && currentSessions >= maxSessions && (
+                        <button
+                          onClick={() => {
+                            setShowAppSettings(false);
+                            setShowReferralModal(true);
+                          }}
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600/20 to-purple-500/10 hover:from-purple-600/30 hover:to-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                        >
+                          <Gift className="w-4 h-4 text-purple-400" />
+                          <span>{t('billing.limits.referralAction')}</span>
+                        </button>
+                      )}
+
+                      {/* Top-Up Pack Button for paying users */}
+                      {!isFree && (
+                        <button
+                          onClick={async () => {
+                            setShowAppSettings(false);
+                            showToast(t('billing.plans.checkoutRedirecting'));
+                            const res = await startTopupCheckout();
+                            if (!res.success && res.error) {
+                              showToast(res.error, false, undefined, undefined, undefined, 'error');
+                            }
+                          }}
+                          className="w-full py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                        >
+                          <Zap className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
+                          <span>{t('billing.topup.buttonSettings')}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -2767,6 +3008,14 @@ export default function App() {
           setShowQuotaModal({ isOpen: false, reason: 'sessions' });
           setShowReferralModal(true);
         }}
+        onTopupClick={async () => {
+          setShowQuotaModal(prev => ({ ...prev, isOpen: false }));
+          showToast(t('billing.plans.checkoutRedirecting'));
+          const res = await startTopupCheckout();
+          if (!res.success && res.error) {
+            showToast(res.error, false, undefined, undefined, undefined, 'error');
+          }
+        }}
       />
 
       {/* Audio Duration Exceeded Modal */}
@@ -2789,9 +3038,19 @@ export default function App() {
         onClose={() => setShowReferralModal(false)}
         tier={devState.tier}
         referralCode={userReferralCode}
-        boostActive={devState.referral_boost_active}
-        boostExpiresAt={devState.referral_boost_expires_at}
-        creditsBalance={devState.referral_credits_balance}
+        boostActive={devState.referral_boost_active || referralStats.boostActive}
+        boostExpiresAt={devState.referral_boost_expires_at || referralStats.boostExpiresAt}
+        boostExtraSessions={devState.referral_boost_extra_sessions || referralStats.boostExtraSessions}
+        boostExtraClips={devState.referral_boost_extra_clips || referralStats.boostExtraClips}
+        creditsBalance={devState.referral_credits_balance || referralStats.creditsBalance}
+        totalReferrals={referralStats.totalReferrals}
+        pendingRefundCount={referralStats.pendingRefundCount}
+      />
+
+      {/* Top-Up Purchase Success Modal */}
+      <TopupSuccessModal
+        isOpen={showTopupSuccessModal}
+        onClose={() => setShowTopupSuccessModal(false)}
       />
 
       {/* Version & Changelog Modal */}

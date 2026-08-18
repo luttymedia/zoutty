@@ -13,6 +13,8 @@ export interface DevState {
   referral_boost_extra_sessions: number;
   referral_boost_extra_clips: number;
   referral_credits_balance: number;
+  topup_extra_sessions: number;
+  topup_extra_clips: number;
 }
 
 const STORAGE_KEY = 'zoutty_dev_state';
@@ -30,6 +32,8 @@ export const DEFAULT_DEV_STATE: DevState = {
   referral_boost_extra_sessions: 0,
   referral_boost_extra_clips: 0,
   referral_credits_balance: 0,
+  topup_extra_sessions: 0,
+  topup_extra_clips: 0,
 };
 
 export const getDevState = (): DevState => {
@@ -67,12 +71,27 @@ export const resetDevState = (): DevState => {
 };
 
 export const inject10DayBoost = (): DevState => {
-  const expires = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString();
+  const current = getDevState();
+  const now = Date.now();
+  const hasActiveBoost = Boolean(
+    current.referral_boost_active &&
+    current.referral_boost_expires_at &&
+    new Date(current.referral_boost_expires_at).getTime() > now
+  );
+
+  // If already active, stack capacity (+2 / +10) but KEEP existing expiry (Non-stackable in time)
+  const expires = hasActiveBoost
+    ? current.referral_boost_expires_at!
+    : new Date(now + 10 * 24 * 60 * 60 * 1000).toISOString();
+
+  const extraSessions = (hasActiveBoost ? (current.referral_boost_extra_sessions || 0) : 0) + TIER_LIMITS.referral_boost.extra_sessions;
+  const extraClips = (hasActiveBoost ? (current.referral_boost_extra_clips || 0) : 0) + TIER_LIMITS.referral_boost.extra_clips;
+
   return saveDevState({
     referral_boost_active: true,
     referral_boost_expires_at: expires,
-    referral_boost_extra_sessions: TIER_LIMITS.referral_boost.extra_sessions,
-    referral_boost_extra_clips: TIER_LIMITS.referral_boost.extra_clips,
+    referral_boost_extra_sessions: extraSessions,
+    referral_boost_extra_clips: extraClips,
   });
 };
 

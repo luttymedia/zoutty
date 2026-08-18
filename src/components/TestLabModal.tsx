@@ -50,13 +50,10 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
 
   const handleSave = () => {
     const updated = saveDevState(devState);
-    setSavedSuccess(true);
     if (onStateApplied) {
       onStateApplied(updated);
     }
-    setTimeout(() => {
-      setSavedSuccess(false);
-    }, 2500);
+    onClose();
   };
 
   const handleReset = () => {
@@ -72,7 +69,22 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
   };
 
   const applyPreset = (preset: Partial<DevState>) => {
-    const next = { ...devState, ...preset };
+    const next: DevState = {
+      ...devState,
+      // Default clean counters/boosts/topups for presets unless explicitly specified in preset
+      lifetime_sessions: 0,
+      lifetime_clips: 0,
+      period_sessions: 0,
+      period_clips: 0,
+      referral_boost_active: false,
+      referral_boost_expires_at: null,
+      referral_boost_extra_sessions: 0,
+      referral_boost_extra_clips: 0,
+      topup_extra_sessions: 0,
+      topup_extra_clips: 0,
+      referral_credits_balance: 0,
+      ...preset,
+    };
     setDevState(next);
     saveDevState(next);
     setSavedSuccess(true);
@@ -185,7 +197,15 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     subscription_status: 'none',
                     lifetime_sessions: 0,
                     lifetime_clips: 0,
+                    period_sessions: 0,
+                    period_clips: 0,
                     referral_boost_active: false,
+                    referral_boost_expires_at: null,
+                    referral_boost_extra_sessions: 0,
+                    referral_boost_extra_clips: 0,
+                    topup_extra_sessions: 0,
+                    topup_extra_clips: 0,
+                    referral_credits_balance: 0,
                   })
                 }
                 className="p-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-left transition-all text-xs font-semibold text-white/90 hover:border-brand/40"
@@ -200,7 +220,8 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     subscription_status: 'none',
                     lifetime_sessions: 2,
                     lifetime_clips: 14,
-                    referral_boost_active: false,
+                    period_sessions: 0,
+                    period_clips: 0,
                   })
                 }
                 className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-left transition-all text-xs font-semibold text-amber-300"
@@ -215,7 +236,8 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     subscription_status: 'none',
                     lifetime_sessions: 3,
                     lifetime_clips: 15,
-                    referral_boost_active: false,
+                    period_sessions: 0,
+                    period_clips: 0,
                   })
                 }
                 className="p-2.5 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 text-left transition-all text-xs font-semibold text-red-300"
@@ -228,7 +250,10 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                   applyPreset({
                     tier: 'student',
                     subscription_status: 'active',
+                    lifetime_sessions: 3,
+                    lifetime_clips: 15,
                     period_sessions: 5,
+                    period_clips: 30,
                   })
                 }
                 className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-left transition-all text-xs font-semibold text-amber-300"
@@ -241,7 +266,10 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                   applyPreset({
                     tier: 'teacher',
                     subscription_status: 'active',
+                    lifetime_sessions: 3,
+                    lifetime_clips: 15,
                     period_sessions: 15,
+                    period_clips: 80,
                   })
                 }
                 className="p-2.5 rounded-xl border border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/15 text-left transition-all text-xs font-semibold text-sky-300"
@@ -267,12 +295,18 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
               </label>
               <select
                 value={devState.tier}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const newTier = e.target.value as UserTier;
                   setDevState((prev) => ({
                     ...prev,
-                    tier: e.target.value as UserTier,
-                  }))
-                }
+                    tier: newTier,
+                    subscription_status: newTier === 'free' ? 'none' : 'active',
+                    topup_extra_sessions: newTier === 'free' ? 0 : prev.topup_extra_sessions,
+                    topup_extra_clips: newTier === 'free' ? 0 : (prev.topup_extra_sessions ? prev.topup_extra_sessions * 10 : 0),
+                    referral_boost_active: newTier === 'free' ? prev.referral_boost_active : false,
+                    referral_boost_expires_at: newTier === 'free' ? prev.referral_boost_expires_at : null,
+                  }));
+                }}
                 className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-hidden focus:border-brand"
               >
                 <option value="free">Free (Lifetime Capped)</option>
@@ -321,6 +355,9 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     lifetime_sessions: 0,
                     lifetime_clips: 0,
                     period_sessions: 0,
+                    period_clips: 0,
+                    topup_extra_sessions: 0,
+                    topup_extra_clips: 0,
                   }))
                 }
                 className="text-[11px] text-brand hover:underline font-medium"
@@ -329,11 +366,11 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
               </button>
             </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {/* Lifetime Sessions */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-white/70 block font-medium">
-                  {t('billing.dev.lifetimeSessions')} (Max: {TIER_LIMITS.free.lifetime_sessions})
+                <label className="text-[11px] text-white/70 block font-medium truncate">
+                  {t('billing.dev.lifetimeSessions')}
                 </label>
                 <input
                   type="number"
@@ -346,14 +383,14 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                       lifetime_sessions: Math.max(0, parseInt(e.target.value) || 0),
                     }))
                   }
-                  className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono"
+                  className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-white font-mono text-center"
                 />
               </div>
 
               {/* Lifetime Clips */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-white/70 block font-medium">
-                  {t('billing.dev.lifetimeClips')} (Max: {TIER_LIMITS.free.lifetime_clips})
+                <label className="text-[11px] text-white/70 block font-medium truncate">
+                  {t('billing.dev.lifetimeClips')}
                 </label>
                 <input
                   type="number"
@@ -366,14 +403,14 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                       lifetime_clips: Math.max(0, parseInt(e.target.value) || 0),
                     }))
                   }
-                  className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono"
+                  className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-white font-mono text-center"
                 />
               </div>
 
               {/* Period Sessions */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-white/70 block font-medium">
-                  {t('billing.dev.periodSessions')} (Monthly)
+                <label className="text-[11px] text-white/70 block font-medium truncate">
+                  {t('billing.dev.periodSessions')}
                 </label>
                 <input
                   type="number"
@@ -386,7 +423,27 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                       period_sessions: Math.max(0, parseInt(e.target.value) || 0),
                     }))
                   }
-                  className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono"
+                  className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-white font-mono text-center"
+                />
+              </div>
+
+              {/* Period Clips */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] text-white/70 block font-medium truncate">
+                  {t('billing.dev.periodClips')}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  value={devState.period_clips || 0}
+                  onChange={(e) =>
+                    setDevState((prev) => ({
+                      ...prev,
+                      period_clips: Math.max(0, parseInt(e.target.value) || 0),
+                    }))
+                  }
+                  className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-white font-mono text-center"
                 />
               </div>
             </div>
@@ -426,6 +483,56 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                   >
                     {t('billing.dev.expireBoost')}
                   </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-[10px] text-white/50 block mb-1">
+                      {t('billing.dev.extraBoostSessions')}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="2"
+                      value={devState.referral_boost_extra_sessions || 0}
+                      onChange={(e) => {
+                        const val = Math.max(0, parseInt(e.target.value) || 0);
+                        setDevState((prev) => ({
+                          ...prev,
+                          referral_boost_extra_sessions: val,
+                          referral_boost_active: val > 0,
+                          referral_boost_expires_at:
+                            val > 0 && (!prev.referral_boost_expires_at || new Date(prev.referral_boost_expires_at).getTime() < Date.now())
+                              ? new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString()
+                              : prev.referral_boost_expires_at,
+                        }));
+                      }}
+                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/50 block mb-1">
+                      {t('billing.dev.extraBoostClips')}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="10"
+                      value={devState.referral_boost_extra_clips || 0}
+                      onChange={(e) => {
+                        const val = Math.max(0, parseInt(e.target.value) || 0);
+                        setDevState((prev) => ({
+                          ...prev,
+                          referral_boost_extra_clips: val,
+                          referral_boost_active: val > 0,
+                          referral_boost_expires_at:
+                            val > 0 && (!prev.referral_boost_expires_at || new Date(prev.referral_boost_expires_at).getTime() < Date.now())
+                              ? new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString()
+                              : prev.referral_boost_expires_at,
+                        }));
+                      }}
+                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
+                    />
+                  </div>
                 </div>
                 <div className="text-[10px] text-white/40">
                   {isBoostActive
@@ -474,6 +581,60 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     className="w-9 h-9 rounded-lg bg-zinc-900 border border-white/10 text-white font-bold hover:bg-white/10"
                   >
                     +
+                  </button>
+                </div>
+              </div>
+
+              {/* Top-Up Banked Quota */}
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                <div className="text-[11px] text-white/70 font-medium">
+                  {t('billing.dev.topupSessionsLabel')}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDevState((prev) => ({
+                        ...prev,
+                        topup_extra_sessions: Math.max(
+                          0,
+                          (prev.topup_extra_sessions || 0) - 1
+                        ),
+                      }))
+                    }
+                    className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/10 text-white text-xs font-bold hover:bg-white/10"
+                    title="-1"
+                  >
+                    -1
+                  </button>
+                  <input
+                    type="number"
+                    min="0"
+                    value={devState.topup_extra_sessions || 0}
+                    onChange={(e) => {
+                      const val = Math.max(0, parseInt(e.target.value) || 0);
+                      setDevState((prev) => ({
+                        ...prev,
+                        topup_extra_sessions: val,
+                        topup_extra_clips: val * 10,
+                      }));
+                    }}
+                    className="flex-1 bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-center font-mono font-bold text-base text-emerald-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDevState((prev) => ({
+                        ...prev,
+                        topup_extra_sessions:
+                          (prev.topup_extra_sessions || 0) + 10,
+                        topup_extra_clips:
+                          (prev.topup_extra_clips || 0) + 100,
+                      }))
+                    }
+                    className="px-2.5 h-8 rounded-lg bg-zinc-900 border border-white/10 text-emerald-400 text-xs font-bold hover:bg-white/10"
+                  >
+                    +10
                   </button>
                 </div>
               </div>

@@ -127,6 +127,8 @@ export interface UserProfile {
   referral_boost_extra_sessions: number;
   referral_boost_extra_clips: number;
   referral_credits_balance: number; // count of €1 discount units remaining
+  topup_extra_sessions: number; // non-expiring one-time top-up sessions
+  topup_extra_clips: number; // non-expiring one-time top-up clips
   created_at: string;
   updated_at: string;
 }
@@ -147,8 +149,9 @@ export interface ReferralLog {
   referred_user_id: string;
   reward_type: 'free_boost' | 'student_credit' | 'teacher_credit';
   reward_value: number;
-  status: 'pending' | 'active' | 'revoked';
+  status: 'pending' | 'pending_refund_period' | 'active' | 'revoked';
   stripe_invoice_id?: string | null;
+  paid_at?: string | null;
   created_at: string;
   activated_at?: string | null;
   revoked_at?: string | null;
@@ -179,6 +182,11 @@ export const TIER_LIMITS = {
     duration_days: 10,
     extra_sessions: 2,
     extra_clips: 10,
+  },
+  topup_pack: {
+    price_eur: 3.99,
+    extra_sessions: 10,
+    extra_clips: 100,
   },
 } as const;
 

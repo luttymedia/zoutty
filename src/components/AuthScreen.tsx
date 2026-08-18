@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, CheckCircle2, Gift } from 'lucide-react';
 import { ZouttyIcon } from './ZouttyIcon';
 import { useTranslation } from '../i18n/TranslationContext';
 import { UI_LANGUAGE_NAMES } from '../i18n';
@@ -11,10 +11,14 @@ interface AuthScreenProps {
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
   const { t, uiLanguage, setUILanguage } = useTranslation();
-  const [isLogin, setIsLogin] = useState(true);
+  const referralSignupCode = typeof window !== 'undefined' ? localStorage.getItem('zoutty_referral_signup_code') : null;
+  // If user landed with a referral code, open directly in "Create Account" mode
+  const [isLogin, setIsLogin] = useState(!referralSignupCode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSignupSuccess, setShowSignupSuccess] = useState(false);
@@ -24,6 +28,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (!isLogin && password !== confirmPassword) {
+      setError(t('auth.passwordsDoNotMatch'));
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isLogin) {
@@ -41,7 +51,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
         setShowSignupSuccess(true);
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      setError(err.message || t('auth.authFailed'));
     } finally {
       setLoading(false);
     }
@@ -54,12 +64,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: window.location.origin,
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline',
+          }
         }
       });
       if (error) throw error;
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || t('auth.authFailed'));
     }
   };
 
@@ -117,9 +131,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           </p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm font-medium">
-            {error}
+        {referralSignupCode && (
+          <div className="mb-5 px-3.5 py-2.5 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-200 text-xs font-medium flex items-center gap-3 shadow-lg shadow-purple-950/30 animate-in fade-in slide-in-from-top-1 duration-300">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
+              <Gift className="w-4 h-4 text-purple-400" />
+            </div>
+            <div className="text-left flex-1 min-w-0">
+              <span className="font-bold text-white block truncate">
+                {t('billing.referrals.invitedByFriendBadge', { code: referralSignupCode })}
+              </span>
+              <span className="text-[11px] text-purple-300/80 block mt-0.5">
+                {isLogin ? t('billing.referrals.invitedSignInNote') : t('billing.referrals.invitedSignUpNote')}
+              </span>
+            </div>
           </div>
         )}
 
@@ -161,10 +185,40 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
             </div>
           </div>
 
+          {!isLogin && (
+            <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">{t('auth.confirmPasswordLabel')}</label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-12 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-xl text-red-300 text-xs font-medium text-center animate-in fade-in slide-in-from-top-1 duration-200">
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand hover:bg-brand/90 text-bg-dark font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
+            className="w-full bg-brand hover:bg-brand/90 text-bg-dark font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70 cursor-pointer"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
               <>
@@ -184,7 +238,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          className="w-full mt-8 bg-white hover:bg-zinc-200 text-black font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-3"
+          className="w-full mt-8 bg-white hover:bg-zinc-200 text-black font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -199,8 +253,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           onClick={() => {
             setIsLogin(!isLogin);
             setError(null);
+            setPassword('');
+            setConfirmPassword('');
           }}
-          className="w-full mt-6 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
+          className="w-full mt-6 text-zinc-400 hover:text-white text-sm font-medium transition-colors cursor-pointer"
         >
           {isLogin ? t('auth.toggleToSignup') : t('auth.toggleToLogin')}
         </button>

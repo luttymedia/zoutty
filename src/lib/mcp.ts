@@ -96,9 +96,23 @@ export const callZoukAudioProcessor = async (payload: {
     const data = await response.json();
 
     if (isMock) {
-        saveDevState({
-            lifetime_clips: dev.lifetime_clips + 1
-        });
+        const isFree = dev.tier === 'free';
+        const isStudent = dev.tier === 'student';
+        const baseClipLimit = isStudent ? 200 : 15;
+        const isBeyondBaseClips = !isFree && (dev.period_clips || 0) >= baseClipLimit;
+        const hasTopupClips = (dev.topup_extra_clips || 0) > 0;
+
+        if (isBeyondBaseClips && hasTopupClips) {
+            saveDevState({
+                topup_extra_clips: Math.max(0, dev.topup_extra_clips - 1),
+                lifetime_clips: dev.lifetime_clips + 1,
+            });
+        } else {
+            saveDevState({
+                lifetime_clips: dev.lifetime_clips + 1,
+                period_clips: (dev.period_clips || 0) + 1,
+            });
+        }
     }
 
     return data;
