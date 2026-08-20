@@ -278,6 +278,10 @@ export const db = {
   // Sessions
   saveSession: (session: Session) => writeToDb('sessions', session),
   getSessions: (includeDeleted = false) => readAllFromDb<Session>('sessions', includeDeleted),
+  getSession: async (id: string, includeDeleted = false) => {
+    const all = await readAllFromDb<Session>('sessions', includeDeleted);
+    return all.find(s => s.id === id);
+  },
   deleteSession: (id: string) => deleteFromDb('sessions', id),
 
   // Audios
@@ -292,6 +296,7 @@ export const db = {
   // Final Reports
   saveFinalReport: (report: FinalReport) => writeToDb('finalReports', report),
   getFinalReports: (includeDeleted = false) => readAllFromDb<FinalReport>('finalReports', includeDeleted),
+  deleteFinalReport: (id: string) => deleteFromDb('finalReports', id),
   getSessionFinalReport: async (sessionId: string, includeDeleted = false) => {
     const all = await readAllFromDb<FinalReport>('finalReports', includeDeleted);
     const sessionReports = all.filter(r => r.sessionId === sessionId);

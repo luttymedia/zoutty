@@ -6,6 +6,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.2.0',
+    date: '2026-08-20',
+    changes: [
+      'Interactive Onboarding Tour: Complete multi-step interactive onboarding guide with targeted spotlights, bouncing indicators, ambient glows, and step-by-step guidance',
+      'Demo Session Sandbox: Introduced automated Demo Session generation with sample audio and consolidated report for immediate sandbox practice',
+      'Replay Tour Option: Added "Replay Onboarding Tour" button to the Settings drawer to relaunch the interactive walkthrough at any time',
+      'Mobile & Tablet Optimization: Responsive clamping, generous clearance, dynamic badge positioning, and flicker-free popover rendering across all device sizes',
+      'Full Localization: Complete English and Spanish translations across all onboarding steps, tooltips, and interactive badges'
+    ]
+  },
+  {
     version: '3.1.0',
     date: '2026-08-20',
     changes: [

@@ -160,7 +160,7 @@ const es: Translations = {
     restoreDbMsg: '¿Quieres reemplazar completamente tu base de datos actual con esta copia, o fusionarla con tus datos existentes?',
     restoreReplaceBtn: 'Reemplazar',
     restoreMergeBtn: 'Fusionar',
-    
+
     // Sync conflict
     syncConflictTitle: 'Conflicto de Sincronización',
     syncConflictMsg: 'Hemos encontrado datos no sincronizados en este dispositivo, pero tu cuenta en la nube ya tiene datos. ¿Cómo quieres proceder?',
@@ -359,7 +359,7 @@ const es: Translations = {
     bannerDesc: "El almacenamiento de tu teléfono está lleno, así que estamos guardando tus sesiones directamente en la nube. ¡Todo está bien! Libera algo de espacio cuando puedas.",
     dismiss: 'Entendido',
     bothFailedTitle: 'Uy, nos quedamos sin salida 😬',
-    bothFailed: "Tu teléfono no tiene almacenamiento y estás sin conexión, así que no pudimos guardar esto. Conéctate a Wi-Fi o libera espacio — cualquiera de las dos funciona. ¡Tus datos estarán seguros!",
+    bothFailed: "Tu teléfono no tiene almacenamiento y estás sin conexión, así que no pudimos guardar esto. Conéctate a Wi-Fi o libera espacio, cualquiera de las dos opciones funciona. ¡Tus datos estarán seguros!",
     bothFailedBtn: 'Entendido',
     cloudSaveFailed: 'No se pudo guardar: sin almacenamiento ni conexión. Inténtalo cuando estés en línea.',
   },
@@ -461,7 +461,7 @@ const es: Translations = {
     cloudBackupDesc: 'Tus datos se respaldan automáticamente en la nube cuando inicias sesión.',
     startExploring: 'Entrar al estudio',
     // Demo content
-    demoSessionTitle: 'Sesión de Guía Práctica',
+    demoSessionTitle: 'Sesión de Demostración',
     demoSessionSubtitle: 'Subtítulo editable de la sesión',
     demoAudioTranscript: 'Esta es una grabación de prueba de una clase de baile. Puedes capturar combinaciones, consejos o correcciones de la clase aquí.',
     demoAudioFilename: 'Audio de Prueba.mp3',
@@ -482,9 +482,55 @@ const es: Translations = {
     demoTooltipGlossary: '💡 Esto detecta el estilo de baile automáticamente y aplica la terminología (glosario) correcta al informe.',
     demoTooltipReprocess: '💡 Esto vuelve a transcribir el audio y extrae el contenido original.',
     demoTooltipReorder: '💡 Puedes reordenar los elementos de esta sesión.',
-    demoTooltipNotes: '💡 Puedes añadir notas personales a tu sesión aquí.',
     hintConsolidation: '💡 ¡Zoutty está listo! Toca el botón de \'Generar informe\' (🪄) al final de tu sesión para consolidar tus grabaciones.',
 
+    // Interactive Tour
+    tourTitleSuffix: 'Tour',
+    tourWelcomeTitle: '¡Te damos la bienvenida a Zoutty! 💃🕺',
+    tourWelcomeSubtitle: 'El sistema de memoria y progresión para clases privadas de baile. Haz un recorrido interactivo rápido para descubrir cómo capturar, organizar y consolidar tus clases.',
+    tourStartBtn: 'Comenzar Tour Interactivo 🚀',
+    tourSkipBtn: 'Saltar Tour',
+    tourNextBtn: 'Siguiente',
+    tourBackBtn: 'Atrás',
+    tourFinishBtn: 'Finalizar Tour 🎉',
+    tourStepIndicator: 'Paso {current} de {total}',
+    tourProTip: 'Consejo Pro',
+    tourClickTargetPrompt: 'Toca para continuar',
+    tourTapBadge: 'Toca',
+
+    step1Title: 'Crear una Nueva Sesión',
+    step1Desc: 'Haz clic en este botón para abrir una nueva sesión. Una sesión es básicamente una clase o práctica.',
+    step1Tip: '¡También puedes organizar tus clases en carpetas personalizadas con "+ Nueva Carpeta"!',
+
+    step2Title: 'Grabar Notas de Voz',
+    step2Desc: 'Haz clic en este botón para grabar una nota de voz sobre combinaciones, correcciones o consejos de musicalidad de tu clase.',
+    step2Tip: '¡También puedes subir archivos de audio, adjuntar fotos/videos y escribir notas editables!',
+
+    step3Title: 'Generar Informe con IA',
+    step3Desc: 'Haz clic en este botón para obtener un informe estructurado completo con IA a partir de tus grabaciones.',
+    step3Tip: '¡No tienes que transcribir cada clip manualmente! Al pulsar Consolidar, Zoutty procesa y sintetiza todos los audios a la vez con terminología de baile.',
+
+    step4Title: 'Exportar y Descargar PDF',
+    step4Desc: 'Puedes descargar un resumen limpio en PDF para repasar sin conexión o compartirlo con tu profesor o alumnos.',
+    step4Tip: 'Los PDF incluyen tus puntos clave, ejercicios, tareas y notas de técnica.',
+
+    step5Title: 'Compartir con Compañeros',
+    step5Desc: 'Si la otra persona tiene Zoutty instalado, puedes compartir la sesión completa con ella, ¡incluyendo todos los audios y archivos multimedia!',
+    step5Tip: 'Comparte al instante mediante un código de 6 caracteres o un enlace directo.',
+
+    step6Title: 'Ajustes y Repetición de la Guía',
+    step6Desc: 'Siempre puedes volver a ver esta guía, cambiar de idioma, gestionar copias en la nube y configurar glosarios en el panel de Ajustes.',
+    step6Tip: '¡Crea glosarios de vocabulario para tus estilos de baile y gestiona copias de seguridad en cualquier momento!',
+
+    step7Title: '¡Tu Sesión de Demostración está Lista! 🎉',
+    step7Desc: 'Hemos preparado una clase de muestra para que puedas explorar cómo se ve una lección completada.',
+    step7SandboxNotice: 'Esta clase de muestra quedará en tu lista de sesiones para que puedas explorar y practicar. ¡Puedes editarla o borrarla cuando quieras!',
+    step7Tip: '¡Toca cualquier viñeta o nota de resumen para editar el texto directamente! ¡Todo listo! Disfruta de tu entrenamiento y tu baile.',
+
+    tourFinishedToast: '🎉 ¡Tour de bienvenida completado! Bienvenido a Zoutty.',
+    tourSkippedToast: 'Tour omitido. Puedes reiniciar la guía en cualquier momento desde Ajustes.',
+    replayOnboardingBtn: 'Repetir Tour de Bienvenida',
+    replayOnboardingDesc: 'Iniciar nuevamente el recorrido interactivo paso a paso.',
   },
 
   // ─── Install Enforcer ───────────────────────────────────────────────────────
@@ -786,6 +832,7 @@ const es: Translations = {
     cancel: 'Cancelar',
     dismiss: 'Descartar',
     close: 'Cerrar',
+    tap: 'Toca',
   },
 };
 

@@ -158,7 +158,7 @@ const en = {
     restoreDbMsg: 'Do you want to completely replace your current database with this backup, or merge the backup into your existing data?',
     restoreReplaceBtn: 'Replace',
     restoreMergeBtn: 'Merge',
-    
+
     // Sync conflict
     syncConflictTitle: 'Sync Conflict',
     syncConflictMsg: 'We found unsynced data on this device, but your cloud account already has data. How would you like to handle this?',
@@ -354,12 +354,12 @@ const en = {
   // ─── Toast Messages ──────────────────────────────────────────────────────────
   storageFull: {
     bannerTitle: 'Running on cloud',
-    bannerDesc: "Your phone's storage is full, so we're saving your sessions straight to the cloud. You're all good — just free up some space when you get a chance!",
+    bannerDesc: "Your phone's storage is full, so we're saving your sessions straight to the cloud. You're all good, just free up some space when you get a chance!",
     dismiss: 'Got it',
     bothFailedTitle: 'Uh oh, we hit a wall 😬',
-    bothFailed: "Your phone is out of storage and you're offline, so we couldn't save this one. Connect to Wi-Fi or free up some space — either works. Your data will be safe!",
+    bothFailed: "Your phone is out of storage and you're offline, so we couldn't save this one. Connect to Wi-Fi or free up some space, either works. Your data will be safe!",
     bothFailedBtn: 'Got it',
-    cloudSaveFailed: 'Save failed — no storage space and no connection. Try again when you\'re online.',
+    cloudSaveFailed: 'Save failed: no storage space and no connection. Try again when you\'re online.',
   },
 
   toast: {
@@ -459,7 +459,7 @@ const en = {
     cloudBackupDesc: 'Your data is automatically backed up to the cloud when you sign in.',
     startExploring: 'Enter the Studio',
     // Demo content
-    demoSessionTitle: 'Practical Guide Session',
+    demoSessionTitle: 'Demo Session',
     demoSessionSubtitle: 'Editable session subtitle',
     demoAudioTranscript: 'This is a mock recording of a dance lesson. You can capture combinations, tips, or feedback from your class here.',
     demoAudioFilename: 'Sample Audio.mp3',
@@ -480,9 +480,55 @@ const en = {
     demoTooltipGlossary: '💡 This detects the dance style automatically and applies the correct terminology (glossary) to the AI report.',
     demoTooltipReprocess: '💡 This re-transcribes the audio and extracts the raw content again.',
     demoTooltipReorder: '💡 You can reorder the items in this session.',
-    demoTooltipNotes: '💡 You can add personal written notes to your session here.',
     hintConsolidation: '💡 Zoutty is ready! Tap the \'Generate Report\' (🪄) button at the end of your session to consolidate your recordings.',
 
+    // Interactive Tour
+    tourTitleSuffix: 'Tour',
+    tourWelcomeTitle: 'Welcome to Zoutty! 💃🕺',
+    tourWelcomeSubtitle: 'The memory and progression system for private dance lessons. Take a quick interactive tour to discover how to capture, organize, and consolidate your classes.',
+    tourStartBtn: 'Start Interactive Tour 🚀',
+    tourSkipBtn: 'Skip Tour',
+    tourNextBtn: 'Next',
+    tourBackBtn: 'Back',
+    tourFinishBtn: 'Finish Tour 🎉',
+    tourStepIndicator: 'Step {current} of {total}',
+    tourProTip: 'Pro Tip',
+    tourClickTargetPrompt: 'Tap to continue',
+    tourTapBadge: 'Tap',
+
+    step1Title: 'Create a New Session',
+    step1Desc: 'Click this button to open a new session. A session is essentially one class or practice.',
+    step1Tip: 'You can also organize your classes into custom folders using "+ New Folder"!',
+
+    step2Title: 'Record Voice Notes',
+    step2Desc: 'Click this button to record a voice note about combinations, corrections, or musicality tips from your class.',
+    step2Tip: 'You can also upload audio files, attach photos/videos, and write editable notes!',
+
+    step3Title: 'Generate AI Report',
+    step3Desc: 'Click this button to get a complete structured AI report from all your recordings.',
+    step3Tip: 'You don\'t have to process each clip manually: tapping Consolidate automatically transcribes and synthesizes all clips at once with dance terminology!',
+
+    step4Title: 'Export & Download PDF',
+    step4Desc: 'You can download a clean PDF summary to review offline or share with your teacher or students.',
+    step4Tip: 'PDFs include your key takeaways, drills, homework, and technique notes.',
+
+    step5Title: 'Share with Dance Partners',
+    step5Desc: 'If the other person has Zoutty installed, you can share the entire session with them, including all audio clips and media!',
+    step5Tip: 'Share instantly via a 6-character code or a direct web link.',
+
+    step6Title: 'Settings & Replay Guide',
+    step6Desc: 'You can always replay this guide, adjust language, manage cloud backups, and configure custom glossaries in the Settings tray.',
+    step6Tip: 'Create custom vocabulary glossaries for your dance styles and manage backups anytime!',
+
+    step7Title: 'Your Demo Session is Ready! 🎉',
+    step7Desc: 'We have prepared a demo session so you can explore how a completed class looks.',
+    step7SandboxNotice: 'This demo class will stay in your session list so you can explore and practice. You can safely edit anything or delete it whenever you want!',
+    step7Tip: 'Tap on any bullet point or summary note to edit the text directly. You are all set! Have fun training and dancing.',
+
+    tourFinishedToast: '🎉 Onboarding tour completed! Welcome to Zoutty.',
+    tourSkippedToast: 'Onboarding skipped. You can restart the guide anytime from Settings.',
+    replayOnboardingBtn: 'Replay Onboarding Tour',
+    replayOnboardingDesc: 'Launch the interactive step-by-step tour again.',
   },
 
   // ─── Install Enforcer ───────────────────────────────────────────────────────
@@ -784,6 +830,7 @@ const en = {
     cancel: 'Cancel',
     dismiss: 'Dismiss',
     close: 'Close',
+    tap: 'Tap',
   },
 };
 

@@ -47,6 +47,7 @@ import {
   Lock,
   Cloud,
   CreditCard,
+  Compass,
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -75,6 +76,7 @@ import { CustomCheckbox } from './components/CustomCheckbox';
 import { CustomSwitch } from './components/CustomSwitch';
 import { AutoGrowingTextarea } from './components/AutoGrowingTextarea';
 import { WelcomeModal } from './components/WelcomeModal';
+import { InteractiveOnboardingOverlay, OnboardingStepConfig } from './components/InteractiveOnboardingOverlay';
 import { SearchModal } from './components/SearchModal';
 import { SearchFilters, performSearch } from './lib/search';
 import Markdown from 'react-markdown';
@@ -302,6 +304,9 @@ export default function App() {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
     () => localStorage.getItem('zoutty_onboarding_completed') === 'true'
   );
+  const [onboardingTourStep, setOnboardingTourStep] = useState<number | null>(() => {
+    return localStorage.getItem('zoutty_onboarding_completed') === 'true' ? null : 0;
+  });
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
@@ -2076,63 +2081,235 @@ export default function App() {
     }
   };
 
-  const seedDemoSession = async () => {
-    const demoSessionId = "demo-session";
-    const newSession = {
-      id: demoSessionId,
-      title: t('onboarding.demoSessionTitle'),
-      subtitle: t('onboarding.demoSessionSubtitle'),
-      date: Date.now(),
-      glossaryId: 'auto',
-      isDemo: true
-    };
-    await db.saveSession(newSession);
+  const ONBOARDING_STEPS: OnboardingStepConfig[] = [
+    {
+      stepIndex: 0,
+      titleKey: 'onboarding.tourWelcomeTitle',
+      descKey: 'onboarding.tourWelcomeSubtitle',
+      isCenterModal: true,
+    },
+    {
+      stepIndex: 1,
+      targetSelector: '#onboarding-new-session-btn',
+      titleKey: 'onboarding.step1Title',
+      descKey: 'onboarding.step1Desc',
+      tipKey: 'onboarding.step1Tip',
+      preferredPlacement: 'bottom',
+    },
+    {
+      stepIndex: 2,
+      targetSelector: '#recordBtn',
+      titleKey: 'onboarding.step2Title',
+      descKey: 'onboarding.step2Desc',
+      tipKey: 'onboarding.step2Tip',
+      preferredPlacement: 'top',
+    },
+    {
+      stepIndex: 3,
+      targetSelector: '#consolidateBtn',
+      titleKey: 'onboarding.step3Title',
+      descKey: 'onboarding.step3Desc',
+      tipKey: 'onboarding.step3Tip',
+      preferredPlacement: 'top',
+    },
+    {
+      stepIndex: 4,
+      targetSelector: '#onboarding-export-btn',
+      titleKey: 'onboarding.step4Title',
+      descKey: 'onboarding.step4Desc',
+      tipKey: 'onboarding.step4Tip',
+      preferredPlacement: 'bottom',
+    },
+    {
+      stepIndex: 5,
+      targetSelector: '#onboarding-share-btn',
+      titleKey: 'onboarding.step5Title',
+      descKey: 'onboarding.step5Desc',
+      tipKey: 'onboarding.step5Tip',
+      preferredPlacement: 'bottom',
+    },
+    {
+      stepIndex: 6,
+      targetSelector: '#onboarding-settings-btn',
+      titleKey: 'onboarding.step6Title',
+      descKey: 'onboarding.step6Desc',
+      tipKey: 'onboarding.step6Tip',
+      preferredPlacement: 'bottom',
+    },
+    {
+      stepIndex: 7,
+      titleKey: 'onboarding.step7Title',
+      descKey: 'onboarding.step7Desc',
+      sandboxNoticeKey: 'onboarding.step7SandboxNotice',
+      tipKey: 'onboarding.step7Tip',
+      isCenterModal: true,
+    },
+  ];
 
-    const mockAudio = {
-      id: "demo-audio-1",
-      sessionId: demoSessionId,
-      timestamp: Date.now(),
-      language: uiLanguage,
-      transcript: t('onboarding.demoAudioTranscript'),
-      type: "recording" as const,
-      filename: t('onboarding.demoAudioFilename'),
-    };
-    await db.saveAudioEntry(mockAudio);
+  const handleTourNext = async () => {
+    if (onboardingTourStep === null) return;
 
-    const mockReport = {
-      id: "demo-report-1",
-      sessionId: demoSessionId,
-      timestamp: Date.now(),
-      report: {
-        strictSummary: [t('onboarding.demoReportStrict1'), t('onboarding.demoReportStrict2')],
-        expandedInsights: {
-          drills: [t('onboarding.demoReportDrill')],
-          homework: [t('onboarding.demoReportHomework')],
-          technicalExpansion: [],
-          emotionalNotes: []
+    if (onboardingTourStep === 0) {
+      navigateTo('list', null, null, 'replace');
+      setOnboardingTourStep(1);
+    } else if (onboardingTourStep === 1) {
+      const demoSessionId = "demo-session";
+      const newSession = {
+        id: demoSessionId,
+        title: t('onboarding.demoSessionTitle'),
+        subtitle: t('onboarding.demoSessionSubtitle'),
+        date: Date.now(),
+        glossaryId: 'auto',
+        isDemo: true
+      };
+      await db.saveSession(newSession);
+      const loadedSessions = await db.getSessions();
+      loadedSessions.sort((a, b) => b.date - a.date);
+      setSessions(loadedSessions);
+      navigateTo('detail', demoSessionId, null, 'push');
+      setOnboardingTourStep(2);
+    } else if (onboardingTourStep === 2) {
+      const mockAudio = {
+        id: "demo-audio-1",
+        sessionId: "demo-session",
+        timestamp: Date.now(),
+        language: uiLanguage,
+        transcript: t('onboarding.demoAudioTranscript'),
+        type: "recording" as const,
+        filename: t('onboarding.demoAudioFilename'),
+      };
+      await db.saveAudioEntry(mockAudio);
+      const loadedAudios = await db.getAudioEntries();
+      const audioRecord: Record<string, any> = {};
+      loadedAudios.forEach(a => audioRecord[a.id] = a);
+      setAudioEntries(audioRecord);
+      setOnboardingTourStep(3);
+    } else if (onboardingTourStep === 3) {
+      showSpinner(t('session.consolidatingWithAI'));
+      setTimeout(async () => {
+        const mockReport = {
+          id: "demo-report-1",
+          sessionId: "demo-session",
+          timestamp: Date.now(),
+          report: {
+            strictSummary: [t('onboarding.demoReportStrict1'), t('onboarding.demoReportStrict2')],
+            expandedInsights: {
+              drills: [t('onboarding.demoReportDrill')],
+              homework: [t('onboarding.demoReportHomework')],
+              technicalExpansion: [],
+              emotionalNotes: []
+            }
+          }
+        };
+        await db.saveFinalReport(mockReport);
+        const demoSession = await db.getSession("demo-session");
+        if (demoSession) {
+          demoSession.summary = `${t('onboarding.demoReportStrict1')}\n${t('onboarding.demoReportStrict2')}`;
+          await db.saveSession(demoSession);
         }
-      }
-    };
-    await db.saveFinalReport(mockReport);
-
-    const loadedSessions = await db.getSessions();
-    loadedSessions.sort((a, b) => b.date - a.date);
-    setSessions(loadedSessions);
-
-    const loadedAudios = await db.getAudioEntries();
-    const audioRecord: Record<string, any> = {};
-    loadedAudios.forEach(a => audioRecord[a.id] = a);
-    setAudioEntries(audioRecord);
-
-    // Auto navigate to the demo session list view (Homepage)
-    navigateTo('list', null, null, 'push');
+        const loadedSessions = await db.getSessions();
+        loadedSessions.sort((a, b) => b.date - a.date);
+        setSessions(loadedSessions);
+        hideSpinner();
+        setOnboardingTourStep(4);
+      }, 700);
+    } else if (onboardingTourStep === 4) {
+      setOnboardingTourStep(5);
+    } else if (onboardingTourStep === 5) {
+      navigateTo('list', null, null, 'push');
+      setOnboardingTourStep(6);
+    } else if (onboardingTourStep === 6) {
+      setOnboardingTourStep(7);
+    } else if (onboardingTourStep === 7) {
+      handleTourFinish();
+    }
   };
 
-  const handleCompleteOnboarding = () => {
-    setLogoAnimationType('onboarding');
+  const handleTourPrev = async () => {
+    if (onboardingTourStep === null || onboardingTourStep <= 0) return;
+
+    if (onboardingTourStep === 1) {
+      setOnboardingTourStep(0);
+    } else if (onboardingTourStep === 2) {
+      try {
+        await db.deleteSession("demo-session");
+        const loadedSessions = await db.getSessions();
+        loadedSessions.sort((a, b) => b.date - a.date);
+        setSessions(loadedSessions);
+      } catch (e) {
+        console.error(e);
+      }
+      navigateTo('list', null, null, 'push');
+      setOnboardingTourStep(1);
+    } else if (onboardingTourStep === 3) {
+      try {
+        await db.deleteAudioEntry("demo-audio-1");
+        const loadedAudios = await db.getAudioEntries();
+        const audioRecord: Record<string, any> = {};
+        loadedAudios.forEach(a => audioRecord[a.id] = a);
+        setAudioEntries(audioRecord);
+      } catch (e) {
+        console.error(e);
+      }
+      setOnboardingTourStep(2);
+    } else if (onboardingTourStep === 4) {
+      try {
+        await db.deleteFinalReport("demo-report-1");
+        const demoSession = await db.getSession("demo-session");
+        if (demoSession) {
+          delete demoSession.summary;
+          await db.saveSession(demoSession);
+        }
+        const loadedSessions = await db.getSessions();
+        loadedSessions.sort((a, b) => b.date - a.date);
+        setSessions(loadedSessions);
+      } catch (e) {
+        console.error(e);
+      }
+      setOnboardingTourStep(3);
+    } else if (onboardingTourStep === 5) {
+      setOnboardingTourStep(4);
+    } else if (onboardingTourStep === 6) {
+      navigateTo('detail', 'demo-session', null, 'push');
+      setOnboardingTourStep(5);
+    } else if (onboardingTourStep === 7) {
+      setOnboardingTourStep(6);
+    }
+  };
+
+  const handleTourSkip = async () => {
+    try {
+      await db.deleteSession("demo-session");
+      await db.deleteAudioEntry("demo-audio-1");
+      await db.deleteFinalReport("demo-report-1");
+      const loadedSessions = await db.getSessions();
+      loadedSessions.sort((a, b) => b.date - a.date);
+      setSessions(loadedSessions);
+      const loadedAudios = await db.getAudioEntries();
+      const audioRecord: Record<string, any> = {};
+      loadedAudios.forEach(a => audioRecord[a.id] = a);
+      setAudioEntries(audioRecord);
+    } catch (e) {
+      console.error('Error cleaning up demo session on skip:', e);
+    }
+    navigateTo('list', null, null, 'push');
     localStorage.setItem('zoutty_onboarding_completed', 'true');
     setHasCompletedOnboarding(true);
-    seedDemoSession();
+    setOnboardingTourStep(null);
+    showToast(t('onboarding.tourSkippedToast'), false);
+  };
+
+  const handleTourFinish = () => {
+    localStorage.setItem('zoutty_onboarding_completed', 'true');
+    setHasCompletedOnboarding(true);
+    setOnboardingTourStep(null);
+    showToast(t('onboarding.tourFinishedToast'), false);
+  };
+
+  const handleStartOnboardingTour = () => {
+    setShowAppSettings(false);
+    navigateTo('list', null, null, 'push');
+    setOnboardingTourStep(0);
   };
 
   const handleLogoAnimationComplete = () => {
@@ -2200,16 +2377,6 @@ export default function App() {
           </div>
         </div>
       </div>
-    );
-  }
-
-  if (!hasCompletedOnboarding) {
-    return (
-      <WelcomeModal
-        currentLanguage={uiLanguage}
-        setLanguage={setUILanguage}
-        onComplete={handleCompleteOnboarding}
-      />
     );
   }
 
@@ -2985,6 +3152,15 @@ export default function App() {
                     />
                   </button>
                 </div>
+
+                {/* Replay Onboarding Guide Button */}
+                <button
+                  onClick={handleStartOnboardingTour}
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 hover:text-white transition-all text-xs font-bold shadow-xs cursor-pointer"
+                >
+                  <Compass className="w-4 h-4 text-brand" />
+                  {t('onboarding.replayOnboardingBtn')}
+                </button>
 
                 {/* Open Test Lab Full Modal Button */}
                 <button
@@ -3903,30 +4079,30 @@ export default function App() {
       )}
 
       {/* Top Bar */}
-      <header className="max-w-2xl mx-auto w-full px-5 py-7 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="max-w-2xl mx-auto w-full px-4 sm:px-5 py-4 sm:py-7 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {(view === 'detail' || (view === 'list' && selectedGroupId !== null)) && (
             <button
               onClick={() => {
                 window.history.back();
               }}
-              className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 transition-colors"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 transition-colors shrink-0"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           )}
           <button
             onClick={() => navigateTo('list', null, null)}
-            className="hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-xl"
+            className="hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-xl shrink-0"
             title={t('goToHome')}
           >
-            <ZouttyIcon className="w-10 h-10 text-brand shrink-0" />
+            <ZouttyIcon className="w-8 h-8 sm:w-10 sm:h-10 text-brand shrink-0" />
           </button>
-          <div className="flex flex-col justify-center">
-            <h1 className="text-lg uppercase tracking-[0.2em] text-brand font-bold leading-none">
+          <div className="flex flex-col justify-center min-w-0">
+            <h1 className="text-base sm:text-lg uppercase tracking-[0.2em] text-brand font-bold leading-none truncate">
               {t('appName')}
             </h1>
-            <p className="text-[10px] font-semibold tracking-[0.04em] text-white/50 mt-1 leading-none">
+            <p className="hidden sm:block text-[10px] font-semibold tracking-[0.04em] text-white/50 mt-1 leading-none truncate">
               {t('appSubtitle')}
             </p>
           </div>
@@ -3959,6 +4135,7 @@ export default function App() {
                 <Search className="w-5 h-5 text-brand" />
               </button>
               <button
+                id="onboarding-settings-btn"
                 onClick={() => setShowAppSettings(true)}
                 className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 text-white/40 hover:text-brand transition-colors"
                 title="Zoutty Settings"
@@ -3970,6 +4147,7 @@ export default function App() {
           {view === 'detail' && selectedSession && (
             <>
               <button
+                id="onboarding-share-btn"
                 onClick={async () => {
                   if (selectedSession.isDemo) {
                     showToast(t('onboarding.demoTooltipShare'), false);
@@ -4027,6 +4205,7 @@ export default function App() {
                 <Share2 className="w-5 h-5" />
               </button>
               <button
+                id="onboarding-export-btn"
                 onClick={() => {
                   if (selectedSession.isDemo) {
                     showToast(t('onboarding.demoTooltipExport'), false);
@@ -4061,7 +4240,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 pb-32">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 pb-32">
         {view === 'list' ? (
           <div className="space-y-8">
             {selectedGroupId && (
@@ -4097,6 +4276,7 @@ export default function App() {
             ) : (
               <div className="flex gap-4">
                 <button
+                  id="onboarding-new-session-btn"
                   onClick={createSession}
                   className={`py-3.5 glass bg-brand/10 border-brand/20 text-brand font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand flex-1 min-h-[52px] ${selectedGroupId ? 'py-4 text-base' : ''}`}
                 >
@@ -4336,6 +4516,20 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Interactive Onboarding Tour Overlay */}
+      {onboardingTourStep !== null && (
+        <InteractiveOnboardingOverlay
+          currentStep={onboardingTourStep}
+          totalSteps={ONBOARDING_STEPS.length - 1}
+          stepConfig={ONBOARDING_STEPS[onboardingTourStep]}
+          onNext={handleTourNext}
+          onPrev={handleTourPrev}
+          onSkip={handleTourSkip}
+          onFinish={handleTourFinish}
+          onTargetClick={handleTourNext}
+        />
+      )}
     </div>
   );
 }

@@ -83,7 +83,7 @@ export const callZoukAudioProcessor = async (payload: {
             if (errorBody.error) {
                 errorMessage = errorBody.error;
                 if (errorBody.details) {
-                    errorMessage += ` — ${errorBody.details}`;
+                    errorMessage += `: ${errorBody.details}`;
                 }
                 if (errorBody.retryAfter) {
                     errorMessage += ` (retry after ${errorBody.retryAfter})`;
