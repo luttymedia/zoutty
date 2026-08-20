@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => {
           display: 'standalone',
           background_color: '#ffffff',
           theme_color: '#2DD4BF',
+          orientation: 'portrait',
+          id: '/',
+          categories: ['education', 'productivity'],
+          dir: 'ltr',
+          lang: 'en',
           icons: [
             {
               src: '/icons/192x192.png',
