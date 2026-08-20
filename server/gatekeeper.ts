@@ -72,11 +72,18 @@ export async function checkGatekeeper(
   if (devOverrideJson) {
     try {
       const dev = JSON.parse(devOverrideJson);
-      const tier: UserTier = dev.tier || 'free';
-      const lifetimeSessions = Number(dev.lifetime_sessions) || 0;
-      const lifetimeClips = Number(dev.lifetime_clips) || 0;
+      let tier: UserTier = dev.tier || 'free';
+      const subscriptionStatus: string | undefined = dev.subscription_status;
+
+      // If user has a paid tier but payment failed, unpaid, or canceled, enforce free limits
+      if (tier !== 'free' && subscriptionStatus && ['past_due', 'unpaid', 'canceled'].includes(subscriptionStatus)) {
+        tier = 'free';
+      }
+
       const periodSessions = Number(dev.period_sessions) || 0;
       const periodClips = Number(dev.period_clips) || 0;
+      const lifetimeSessions = Math.max(Number(dev.lifetime_sessions) || 0, periodSessions);
+      const lifetimeClips = Math.max(Number(dev.lifetime_clips) || 0, periodClips);
 
       const isBoostActive =
         Boolean(dev.referral_boost_active) &&
@@ -196,11 +203,18 @@ export async function checkGatekeeper(
         supabase.from('usage_tracking').select('*').eq('user_id', userId).single(),
       ]);
 
-      const tier: UserTier = profile?.tier || 'free';
-      const lifetimeSessions = usage?.lifetime_sessions || 0;
-      const lifetimeClips = usage?.lifetime_clips || 0;
+      let tier: UserTier = profile?.tier || 'free';
+      const subscriptionStatus = profile?.subscription_status;
+
+      // If user has a paid tier but payment failed, unpaid, or canceled, enforce free limits
+      if (tier !== 'free' && subscriptionStatus && ['past_due', 'unpaid', 'canceled'].includes(subscriptionStatus)) {
+        tier = 'free';
+      }
+
       const periodSessions = usage?.period_sessions || 0;
       const periodClips = usage?.period_clips || 0;
+      const lifetimeSessions = Math.max(usage?.lifetime_sessions || 0, periodSessions);
+      const lifetimeClips = Math.max(usage?.lifetime_clips || 0, periodClips);
 
       const isBoostActive =
         Boolean(profile?.referral_boost_active) &&

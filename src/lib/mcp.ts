@@ -1,18 +1,22 @@
 import { getDevState, saveDevState } from './devLab';
 import { supabase } from './supabase';
 
-const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
+const blobToBase64 = (blob?: Blob): Promise<string> => {
+    return new Promise((resolve) => {
+        if (!blob || !(blob instanceof Blob)) {
+            resolve('');
+            return;
+        }
         const reader = new FileReader();
         reader.onloadend = () => {
             if (reader.result) {
-                const b64 = (reader.result as string).split(',')[1];
+                const b64 = (reader.result as string).split(',')[1] || '';
                 resolve(b64);
             } else {
-                reject(new Error("Failed to convert blob to base64"));
+                resolve('');
             }
         };
-        reader.onerror = reject;
+        reader.onerror = () => resolve('');
         reader.readAsDataURL(blob);
     });
 };

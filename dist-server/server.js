@@ -13,6 +13,7 @@ if (!GEMINI_API_KEY) {
 }
 const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY || '' });
 const app = express();
+app.set('trust proxy', 1); // Trust the reverse proxy (e.g. Render) to correctly set req.ip, req.protocol, etc.
 const PORT = process.env.PORT || 3000;
 // Rate limiter state for audio requests
 const audioRequestTimestamps = [];

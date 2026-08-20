@@ -6,6 +6,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.1.0',
+    date: '2026-08-20',
+    changes: [
+      'Stripe Promotion Codes: Enabled customer-redeemable promotion codes and discount rules across all Stripe Checkout subscription and top-up flows',
+      'Subscription Status Enforcement: Added strict quota enforcement falling back to free tier limits when subscription payments are past due, unpaid, or canceled',
+      'Payment Issue UI Warning Banner: Added dismissible sticky banner and dedicated Quota Exceeded modal alert directing users to the Stripe Customer Portal',
+      'Test Lab Sandbox Enhancements: Added 1-click Past Due preset and updated status labels for testing failed payment scenarios',
+      'Audio Processing & Consolidation Resilience: Hardened audio payload serialization and base64 conversion against non-blob or missing media entries'
+    ]
+  },
+  {
     version: '3.0.1',
     date: '2026-08-18',
     changes: [

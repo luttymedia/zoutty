@@ -278,6 +278,22 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
               </button>
               <button
                 type="button"
+                onClick={() =>
+                  applyPreset({
+                    tier: 'student',
+                    subscription_status: 'past_due',
+                    lifetime_sessions: 5,
+                    lifetime_clips: 25,
+                    period_sessions: 5,
+                    period_clips: 25,
+                  })
+                }
+                className="p-2.5 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 text-left transition-all text-xs font-semibold text-red-400"
+              >
+                {t('billing.dev.presetPastDue')}
+              </button>
+              <button
+                type="button"
                 onClick={handleReset}
                 className="p-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-left transition-all text-xs font-semibold text-white/50 hover:text-white"
               >
@@ -334,7 +350,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                 <option value="active">Active (Paid)</option>
                 <option value="trialing">Trialing</option>
                 <option value="past_due">Past Due (Payment Failed)</option>
-                <option value="canceled">Canceled (Grace Period)</option>
+                <option value="canceled">Canceled (Ended)</option>
                 <option value="unpaid">Unpaid</option>
               </select>
             </div>

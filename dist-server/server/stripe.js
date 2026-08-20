@@ -122,30 +122,8 @@ export async function createCheckoutSession(params) {
                 console.warn('[stripe] Could not save stripe_customer_id to Supabase:', dbErr);
             }
         }
-        // Check referral discount credits if the user has banked any
-        const creditBalance = profile?.referral_credits_balance || 0;
-        if (creditBalance > 0) {
-            const maxUnits = targetTier === 'teacher' ? 8 : 1;
-            const unitsToApply = Math.min(creditBalance, maxUnits);
-            const discountAmountCents = unitsToApply * 100;
-            if (discountAmountCents > 0) {
-                try {
-                    const coupon = await stripe.coupons.create({
-                        amount_off: discountAmountCents,
-                        currency: 'eur',
-                        duration: 'once',
-                        name: `Zoutty Referral Reward (€${unitsToApply}.00 off)`,
-                    });
-                    discounts.push({ coupon: coupon.id });
-                    console.log(`[stripe] Applied €${unitsToApply} referral coupon=${coupon.id} for user=${user.id}`);
-                }
-                catch (couponErr) {
-                    console.warn('[stripe] Failed to create referral coupon:', couponErr);
-                }
-            }
-        }
     }
-    // 3. Create Stripe Checkout Session
+    // 3. Create Stripe Checkout Session (Always enable promotional codes for manual discounts)
     const cleanBaseUrl = (successUrl || baseUrl).replace(/\/+$/, '');
     const finalSuccessUrl = `${cleanBaseUrl}/?checkout_success=true&session_id={CHECKOUT_SESSION_ID}&tier=${targetTier}`;
     const finalCancelUrl = `${(cancelUrl || baseUrl).replace(/\/+$/, '')}/?checkout_canceled=true`;
@@ -160,7 +138,7 @@ export async function createCheckoutSession(params) {
                 quantity: 1,
             },
         ],
-        discounts: discounts.length > 0 ? discounts : undefined,
+        allow_promotion_codes: true,
         success_url: finalSuccessUrl,
         cancel_url: finalCancelUrl,
         metadata: {
@@ -244,6 +222,7 @@ export async function createTopupCheckoutSession(params) {
                 quantity: 1,
             },
         ],
+        allow_promotion_codes: true,
         success_url: finalSuccessUrl,
         cancel_url: finalCancelUrl,
         metadata: {

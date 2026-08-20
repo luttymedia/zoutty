@@ -554,6 +554,11 @@ const en = {
       canceled: 'Canceled',
       unpaid: 'Unpaid',
     },
+    banner: {
+      paymentFailedTitle: 'Payment Issue Detected',
+      paymentFailedDesc: 'We could not process your latest payment. Your premium quotas are temporarily paused. Please update your payment method to restore full access.',
+      updateBillingBtn: 'Update Billing',
+    },
     plans: {
       choosePlanTitle: 'Choose Your Plan',
       choosePlanSubtitle: 'Unlock higher AI quotas, smart lesson organization, and teacher tools.',
@@ -675,6 +680,10 @@ const en = {
       featureSmartOrganization: 'Smart lesson organization, filters & exports',
       featureReferralDiscount: 'Earn €1 discount for every friend you refer',
       featureTeacherReferralDiscount: 'Earn €2 discount for every friend you refer',
+      paymentIssueTitle: 'Payment Issue Detected',
+      paymentIssueBadge: 'Payment Failed',
+      paymentIssueDesc: 'Your AI features are temporarily paused because your last subscription payment could not be processed. Please update your billing details to restore your plan quotas immediately.',
+      paymentIssueAction: 'Update Billing & Restore Quotas',
       audioDurationUnderstood: 'Understood',
       fileLabel: 'File',
       detectedDuration: 'Detected Duration',
@@ -763,6 +772,7 @@ const en = {
       boostStatusInactive: 'No Active Boost',
       creditsLabel: 'Referral Discount Balance',
       simSubscriptionStatus: 'Simulate Status',
+      presetPastDue: 'Past Due (Failed Payment)',
       applyOverrides: 'Save',
       overridesApplied: 'Test Lab state saved and applied!',
       resetCounters: 'Reset Counters',
@@ -772,6 +782,8 @@ const en = {
   },
   common: {
     cancel: 'Cancel',
+    dismiss: 'Dismiss',
+    close: 'Close',
   },
 };
 

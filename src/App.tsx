@@ -45,7 +45,8 @@ import {
   Gift,
   ShieldCheck,
   Lock,
-  Cloud
+  Cloud,
+  CreditCard,
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -106,18 +107,22 @@ import { changelog } from './changelog';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
-const blobToBase64 = (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
+const blobToBase64 = (blob?: Blob): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!blob || !(blob instanceof Blob)) {
+      resolve('');
+      return;
+    }
     const reader = new FileReader();
     reader.onloadend = () => {
       if (reader.result) {
-        const b64 = (reader.result as string).split(',')[1];
+        const b64 = (reader.result as string).split(',')[1] || '';
         resolve(b64);
       } else {
-        reject(new Error("Failed to convert blob to base64"));
+        resolve('');
       }
     };
-    reader.onerror = reject;
+    reader.onerror = () => resolve('');
     reader.readAsDataURL(blob);
   });
 };
@@ -321,6 +326,7 @@ export default function App() {
   const [showTopupSuccessModal, setShowTopupSuccessModal] = useState(false);
   const [showManageSubscriptionModal, setShowManageSubscriptionModal] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [paymentBannerDismissed, setPaymentBannerDismissed] = useState(false);
   const [showGlossaryModal, setShowGlossaryModal] = useState(false);
   const [editingGlossary, setEditingGlossary] = useState<DanceGlossary | null>(null);
   const [userReferralCode, setUserReferralCode] = useState(() => localStorage.getItem('zoutty_referral_code') || 'ZOU-DANCE');
@@ -376,6 +382,16 @@ export default function App() {
       console.warn('[Referral] Could not fetch referral stats:', err);
     }
   }, []);
+
+  const handleOpenBillingPortal = useCallback(async () => {
+    setIsPortalLoading(true);
+    showToast(t('billing.plans.portalRedirecting'));
+    const portalRes = await openStripeCustomerPortal();
+    setIsPortalLoading(false);
+    if (portalRes.mock) {
+      showToast(t('billing.plans.portalSimulated'));
+    }
+  }, [t]);
 
   const redeemPendingReferral = useCallback(async (token?: string) => {
     const pendingCode = localStorage.getItem('zoutty_referral_signup_code');
@@ -1867,12 +1883,21 @@ export default function App() {
               transcript: a.transcript
             };
           }
-          const b64 = await blobToBase64(a.audioBlob);
+          if (a.audioBlob && a.audioBlob instanceof Blob) {
+            const b64 = await blobToBase64(a.audioBlob);
+            return {
+              audioId: a.id,
+              base64: b64,
+              language: a.language,
+              mimeType: a.audioBlob.type || 'audio/webm'
+            };
+          }
+          const fallbackText = Array.isArray(a.bulletPoints) && a.bulletPoints.length > 0
+            ? a.bulletPoints.join('\n')
+            : (Array.isArray(a.strictSummary) && a.strictSummary.length > 0 ? a.strictSummary.join('\n') : (a.filename || 'Recorded Audio Clip'));
           return {
             audioId: a.id,
-            base64: b64,
-            language: a.language,
-            mimeType: a.audioBlob.type || 'audio/webm'
+            transcript: fallbackText
           };
         })
       );
@@ -2198,6 +2223,43 @@ export default function App() {
       {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.actionText ? toastMessage.onAction : undefined} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
 
       <div className="sticky top-0 z-40 w-full flex flex-col">
+        {/* Payment Failed / Past Due Banner */}
+        {(devState.subscription_status === 'past_due' || devState.subscription_status === 'unpaid') && !paymentBannerDismissed && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-950/90 border-b border-red-500/40 backdrop-blur-md animate-in slide-in-from-top duration-300">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-red-100 text-sm font-bold leading-snug">
+                  {t('billing.banner.paymentFailedTitle')}
+                </p>
+                <p className="text-red-200/80 text-xs mt-0.5 leading-snug">
+                  {t('billing.banner.paymentFailedDesc')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleOpenBillingPortal}
+                disabled={isPortalLoading}
+                className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 min-h-[36px] flex items-center gap-1.5 cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>{t('billing.banner.updateBillingBtn')}</span>
+              </button>
+              <button
+                onClick={() => setPaymentBannerDismissed(true)}
+                className="p-2 rounded-lg hover:bg-red-900/60 text-red-300/70 hover:text-white transition-colors cursor-pointer"
+                title={t('common.dismiss')}
+                aria-label={t('common.dismiss')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Offline Banner */}
         {isOffline && !offlineBannerDismissed && (
           <div className="flex items-start gap-3 px-4 py-3 bg-zinc-800/90 border-b border-zinc-600/50 backdrop-blur-md animate-in slide-in-from-top duration-300">
@@ -3039,15 +3101,7 @@ export default function App() {
             showToast(t('billing.manage.cancelSuccessToast', { date: dateStr }), false, undefined, undefined, undefined, 'info');
           }}
           isPortalLoading={isPortalLoading}
-          onOpenCustomerPortal={async () => {
-            setIsPortalLoading(true);
-            showToast(t('billing.plans.portalRedirecting'));
-            const portalRes = await openStripeCustomerPortal();
-            setIsPortalLoading(false);
-            if (portalRes.mock) {
-              showToast(t('billing.plans.portalSimulated'));
-            }
-          }}
+          onOpenCustomerPortal={handleOpenBillingPortal}
         />
       )}
 
@@ -3056,6 +3110,7 @@ export default function App() {
         isOpen={showQuotaModal.isOpen}
         onClose={() => setShowQuotaModal(prev => ({ ...prev, isOpen: false }))}
         tier={devState.tier}
+        subscriptionStatus={devState.subscription_status}
         reason={showQuotaModal.reason}
         canBoost={!devState.referral_boost_active}
         onUpgradeClick={() => {
@@ -3066,6 +3121,7 @@ export default function App() {
           setShowQuotaModal({ isOpen: false, reason: 'sessions' });
           setShowReferralModal(true);
         }}
+        onOpenBillingPortal={handleOpenBillingPortal}
         onTopupClick={async () => {
           setShowQuotaModal(prev => ({ ...prev, isOpen: false }));
           showToast(t('billing.plans.checkoutRedirecting'));

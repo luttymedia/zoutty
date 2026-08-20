@@ -556,6 +556,11 @@ const es: Translations = {
       canceled: 'Cancelado',
       unpaid: 'Impago',
     },
+    banner: {
+      paymentFailedTitle: 'Problema con el Pago',
+      paymentFailedDesc: 'No pudimos procesar tu último pago. Tus cuotas premium están temporalmente pausadas. Por favor, actualiza tu método de pago para restablecer el acceso.',
+      updateBillingBtn: 'Actualizar Pago',
+    },
     plans: {
       choosePlanTitle: 'Elige tu Plan',
       choosePlanSubtitle: 'Desbloquea mayores cuotas de IA, organización inteligente y herramientas para profesores.',
@@ -677,6 +682,10 @@ const es: Translations = {
       featureSmartOrganization: 'Organización inteligente, filtros y exportaciones',
       featureReferralDiscount: 'Gana 1 € de descuento por cada amigo referido',
       featureTeacherReferralDiscount: 'Gana 2 € de descuento por cada amigo referido',
+      paymentIssueTitle: 'Problema con el Pago',
+      paymentIssueBadge: 'Pago Fallido',
+      paymentIssueDesc: 'Tus funciones de IA están temporalmente pausadas porque no pudimos procesar tu último pago de suscripción. Por favor, actualiza tus datos de pago para restaurar tus cuotas inmediatamente.',
+      paymentIssueAction: 'Actualizar Pago y Restaurar Cuotas',
       audioDurationUnderstood: 'Entendido',
       fileLabel: 'Archivo',
       detectedDuration: 'Duración Detectada',
@@ -765,6 +774,7 @@ const es: Translations = {
       boostStatusInactive: 'Sin Impulso Activo',
       creditsLabel: 'Saldo de Descuento por Referidos',
       simSubscriptionStatus: 'Simular Estado',
+      presetPastDue: 'Pago Pendiente (Fallido)',
       applyOverrides: 'Guardar',
       overridesApplied: '¡Estado del Laboratorio de Pruebas aplicado con éxito!',
       resetCounters: 'Reiniciar Contadores',
@@ -774,6 +784,8 @@ const es: Translations = {
   },
   common: {
     cancel: 'Cancelar',
+    dismiss: 'Descartar',
+    close: 'Cerrar',
   },
 };
 

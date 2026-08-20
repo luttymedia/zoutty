@@ -9,6 +9,8 @@ import {
   GraduationCap,
   Sparkle,
   Calendar,
+  AlertTriangle,
+  CreditCard,
 } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { UserTier, TIER_LIMITS } from '../types';
@@ -17,29 +19,34 @@ interface QuotaExceededModalProps {
   isOpen: boolean;
   onClose: () => void;
   tier: UserTier;
+  subscriptionStatus?: string;
   reason?: 'sessions' | 'clips';
   canBoost?: boolean;
   resetDate?: string | null;
   onUpgradeClick: (targetTier?: 'student' | 'teacher') => void;
   onReferralClick: () => void;
   onTopupClick?: () => void;
+  onOpenBillingPortal?: () => void;
 }
 
 export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
   isOpen,
   onClose,
   tier,
+  subscriptionStatus,
   reason = 'sessions',
   canBoost = true,
   resetDate,
   onUpgradeClick,
   onReferralClick,
   onTopupClick,
+  onOpenBillingPortal,
 }) => {
   const { t, uiLanguage } = useTranslation();
 
-  const isFree = tier === 'free';
-  const isStudent = tier === 'student';
+  const isPaymentIssue = subscriptionStatus === 'past_due' || subscriptionStatus === 'unpaid';
+  const isFree = tier === 'free' && !isPaymentIssue;
+  const isStudent = tier === 'student' && !isPaymentIssue;
 
   const formattedResetDate = React.useMemo(() => {
     const d = resetDate ? new Date(resetDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -60,7 +67,9 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-[80] p-4 sm:p-6 overflow-y-auto">
       <div
-        className="glass border border-brand/40 p-6 sm:p-8 max-w-md w-full rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col text-center"
+        className={`glass p-6 sm:p-8 max-w-md w-full rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col text-center border ${
+          isPaymentIssue ? 'border-red-500/50 shadow-red-950/40' : 'border-brand/40'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -72,34 +81,56 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
         </button>
 
         {/* Header Icon */}
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand/20 to-brand/40 border border-brand/50 flex items-center justify-center text-brand mx-auto shadow-lg shadow-brand/10 mb-4 animate-bounce duration-1000">
-          <Sparkles className="w-8 h-8" />
-        </div>
+        {isPaymentIssue ? (
+          <div className="w-16 h-16 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mx-auto shadow-lg shadow-red-500/20 mb-4 animate-bounce duration-1000">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+        ) : (
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand/20 to-brand/40 border border-brand/50 flex items-center justify-center text-brand mx-auto shadow-lg shadow-brand/10 mb-4 animate-bounce duration-1000">
+            <Sparkles className="w-8 h-8" />
+          </div>
+        )}
 
         {/* Title & Badge */}
         <div className="space-y-1 mb-3">
-          <span className="text-[10px] px-3 py-1 rounded-full bg-brand/20 text-brand border border-brand/30 uppercase tracking-widest font-mono font-bold">
-            {isFree ? t('billing.limits.freeLimitBadge') : t('billing.limits.monthlyLimitBadge')}
+          <span className={`text-[10px] px-3 py-1 rounded-full uppercase tracking-widest font-mono font-bold border ${
+            isPaymentIssue
+              ? 'bg-red-500/20 text-red-300 border-red-500/40'
+              : isFree
+              ? 'bg-brand/20 text-brand border-brand/30'
+              : 'bg-brand/20 text-brand border-brand/30'
+          }`}>
+            {isPaymentIssue
+              ? t('billing.limits.paymentIssueBadge')
+              : isFree
+              ? t('billing.limits.freeLimitBadge')
+              : t('billing.limits.monthlyLimitBadge')}
           </span>
           <h3 className="text-xl font-extrabold text-white tracking-tight mt-2">
-            {t('billing.limits.quotaExceededTitle')}
+            {isPaymentIssue
+              ? t('billing.limits.paymentIssueTitle')
+              : t('billing.limits.quotaExceededTitle')}
           </h3>
         </div>
 
         {/* Body Description */}
         <p className="text-sm text-white/70 leading-relaxed mb-4">
-          {isFree ? freeDescription : t('billing.limits.quotaExceededPaidDesc')}
+          {isPaymentIssue
+            ? t('billing.limits.paymentIssueDesc')
+            : isFree
+            ? freeDescription
+            : t('billing.limits.quotaExceededPaidDesc')}
         </p>
 
-        {/* Reset Date Notice for Paid Users */}
-        {!isFree && (
+        {/* Reset Date Notice for Active Paid Users */}
+        {!isFree && !isPaymentIssue && (
           <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-sky-200 text-xs font-semibold mb-5 flex items-center justify-center gap-2">
             <Calendar className="w-4 h-4 text-sky-400 shrink-0" />
             <span>{t('billing.usage.resetDate', { date: formattedResetDate })}</span>
           </div>
         )}
 
-        {/* Subscription Plan Options for Free Tier */}
+        {/* Subscription Plan Options for Free Tier (Non-Payment Issue) */}
         {isFree ? (
           <div className="space-y-2.5 mb-5 text-left">
             {/* Student Plan Card / Button (Warm Amber) */}
@@ -131,7 +162,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
               <ArrowRight className="w-4 h-4 text-amber-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
             </button>
 
-            {/* Teacher Plan Card / Button (Styled in Sky/Cyan to contrast with purple referral) */}
+            {/* Teacher Plan Card / Button (Styled in Sky/Cyan) */}
             <button
               onClick={() => {
                 onClose();
@@ -160,8 +191,8 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
               <ArrowRight className="w-4 h-4 text-sky-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
             </button>
           </div>
-        ) : (
-          /* Plan Highlights for Paid Users */
+        ) : !isPaymentIssue ? (
+          /* Plan Highlights for Active Paid Users */
           <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2.5 mb-5">
             <div className="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-2">
               {isStudent
@@ -185,12 +216,26 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
               <span>{t('billing.limits.featureTeacherReferralDiscount')}</span>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Action Buttons */}
         <div className="space-y-2.5">
+          {/* Payment Failed / Past Due Primary Action Button */}
+          {isPaymentIssue && (
+            <button
+              onClick={() => {
+                onClose();
+                if (onOpenBillingPortal) onOpenBillingPortal();
+              }}
+              className="w-full py-3.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>{t('billing.limits.paymentIssueAction')}</span>
+            </button>
+          )}
+
           {/* For Paid Users (Student & Teacher), offer one-time Top-Up Pack */}
-          {!isFree && onTopupClick && (
+          {!isFree && !isPaymentIssue && onTopupClick && (
             <button
               onClick={() => {
                 onClose();
@@ -214,7 +259,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
           )}
 
           {/* For Student tier, show direct Upgrade to Teacher button */}
-          {isStudent && (
+          {isStudent && !isPaymentIssue && (
             <button
               onClick={() => {
                 onClose();
@@ -230,21 +275,23 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
             </button>
           )}
 
-          {/* Referral Button: available for Free, Student, and Teacher tiers */}
-          <button
-            onClick={() => {
-              onClose();
-              onReferralClick();
-            }}
-            className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-          >
-            <Gift className="w-4 h-4 text-purple-400" />
-            <span>
-              {isFree
-                ? t('billing.limits.referralAction')
-                : t('billing.limits.referralActionPaid')}
-            </span>
-          </button>
+          {/* Referral Button (shown for active free/paid plans) */}
+          {!isPaymentIssue && (
+            <button
+              onClick={() => {
+                onClose();
+                onReferralClick();
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            >
+              <Gift className="w-4 h-4 text-purple-400" />
+              <span>
+                {isFree
+                  ? t('billing.limits.referralAction')
+                  : t('billing.limits.referralActionPaid')}
+              </span>
+            </button>
+          )}
 
           <button
             onClick={onClose}
