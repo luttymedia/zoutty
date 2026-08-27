@@ -2009,7 +2009,9 @@ export default function App() {
 
         // 1. Session deduction (1 consolidation = 1 session)
         const baseSessionLimit = isStudent ? TIER_LIMITS.student.monthly_sessions : isTeacher ? TIER_LIMITS.teacher.monthly_sessions : TIER_LIMITS.free.lifetime_sessions;
-        const isBeyondBaseSessions = !isFree && currentDev.period_sessions >= baseSessionLimit;
+        const isBeyondBaseSessions = isFree
+          ? (currentDev.lifetime_sessions || 0) >= baseSessionLimit
+          : (currentDev.period_sessions || 0) >= baseSessionLimit;
         const hasTopupSessions = (currentDev.topup_extra_sessions || 0) > 0;
 
         let nextTopupSessions = currentDev.topup_extra_sessions || 0;
@@ -2017,7 +2019,7 @@ export default function App() {
 
         if (isBeyondBaseSessions && hasTopupSessions) {
           nextTopupSessions = Math.max(0, nextTopupSessions - 1);
-        } else {
+        } else if (!isFree) {
           nextPeriodSessions = nextPeriodSessions + 1;
         }
 
@@ -2027,7 +2029,12 @@ export default function App() {
         const baseClipLimit = isStudent ? TIER_LIMITS.student.monthly_clips : TIER_LIMITS.free.lifetime_clips;
 
         if (isFree) {
-          // Free tier tracks lifetime_clips
+          const currentLifetimeClips = currentDev.lifetime_clips || 0;
+          if (currentLifetimeClips >= baseClipLimit && (currentDev.topup_extra_clips || 0) > 0) {
+            const spaceInBase = Math.max(0, baseClipLimit - currentLifetimeClips);
+            const overflowClips = clipsCount - spaceInBase;
+            nextTopupClips = Math.max(0, nextTopupClips - Math.max(0, overflowClips));
+          }
         } else if (isStudent) {
           const currentPeriodClips = currentDev.period_clips || 0;
           const spaceInBase = Math.max(0, baseClipLimit - currentPeriodClips);

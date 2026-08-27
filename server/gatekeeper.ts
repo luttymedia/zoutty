@@ -364,13 +364,13 @@ export async function recordUsageIncrement(
     // Check if user has topup balance and is currently exceeding base plan quota
     const [{ data: profile }, { data: usage }] = await Promise.all([
       supabase.from('profiles').select('tier, topup_extra_sessions, topup_extra_clips').eq('id', userId).single(),
-      supabase.from('usage_tracking').select('period_sessions, period_clips').eq('user_id', userId).single(),
+      supabase.from('usage_tracking').select('lifetime_sessions, lifetime_clips, period_sessions, period_clips').eq('user_id', userId).single(),
     ]);
 
     if (profile) {
       if (type === 'consolidation' && (profile.topup_extra_sessions || 0) > 0) {
         const baseLimit = profile.tier === 'teacher' ? TIER_CONFIG.teacher.monthly_sessions : profile.tier === 'student' ? TIER_CONFIG.student.monthly_sessions : TIER_CONFIG.free.lifetime_sessions;
-        const currentUsage = usage?.period_sessions || 0;
+        const currentUsage = profile.tier === 'free' ? (usage?.lifetime_sessions || 0) : (usage?.period_sessions || 0);
         if (currentUsage > baseLimit) {
           const newTopup = Math.max(0, profile.topup_extra_sessions - 1);
           await supabase.from('profiles').update({ topup_extra_sessions: newTopup, updated_at: new Date().toISOString() }).eq('id', userId);
@@ -378,7 +378,7 @@ export async function recordUsageIncrement(
         }
       } else if (type === 'single_clip' && (profile.topup_extra_clips || 0) > 0) {
         const baseClipLimit = profile.tier === 'student' ? TIER_CONFIG.student.monthly_clips : TIER_CONFIG.free.lifetime_clips;
-        const currentClips = usage?.period_clips || 0;
+        const currentClips = profile.tier === 'free' ? (usage?.lifetime_clips || 0) : (usage?.period_clips || 0);
         if (currentClips > baseClipLimit) {
           const newTopupClips = Math.max(0, profile.topup_extra_clips - 1);
           await supabase.from('profiles').update({ topup_extra_clips: newTopupClips, updated_at: new Date().toISOString() }).eq('id', userId);
