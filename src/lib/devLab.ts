@@ -70,6 +70,26 @@ export const resetDevState = (): DevState => {
   return DEFAULT_DEV_STATE;
 };
 
+export const syncWithCloudProfile = (profile: any, usage: any): DevState => {
+  const current = getDevState();
+  return saveDevState({
+    ...current,
+    tier: profile?.tier || 'free',
+    subscription_status: profile?.subscription_status || 'none',
+    lifetime_sessions: usage?.lifetime_sessions || 0,
+    lifetime_clips: usage?.lifetime_clips || 0,
+    period_sessions: usage?.period_sessions || 0,
+    period_clips: usage?.period_clips || 0,
+    referral_boost_active: Boolean(profile?.referral_boost_active),
+    referral_boost_expires_at: profile?.referral_boost_expires_at || null,
+    referral_boost_extra_sessions: profile?.referral_boost_extra_sessions || 0,
+    referral_boost_extra_clips: profile?.referral_boost_extra_clips || 0,
+    referral_credits_balance: profile?.referral_credits_balance || 0,
+    topup_extra_sessions: profile?.topup_extra_sessions || 0,
+    topup_extra_clips: profile?.topup_extra_clips || 0,
+  });
+};
+
 export const inject10DayBoost = (): DevState => {
   const current = getDevState();
   const now = Date.now();

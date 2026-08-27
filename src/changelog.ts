@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.2.1',
+    date: '2026-08-27',
+    changes: [
+      'Cloud Profile & Usage Sync: Automatic real-time syncing of tier, subscription status, and usage counters from Supabase on login, app launch, and post-AI processing',
+      'Test Lab Sandbox Isolation: Strict sandbox boundary hiding simulation controls when Mock Mode is disabled, preventing state leakage into live accounts',
+      'Usage Tracking Database Enhancement: Added period_clips tracking column and RPC updates to properly enforce Student plan monthly clip quotas and billing resets',
+      'Clean Logout & State Reset: Complete local sandbox cache purge on sign-out to prevent cross-account data contamination'
+    ]
+  },
+  {
     version: '3.2.0',
     date: '2026-08-20',
     changes: [

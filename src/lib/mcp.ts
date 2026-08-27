@@ -46,8 +46,10 @@ export const callZoukAudioProcessor = async (payload: {
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'x-dev-override': JSON.stringify(dev),
     };
+    if (isMock) {
+        headers['x-dev-override'] = JSON.stringify(dev);
+    }
 
     try {
         const { data: sessionData } = await supabase.auth.getSession();

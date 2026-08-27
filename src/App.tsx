@@ -55,7 +55,7 @@ import { db, readFromCloud } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
 import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia, TIER_LIMITS, UserTier } from './types';
 import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
-import { DevState, getDevState, saveDevState } from './lib/devLab';
+import { DevState, getDevState, saveDevState, syncWithCloudProfile, resetDevState } from './lib/devLab';
 import { TestLabModal } from './components/TestLabModal';
 import { QuotaExceededModal } from './components/QuotaExceededModal';
 import { AudioDurationExceededModal } from './components/AudioDurationExceededModal';
@@ -388,6 +388,37 @@ export default function App() {
     }
   }, []);
 
+  const fetchCloudProfileAndUsage = useCallback(async (token?: string) => {
+    try {
+      if (!token) {
+        const { data } = await supabase.auth.getSession();
+        token = data.session?.access_token;
+      }
+      if (!token) return;
+
+      const { data: userData } = await supabase.auth.getUser(token);
+      const userId = userData?.user?.id;
+      if (!userId) return;
+
+      const [{ data: profile }, { data: usage }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('usage_tracking').select('*').eq('user_id', userId).maybeSingle()
+      ]);
+
+      if (profile || usage) {
+        // We only sync to devState if Mock Mode is disabled, to avoid wiping out testing progress!
+        // But wait, the user's requirement is: "When I disable mock mode, it goes back to my 1 session and 1 clip".
+        // It's best to always sync the cloud data if mockGemini is OFF.
+        const current = getDevState();
+        if (!current.mockGemini) {
+          syncWithCloudProfile(profile, usage);
+        }
+      }
+    } catch (err) {
+      console.warn('[CloudSync] Failed to fetch profile and usage:', err);
+    }
+  }, []);
+
   const handleOpenBillingPortal = useCallback(async () => {
     setIsPortalLoading(true);
     showToast(t('billing.plans.portalRedirecting'));
@@ -590,6 +621,7 @@ export default function App() {
         handleInitialSyncCheck(session);
         redeemPendingReferral(session.access_token);
         fetchReferralStats();
+        fetchCloudProfileAndUsage(session.access_token);
       } else {
         finishInitialSync();
       }
@@ -1818,6 +1850,10 @@ export default function App() {
       } else {
         showToast(entry.filename ? t('toast.processed', { filename: entry.filename }) : t('toast.audioProcessed'));
       }
+
+      if (!getDevState().mockGemini) {
+        fetchCloudProfileAndUsage();
+      }
     } catch (error: any) {
       if (error.name === 'AbortError' || controller.signal.aborted) {
         console.log('Processing aborted by user');
@@ -1919,8 +1955,10 @@ export default function App() {
       const currentDev = getDevState();
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'x-dev-override': JSON.stringify(currentDev),
       };
+      if (currentDev.mockGemini) {
+        headers['x-dev-override'] = JSON.stringify(currentDev);
+      }
 
       try {
         const { data: sessionData } = await supabase.auth.getSession();
@@ -2063,6 +2101,10 @@ export default function App() {
         showToast(t('toast.aiDetectedStyleOnly', { style: detectedStyle }));
       } else {
         showToast(t('toast.consolidated'));
+      }
+
+      if (!currentDev.mockGemini) {
+        fetchCloudProfileAndUsage();
       }
     } catch (error: any) {
       if (error.name === 'AbortError' || controller.signal.aborted) {
@@ -3140,7 +3182,10 @@ export default function App() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => saveDevState({ mockGemini: !devState.mockGemini })}
+                    onClick={() => {
+                      const updated = saveDevState({ mockGemini: !devState.mockGemini });
+                      if (!updated.mockGemini) fetchCloudProfileAndUsage();
+                    }}
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
                       devState.mockGemini ? 'bg-brand' : 'bg-zinc-700'
                     }`}
@@ -3203,7 +3248,12 @@ export default function App() {
       <TestLabModal
         isOpen={showTestLabModal}
         onClose={() => setShowTestLabModal(false)}
-        onStateApplied={(s) => setDevState(s)}
+        onStateApplied={(s) => {
+          setDevState(s);
+          if (!s.mockGemini) {
+            fetchCloudProfileAndUsage();
+          }
+        }}
       />
 
       {/* Pricing / Plan Selection Modal */}
@@ -3455,6 +3505,8 @@ export default function App() {
                       }
                     });
                     localStorage.removeItem('zoutty_migrated_to_supabase');
+                    resetDevState();
+                    localStorage.removeItem('zoutty_dev_state');
                     await supabase.auth.signOut();
                     window.location.reload();
                   } catch (e) {

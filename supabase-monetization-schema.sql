@@ -33,6 +33,7 @@ create table if not exists public.usage_tracking (
   lifetime_sessions integer default 0 not null,
   lifetime_clips integer default 0 not null,
   period_sessions integer default 0 not null,
+  period_clips integer default 0 not null,
   period_start timestamp with time zone default timezone('utc'::text, now()) not null,
   period_end timestamp with time zone,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -126,9 +127,11 @@ begin
     lifetime_sessions,
     lifetime_clips,
     period_sessions,
+    period_clips,
     period_start
   ) values (
     new.id,
+    0,
     0,
     0,
     0,
@@ -205,6 +208,7 @@ as $$
 begin
   update public.usage_tracking
   set lifetime_clips = lifetime_clips + 1,
+      period_clips = period_clips + 1,
       updated_at = timezone('utc'::text, now())
   where user_id = target_user_id;
 end;

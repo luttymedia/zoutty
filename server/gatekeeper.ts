@@ -72,13 +72,16 @@ export async function checkGatekeeper(
   if (devOverrideJson) {
     try {
       const dev = JSON.parse(devOverrideJson);
-      let tier: UserTier = dev.tier || 'free';
-      const subscriptionStatus: string | undefined = dev.subscription_status;
+      
+      // Strict isolation: only apply Test Lab overrides if Mock Mode is actually active
+      if (dev.mockGemini) {
+        let tier: UserTier = dev.tier || 'free';
+        const subscriptionStatus: string | undefined = dev.subscription_status;
 
-      // If user has a paid tier but payment failed, unpaid, or canceled, enforce free limits
-      if (tier !== 'free' && subscriptionStatus && ['past_due', 'unpaid', 'canceled'].includes(subscriptionStatus)) {
-        tier = 'free';
-      }
+        // If user has a paid tier but payment failed, unpaid, or canceled, enforce free limits
+        if (tier !== 'free' && subscriptionStatus && ['past_due', 'unpaid', 'canceled'].includes(subscriptionStatus)) {
+          tier = 'free';
+        }
 
       const periodSessions = Number(dev.period_sessions) || 0;
       const periodClips = Number(dev.period_clips) || 0;
@@ -175,6 +178,7 @@ export async function checkGatekeeper(
         usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
         limits: { sessions: maxSessions, clips: maxClips },
       };
+      }
     } catch (e) {
       console.warn('[Gatekeeper] Failed to parse dev override header:', e);
     }

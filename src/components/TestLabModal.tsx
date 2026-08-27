@@ -182,8 +182,11 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
             </div>
           </div>
 
-          {/* 2. Quick Presets */}
-          <div className="space-y-2.5">
+          {/* Sandbox Controls (Only visible when Mock Mode is active) */}
+          {devState.mockGemini && (
+            <div className="space-y-6">
+              {/* 2. Quick Presets */}
+              <div className="space-y-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-brand" />
               {t('billing.dev.presetsHeading')}
@@ -656,6 +659,8 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
               </div>
             </div>
           </div>
+            </div>
+          )}
         </div>
 
         {/* Footer Actions */}

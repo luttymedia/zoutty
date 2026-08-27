@@ -40,100 +40,103 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
     if (devOverrideJson) {
         try {
             const dev = JSON.parse(devOverrideJson);
-            let tier = dev.tier || 'free';
-            const subscriptionStatus = dev.subscription_status;
-            // If user has a paid tier but payment failed, unpaid, or canceled, enforce free limits
-            if (tier !== 'free' && subscriptionStatus && ['past_due', 'unpaid', 'canceled'].includes(subscriptionStatus)) {
-                tier = 'free';
+            // Strict isolation: only apply Test Lab overrides if Mock Mode is actually active
+            if (dev.mockGemini) {
+                let tier = dev.tier || 'free';
+                const subscriptionStatus = dev.subscription_status;
+                // If user has a paid tier but payment failed, unpaid, or canceled, enforce free limits
+                if (tier !== 'free' && subscriptionStatus && ['past_due', 'unpaid', 'canceled'].includes(subscriptionStatus)) {
+                    tier = 'free';
+                }
+                const periodSessions = Number(dev.period_sessions) || 0;
+                const periodClips = Number(dev.period_clips) || 0;
+                const lifetimeSessions = Math.max(Number(dev.lifetime_sessions) || 0, periodSessions);
+                const lifetimeClips = Math.max(Number(dev.lifetime_clips) || 0, periodClips);
+                const isBoostActive = Boolean(dev.referral_boost_active) &&
+                    Boolean(dev.referral_boost_expires_at) &&
+                    new Date(dev.referral_boost_expires_at).getTime() > Date.now();
+                const topupSessions = Number(dev.topup_extra_sessions) || 0;
+                const topupClips = Number(dev.topup_extra_clips) || 0;
+                const maxSessions = tier === 'free'
+                    ? TIER_CONFIG.free.lifetime_sessions + (isBoostActive ? (Number(dev.referral_boost_extra_sessions) || TIER_CONFIG.boost.extra_sessions) : 0) + topupSessions
+                    : tier === 'student'
+                        ? TIER_CONFIG.student.monthly_sessions + topupSessions
+                        : TIER_CONFIG.teacher.monthly_sessions + topupSessions;
+                const maxClips = tier === 'free'
+                    ? TIER_CONFIG.free.lifetime_clips + (isBoostActive ? (Number(dev.referral_boost_extra_clips) || TIER_CONFIG.boost.extra_clips) : 0) + topupClips
+                    : tier === 'student'
+                        ? TIER_CONFIG.student.monthly_clips + topupClips
+                        : Infinity;
+                if (tier === 'free') {
+                    if (type === 'consolidation' && lifetimeSessions >= maxSessions) {
+                        return {
+                            allowed: false,
+                            statusCode: 403,
+                            code: 'QUOTA_EXCEEDED',
+                            tier: 'free',
+                            canBoost: !isBoostActive,
+                            limits: { sessions: maxSessions, clips: maxClips },
+                            usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
+                            error: 'You have reached your lifetime limit of free AI session consolidations.',
+                        };
+                    }
+                    if (type === 'single_clip' && lifetimeClips >= maxClips) {
+                        return {
+                            allowed: false,
+                            statusCode: 403,
+                            code: 'QUOTA_EXCEEDED',
+                            tier: 'free',
+                            canBoost: !isBoostActive,
+                            limits: { sessions: maxSessions, clips: maxClips },
+                            usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
+                            error: 'You have reached your lifetime limit of free AI clip transcriptions.',
+                        };
+                    }
+                }
+                else if (tier === 'student') {
+                    if (type === 'consolidation' && periodSessions >= maxSessions) {
+                        return {
+                            allowed: false,
+                            statusCode: 403,
+                            code: 'QUOTA_EXCEEDED',
+                            tier: 'student',
+                            limits: { sessions: maxSessions, clips: maxClips },
+                            usage: { period_sessions: periodSessions, period_clips: periodClips },
+                            error: 'You have reached your monthly Student plan AI limit.',
+                        };
+                    }
+                    if (type === 'single_clip' && periodClips >= maxClips) {
+                        return {
+                            allowed: false,
+                            statusCode: 403,
+                            code: 'QUOTA_EXCEEDED',
+                            tier: 'student',
+                            limits: { sessions: maxSessions, clips: maxClips },
+                            usage: { period_sessions: periodSessions, period_clips: periodClips },
+                            error: 'You have reached your monthly Student plan AI limit.',
+                        };
+                    }
+                }
+                else if (tier === 'teacher') {
+                    if (type === 'consolidation' && periodSessions >= maxSessions) {
+                        return {
+                            allowed: false,
+                            statusCode: 403,
+                            code: 'QUOTA_EXCEEDED',
+                            tier: 'teacher',
+                            limits: { sessions: maxSessions, clips: Infinity },
+                            usage: { period_sessions: periodSessions },
+                            error: 'You have reached your monthly Teacher plan AI limit.',
+                        };
+                    }
+                }
+                return {
+                    allowed: true,
+                    tier,
+                    usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
+                    limits: { sessions: maxSessions, clips: maxClips },
+                };
             }
-            const periodSessions = Number(dev.period_sessions) || 0;
-            const periodClips = Number(dev.period_clips) || 0;
-            const lifetimeSessions = Math.max(Number(dev.lifetime_sessions) || 0, periodSessions);
-            const lifetimeClips = Math.max(Number(dev.lifetime_clips) || 0, periodClips);
-            const isBoostActive = Boolean(dev.referral_boost_active) &&
-                Boolean(dev.referral_boost_expires_at) &&
-                new Date(dev.referral_boost_expires_at).getTime() > Date.now();
-            const topupSessions = Number(dev.topup_extra_sessions) || 0;
-            const topupClips = Number(dev.topup_extra_clips) || 0;
-            const maxSessions = tier === 'free'
-                ? TIER_CONFIG.free.lifetime_sessions + (isBoostActive ? (Number(dev.referral_boost_extra_sessions) || TIER_CONFIG.boost.extra_sessions) : 0) + topupSessions
-                : tier === 'student'
-                    ? TIER_CONFIG.student.monthly_sessions + topupSessions
-                    : TIER_CONFIG.teacher.monthly_sessions + topupSessions;
-            const maxClips = tier === 'free'
-                ? TIER_CONFIG.free.lifetime_clips + (isBoostActive ? (Number(dev.referral_boost_extra_clips) || TIER_CONFIG.boost.extra_clips) : 0) + topupClips
-                : tier === 'student'
-                    ? TIER_CONFIG.student.monthly_clips + topupClips
-                    : Infinity;
-            if (tier === 'free') {
-                if (type === 'consolidation' && lifetimeSessions >= maxSessions) {
-                    return {
-                        allowed: false,
-                        statusCode: 403,
-                        code: 'QUOTA_EXCEEDED',
-                        tier: 'free',
-                        canBoost: !isBoostActive,
-                        limits: { sessions: maxSessions, clips: maxClips },
-                        usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
-                        error: 'You have reached your lifetime limit of free AI session consolidations.',
-                    };
-                }
-                if (type === 'single_clip' && lifetimeClips >= maxClips) {
-                    return {
-                        allowed: false,
-                        statusCode: 403,
-                        code: 'QUOTA_EXCEEDED',
-                        tier: 'free',
-                        canBoost: !isBoostActive,
-                        limits: { sessions: maxSessions, clips: maxClips },
-                        usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
-                        error: 'You have reached your lifetime limit of free AI clip transcriptions.',
-                    };
-                }
-            }
-            else if (tier === 'student') {
-                if (type === 'consolidation' && periodSessions >= maxSessions) {
-                    return {
-                        allowed: false,
-                        statusCode: 403,
-                        code: 'QUOTA_EXCEEDED',
-                        tier: 'student',
-                        limits: { sessions: maxSessions, clips: maxClips },
-                        usage: { period_sessions: periodSessions, period_clips: periodClips },
-                        error: 'You have reached your monthly Student plan AI limit.',
-                    };
-                }
-                if (type === 'single_clip' && periodClips >= maxClips) {
-                    return {
-                        allowed: false,
-                        statusCode: 403,
-                        code: 'QUOTA_EXCEEDED',
-                        tier: 'student',
-                        limits: { sessions: maxSessions, clips: maxClips },
-                        usage: { period_sessions: periodSessions, period_clips: periodClips },
-                        error: 'You have reached your monthly Student plan AI limit.',
-                    };
-                }
-            }
-            else if (tier === 'teacher') {
-                if (type === 'consolidation' && periodSessions >= maxSessions) {
-                    return {
-                        allowed: false,
-                        statusCode: 403,
-                        code: 'QUOTA_EXCEEDED',
-                        tier: 'teacher',
-                        limits: { sessions: maxSessions, clips: Infinity },
-                        usage: { period_sessions: periodSessions },
-                        error: 'You have reached your monthly Teacher plan AI limit.',
-                    };
-                }
-            }
-            return {
-                allowed: true,
-                tier,
-                usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
-                limits: { sessions: maxSessions, clips: maxClips },
-            };
         }
         catch (e) {
             console.warn('[Gatekeeper] Failed to parse dev override header:', e);
