@@ -61,12 +61,14 @@ import { QuotaExceededModal } from './components/QuotaExceededModal';
 import { AudioDurationExceededModal } from './components/AudioDurationExceededModal';
 import { RecordingAutoStoppedModal } from './components/RecordingAutoStoppedModal';
 import { PricingModal } from './components/PricingModal';
+import { GlossaryModal } from './components/GlossaryModal';
 import { ReferralModal } from './components/ReferralModal';
 import { SubscriptionSuccessModal } from './components/SubscriptionSuccessModal';
 import { TopupSuccessModal } from './components/TopupSuccessModal';
+import { TopupConfirmModal } from './components/TopupConfirmModal';
 import { ManageSubscriptionModal } from './components/ManageSubscriptionModal';
 import { getMediaDuration } from './lib/audioDuration';
-import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout } from './lib/stripe';
+import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout, updateStripeSubscription, cancelStripeSubscription, reactivateStripeSubscription } from './lib/stripe';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
@@ -329,6 +331,8 @@ export default function App() {
   const [showReferralModal, setShowReferralModal] = useState(false);
   const [showSubscriptionSuccessModal, setShowSubscriptionSuccessModal] = useState<{ isOpen: boolean; tier: UserTier }>({ isOpen: false, tier: 'student' });
   const [showTopupSuccessModal, setShowTopupSuccessModal] = useState(false);
+  const [showTopupConfirmModal, setShowTopupConfirmModal] = useState(false);
+  const [isTopupLoading, setIsTopupLoading] = useState(false);
   const [showManageSubscriptionModal, setShowManageSubscriptionModal] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
   const [paymentBannerDismissed, setPaymentBannerDismissed] = useState(false);
@@ -687,6 +691,7 @@ export default function App() {
     setShowSearchModal(false);
     try {
       const reports = await db.getFinalReports();
+      const allMedia = await db.getAllMedia();
       const { matchedSessionIds, matchedGroupIds } = performSearch(
         query,
         filters,
@@ -694,7 +699,7 @@ export default function App() {
         groups,
         Object.values(audioEntries),
         reports,
-        sessionMedia
+        allMedia
       );
       setActiveSearch({ query, filters, matchedSessionIds, matchedGroupIds });
     } catch (e) {
@@ -718,6 +723,7 @@ export default function App() {
     shareTechnical: boolean;
     shareEmotional: boolean;
     shareMedia: boolean;
+    hasHeavyMedia?: boolean;
     generatedLink?: string;
     shareCode?: string;
     shareTimestamp?: number;
@@ -2905,7 +2911,6 @@ export default function App() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
-                            setShowAppSettings(false);
                             if (devState.tier === 'free') {
                               setShowPricingModal(true);
                             } else {
@@ -2919,7 +2924,6 @@ export default function App() {
                         </button>
                         <button
                           onClick={() => {
-                            setShowAppSettings(false);
                             setShowReferralModal(true);
                           }}
                           className="py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
@@ -2934,7 +2938,6 @@ export default function App() {
                       {isFree && currentSessions >= maxSessions && (
                         <button
                           onClick={() => {
-                            setShowAppSettings(false);
                             setShowReferralModal(true);
                           }}
                           className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600/20 to-purple-500/10 hover:from-purple-600/30 hover:to-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
@@ -2947,13 +2950,8 @@ export default function App() {
                       {/* Top-Up Pack Button for paying users */}
                       {!isFree && (
                         <button
-                          onClick={async () => {
-                            setShowAppSettings(false);
-                            showToast(t('billing.plans.checkoutRedirecting'));
-                            const res = await startTopupCheckout();
-                            if (!res.success && res.error) {
-                              showToast(res.error, false, undefined, undefined, undefined, 'error');
-                            }
+                          onClick={() => {
+                            setShowTopupConfirmModal(true);
                           }}
                           className="w-full py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                         >
@@ -3012,7 +3010,6 @@ export default function App() {
                     onClick={() => {
                       localStorage.removeItem('zoutty_guest_mode');
                       setIsGuestMode(false);
-                      setShowAppSettings(false);
                     }}
                     className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
                   >
@@ -3023,7 +3020,6 @@ export default function App() {
                   <button
                     onClick={() => {
                       setShowLogoutConfirm(true);
-                      setShowAppSettings(false);
                     }}
                     className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
                   >
@@ -3286,6 +3282,29 @@ export default function App() {
       />
 
       {/* Subscription Activation Celebration Modal */}
+      <TopupConfirmModal
+        isOpen={showTopupConfirmModal}
+        onClose={() => !isTopupLoading && setShowTopupConfirmModal(false)}
+        isLoading={isTopupLoading}
+        onConfirm={async () => {
+          setIsTopupLoading(true);
+          const res = await startTopupCheckout();
+          setIsTopupLoading(false);
+          if (!res.success && res.error) {
+            showToast(res.error, true);
+          } else if (res.mock) {
+            setShowTopupConfirmModal(false);
+            const updated = saveDevState({
+              ...devState,
+              topup_extra_sessions: (devState.topup_extra_sessions || 0) + 5,
+              topup_extra_clips: (devState.topup_extra_clips || 0) + 15,
+            });
+            setDevState(updated);
+            setShowTopupSuccessModal(true);
+          }
+        }}
+      />
+
       <SubscriptionSuccessModal
         isOpen={showSubscriptionSuccessModal.isOpen}
         onClose={() => setShowSubscriptionSuccessModal(prev => ({ ...prev, isOpen: false }))}
@@ -3297,10 +3316,27 @@ export default function App() {
         <ManageSubscriptionModal
           isOpen={showManageSubscriptionModal}
           onClose={() => setShowManageSubscriptionModal(false)}
-          currentTier={devState.tier}
+          currentTier={devState.tier as 'student' | 'teacher'}
+          renewalDate={devState.current_period_end ? new Date(devState.current_period_end).toLocaleDateString() : undefined}
+          pendingDowngrade={devState.pending_downgrade}
+          isCanceling={devState.cancel_at_period_end}
+          onReactivate={async () => {
+            const result = await reactivateStripeSubscription();
+            if (result.success) {
+              setShowManageSubscriptionModal(false);
+              const updated = saveDevState({
+                ...devState,
+                cancel_at_period_end: false,
+              });
+              setDevState(updated);
+              showToast('Subscription reactivated successfully!');
+            } else {
+              showToast(result.error || 'Failed to reactivate subscription.', true);
+            }
+          }}
           onUpgrade={async () => {
-            const result = await startStripeCheckout('teacher');
-            if (result.mock) {
+            const result = await updateStripeSubscription('teacher');
+            if (result.success) {
               setShowManageSubscriptionModal(false);
               const updated = saveDevState({
                 tier: 'teacher',
@@ -3309,29 +3345,38 @@ export default function App() {
                 period_clips: 0,
               });
               setDevState(updated);
-              setShowSubscriptionSuccessModal({ isOpen: true, tier: 'teacher' });
-            } else if (!result.success) {
-              showToast(result.error || t('billing.plans.checkoutError'), false, undefined, undefined, undefined, 'error');
+              showToast('Upgraded to Teacher Plan successfully!');
+            } else {
+              showToast(result.error || t('billing.plans.checkoutError'), true);
             }
           }}
-          onDowngrade={() => {
-            const updated = saveDevState({
-              tier: 'student',
-              subscription_status: 'active',
-            });
-            setDevState(updated);
-            showToast(t('billing.manage.downgradeSuccessToast', { plan: t('billing.plans.studentName') }), false, undefined, undefined, undefined, 'info');
+          onDowngrade={async () => {
+            const result = await updateStripeSubscription('student');
+            if (result.success) {
+              setShowManageSubscriptionModal(false);
+              // Do NOT downgrade tier immediately. It remains active until end of period.
+              const updated = saveDevState({
+                ...devState,
+                pending_downgrade: 'student',
+              });
+              setDevState(updated);
+              showToast('Downgrade scheduled! You will keep Teacher benefits until the end of your billing cycle.');
+            } else {
+              showToast(result.error || 'Failed to downgrade plan.', true);
+            }
           }}
-          onCancelSubscription={() => {
-            const updated = saveDevState({
-              tier: 'free',
-              subscription_status: 'none',
-            });
-            setDevState(updated);
-            const nextMonth = new Date();
-            nextMonth.setDate(nextMonth.getDate() + 30);
-            const dateStr = nextMonth.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-            showToast(t('billing.manage.cancelSuccessToast', { date: dateStr }), false, undefined, undefined, undefined, 'info');
+          onCancelSubscription={async () => {
+            const result = await cancelStripeSubscription();
+            if (result.success) {
+              setShowManageSubscriptionModal(false);
+              const updated = saveDevState({
+                cancel_at_period_end: true,
+              });
+              setDevState(updated);
+              showToast('Subscription will cancel at the end of the billing period.');
+            } else {
+              showToast(result.error || 'Failed to cancel subscription.', true);
+            }
           }}
           isPortalLoading={isPortalLoading}
           onOpenCustomerPortal={handleOpenBillingPortal}
@@ -3346,22 +3391,60 @@ export default function App() {
         subscriptionStatus={devState.subscription_status}
         reason={showQuotaModal.reason}
         canBoost={!devState.referral_boost_active}
-        onUpgradeClick={() => {
+        onUpgradeClick={async (targetTier) => {
           setShowQuotaModal({ isOpen: false, reason: 'sessions' });
-          setShowPricingModal(true);
+          if (!targetTier) {
+            setShowPricingModal(true);
+            return;
+          }
+          
+          if (devState.tier === 'free') {
+            const result = await startStripeCheckout(targetTier);
+            if (result.mock) {
+              const updated = saveDevState({
+                tier: targetTier,
+                subscription_status: 'active',
+                period_sessions: 0,
+                period_clips: 0,
+              });
+              setDevState(updated);
+              setShowSubscriptionSuccessModal({ isOpen: true, tier: targetTier });
+            } else if (!result.success) {
+              showToast(result.error || t('billing.plans.checkoutError'), true);
+            }
+          } else if (devState.tier === 'student' && targetTier === 'teacher') {
+            const result = await updateStripeSubscription('teacher');
+            if (result.success) {
+              const updated = saveDevState({
+                tier: 'teacher',
+                subscription_status: 'active',
+                period_sessions: 0,
+                period_clips: 0,
+              });
+              setDevState(updated);
+              showToast('Upgraded to Teacher Plan successfully!');
+            } else {
+              showToast(result.error || t('billing.plans.checkoutError'), true);
+            }
+          }
         }}
         onReferralClick={() => {
           setShowQuotaModal({ isOpen: false, reason: 'sessions' });
           setShowReferralModal(true);
         }}
         onOpenBillingPortal={handleOpenBillingPortal}
-        onTopupClick={async () => {
+        onTopupClick={() => {
           setShowQuotaModal(prev => ({ ...prev, isOpen: false }));
-          showToast(t('billing.plans.checkoutRedirecting'));
-          const res = await startTopupCheckout();
-          if (!res.success && res.error) {
-            showToast(res.error, false, undefined, undefined, undefined, 'error');
-          }
+          setShowTopupConfirmModal(true);
+        }}
+      />
+
+      <GlossaryModal
+        isOpen={showGlossaryModal}
+        onClose={() => setShowGlossaryModal(false)}
+        glossaries={glossaries}
+        onGlossariesChange={async (updatedGlossaries) => {
+          setGlossaries(updatedGlossaries);
         }}
       />
 
@@ -3686,7 +3769,7 @@ export default function App() {
       {/* Share Session Modal */}
       {shareModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
-          <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95">
+          <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold flex items-center gap-2">
               <Share2 className="w-6 h-6 text-brand" />
               {t('modals.shareSession')}
@@ -3833,7 +3916,7 @@ export default function App() {
                       }
                       className="px-2 py-1.5"
                     />
-                    {shareModal.shareMedia && (
+                    {shareModal.shareMedia && shareModal.hasHeavyMedia && (
                       <p className="px-2 mt-1 text-xs text-brand font-medium flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5" />
                         {t('modals.shareMediaWarning')}
@@ -4221,8 +4304,11 @@ export default function App() {
                     const hasHomework = hasReport && !!report.report?.expandedInsights?.homework && report.report.expandedInsights.homework.length > 0;
                     const hasTechnical = hasReport && !!report.report?.expandedInsights?.technicalExpansion && report.report.expandedInsights.technicalExpansion.length > 0;
                     const hasEmotional = hasReport && !!report.report?.expandedInsights?.emotionalNotes && report.report.expandedInsights.emotionalNotes.length > 0;
-                    const hasAudios = Object.values(audioEntries).some(e => e.sessionId === selectedSession.id && !!e.audioBlob);
-                    const hasMedia = sessionMedia.length > 0 || hasAudios;
+                    const currentSessionMedia = sessionMedia.filter(m => m.sessionId === selectedSession.id);
+                    const hasMedia = currentSessionMedia.length > 0;
+                    const totalMediaBytes = currentSessionMedia.reduce((acc, m) => acc + (m.size || 0), 0);
+                    const HEAVY_MEDIA_THRESHOLD = 10 * 1024 * 1024; // 10 MB
+                    const hasHeavyMedia = totalMediaBytes >= HEAVY_MEDIA_THRESHOLD;
 
                     const hasOldShareCode = !!selectedSession.shareId && !selectedSession.shareMethod;
                     const defaultViewState = (selectedSession.shareMethod === 'code' || hasOldShareCode) ? 'active_code' 
@@ -4240,6 +4326,7 @@ export default function App() {
                       shareTechnical: hasTechnical,
                       shareEmotional: hasEmotional,
                       shareMedia: selectedSession.sharedContent ? selectedSession.sharedContent.media : hasMedia,
+                      hasHeavyMedia,
                       availableReport: hasReport,
                       availableNotes: hasNotes,
                       availableTranscripts: hasTranscripts,

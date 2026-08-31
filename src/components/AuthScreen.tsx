@@ -23,6 +23,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const [showSignupSuccess, setShowSignupSuccess] = useState(false);
   const [showGuestConfirm, setShowGuestConfirm] = useState(false);
+  const [inviteCode, setInviteCode] = useState(referralSignupCode || '');
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +37,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
     }
 
     try {
+      if (!isLogin && inviteCode.trim()) {
+        localStorage.setItem('zoutty_referral_signup_code', inviteCode.trim());
+      }
+      
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -59,6 +64,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
 
   const handleGoogleSignIn = async () => {
     try {
+      if (!isLogin && inviteCode.trim()) {
+        localStorage.setItem('zoutty_referral_signup_code', inviteCode.trim());
+      }
       localStorage.setItem('zoutty_onboarding_completed', 'true');
       localStorage.setItem('zoutty_initial_sync_pending', 'true');
       const { error } = await supabase.auth.signInWithOAuth({ 
@@ -205,6 +213,21 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {!isLogin && (
+            <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">{t('auth.inviteCodeLabel', { fallback: 'Have an invite code?' })}</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={e => setInviteCode(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 px-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all font-mono"
+                  placeholder={t('auth.inviteCodePlaceholder', { fallback: 'e.g. DANCE1 (Optional)' })}
+                />
               </div>
             </div>
           )}

@@ -15,6 +15,9 @@ export interface DevState {
   referral_credits_balance: number;
   topup_extra_sessions: number;
   topup_extra_clips: number;
+  current_period_end?: string | null;
+  cancel_at_period_end?: boolean;
+  pending_downgrade?: UserTier | null;
 }
 
 const STORAGE_KEY = 'zoutty_dev_state';
@@ -87,6 +90,9 @@ export const syncWithCloudProfile = (profile: any, usage: any): DevState => {
     referral_credits_balance: profile?.referral_credits_balance || 0,
     topup_extra_sessions: profile?.topup_extra_sessions || 0,
     topup_extra_clips: profile?.topup_extra_clips || 0,
+    current_period_end: profile?.current_period_end || null,
+    cancel_at_period_end: profile?.cancel_at_period_end || false,
+    pending_downgrade: profile?.pending_downgrade || null,
   });
 };
 

@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.2.2',
+    date: '2026-08-31',
+    changes: [
+      'Stripe Integration Data Consistency: Populated current_period_end tracking across Stripe webhooks and Supabase profiles for accurate billing cycle resets',
+      'Robust Subscription Cancellation: Fixed backend cancellation crashes by automatically releasing pending downgrade subscription schedules',
+      'Reactivation Flow: Added seamless Reactivate Subscription capability directly from the Manage Subscription modal for canceled accounts',
+      'Improved Cancellation UI: Added a clear CANCELED badge and correct "Cancels on" date display within the Settings Drawer and Subscription Modal'
+    ]
+  },
+  {
     version: '3.2.1',
     date: '2026-08-27',
     changes: [

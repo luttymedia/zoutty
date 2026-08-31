@@ -27,9 +27,12 @@ interface ManageSubscriptionModalProps {
   onCancelSubscription: () => void;
   onOpenCustomerPortal: () => void;
   isPortalLoading?: boolean;
+  pendingDowngrade?: string | null;
+  isCanceling?: boolean;
+  onReactivate?: () => void;
 }
 
-type ModalView = 'overview' | 'downgrade_confirm' | 'cancel_confirm';
+type ModalView = 'overview' | 'downgrade_confirm' | 'cancel_confirm' | 'upgrade_confirm';
 
 export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = ({
   isOpen,
@@ -41,6 +44,9 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
   onCancelSubscription,
   onOpenCustomerPortal,
   isPortalLoading = false,
+  pendingDowngrade,
+  isCanceling = false,
+  onReactivate,
 }) => {
   const { t } = useTranslation();
   const [view, setView] = useState<ModalView>('overview');
@@ -81,11 +87,16 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
   };
 
   const handleUpgradeClick = async () => {
+    setView('upgrade_confirm');
+  };
+
+  const executeUpgrade = async () => {
     setIsUpgrading(true);
     try {
       await onUpgrade();
     } finally {
       setIsUpgrading(false);
+      handleClose();
     }
   };
 
@@ -117,7 +128,9 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                   {t('billing.manage.activePlanBadge')}
                 </span>
                 <span className="text-[11px] text-white/50">
-                  {t('billing.manage.renewsOn', { date: effectiveRenewalDate })}
+                  {isCanceling
+                    ? t('billing.manage.cancelsOn', { date: effectiveRenewalDate })
+                    : t('billing.manage.renewsOn', { date: effectiveRenewalDate })}
                 </span>
               </div>
             </div>
@@ -165,7 +178,11 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                     <div className="text-sm font-bold text-white font-mono">{currentPrice}</div>
                     <div className="text-[11px] text-white/50 flex items-center gap-1 justify-end mt-0.5">
                       <Calendar className="w-3 h-3" />
-                      <span>{t('billing.manage.renewsOn', { date: effectiveRenewalDate })}</span>
+                      <span>
+                        {isCanceling
+                          ? t('billing.manage.cancelsOn', { date: effectiveRenewalDate })
+                          : t('billing.manage.renewsOn', { date: effectiveRenewalDate })}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -196,47 +213,77 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
 
               {/* Plan Switch Section */}
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-white">
-                      {isStudent
-                        ? t('billing.manage.upgradeToTeacherTitle')
-                        : t('billing.manage.downgradeToStudentTitle')}
-                    </h4>
-                    <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
-                      {isStudent
-                        ? t('billing.manage.upgradeToTeacherDesc')
-                        : t('billing.manage.downgradeToStudentDesc')}
-                    </p>
-                  </div>
-                </div>
-
-                {isStudent ? (
-                  <button
-                    disabled={isUpgrading}
-                    onClick={handleUpgradeClick}
-                    className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-500/20 disabled:opacity-60"
-                  >
-                    {isUpgrading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>{t('billing.plans.redirectingToStripe')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkle className="w-4 h-4 fill-zinc-950" />
-                        <span>{t('billing.manage.upgradeToTeacherBtn', { price: alternativePrice })}</span>
-                      </>
-                    )}
-                  </button>
+                {isCanceling ? (
+                  <>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="text-sm font-bold text-white">
+                          {t('billing.manage.reactivateTitle')}
+                        </h4>
+                        <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
+                          {t('billing.manage.reactivateDesc')}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={onReactivate}
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20"
+                    >
+                      <Zap className="w-4 h-4 fill-zinc-950" />
+                      <span>{t('billing.manage.reactivateBtn')}</span>
+                    </button>
+                  </>
                 ) : (
-                  <button
-                    onClick={() => setView('downgrade_confirm')}
-                    className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/10"
-                  >
-                    <GraduationCap className="w-4 h-4 text-amber-400" />
-                    <span>{t('billing.manage.downgradeToStudentBtn', { price: alternativePrice })}</span>
-                  </button>
+                  <>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="text-sm font-bold text-white">
+                          {isStudent
+                            ? t('billing.manage.upgradeToTeacherTitle')
+                            : t('billing.manage.downgradeToStudentTitle')}
+                        </h4>
+                        <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
+                          {isStudent
+                            ? t('billing.manage.upgradeToTeacherDesc')
+                            : t('billing.manage.downgradeToStudentDesc')}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isStudent ? (
+                      <button
+                        disabled={isUpgrading}
+                        onClick={handleUpgradeClick}
+                        className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-500/20 disabled:opacity-60"
+                      >
+                        {isUpgrading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>{t('billing.plans.redirectingToStripe')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkle className="w-4 h-4 fill-zinc-950" />
+                            <span>{t('billing.manage.upgradeToTeacherBtn', { price: alternativePrice })}</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      pendingDowngrade ? (
+                        <div className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-[11px] font-medium text-center">
+                          {t('billing.manage.pendingDowngradeText')}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setView('downgrade_confirm')}
+                          className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/10"
+                        >
+                          <GraduationCap className="w-4 h-4 text-amber-400" />
+                          <span>{t('billing.manage.downgradeToStudentBtn', { price: alternativePrice })}</span>
+                        </button>
+                      )
+                    )}
+                  </>
                 )}
               </div>
 
@@ -414,6 +461,53 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                   className="w-full py-2.5 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition-all cursor-pointer"
                 >
                   {t('billing.manage.confirmCancelBtn')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: UPGRADE CONFIRMATION */}
+          {view === 'upgrade_confirm' && (
+            <div className="space-y-5 animate-fade-in">
+              <div className="p-4 rounded-2xl bg-brand/10 border border-brand/30 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand/20 text-brand flex items-center justify-center shrink-0">
+                  <Sparkle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-brand">
+                    {t('billing.manage.upgradeConfirmTitle')}
+                  </h4>
+                  <p className="text-xs text-brand/70 mt-1 leading-relaxed">
+                    {t('billing.manage.upgradeConfirmDesc', { targetPlan: alternativePlanName })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-2 pt-2">
+                <button
+                  disabled={isUpgrading}
+                  onClick={executeUpgrade}
+                  className="w-full py-3 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand/20 disabled:opacity-70"
+                >
+                  {isUpgrading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{t('billing.manage.processingUpgrade')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 fill-zinc-950" />
+                      <span>{t('billing.manage.confirmPayBtn')}</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  disabled={isUpgrading}
+                  onClick={() => setView('overview')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-medium transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

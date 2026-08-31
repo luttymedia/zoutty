@@ -20,7 +20,7 @@ export function getSupabaseAdmin() {
  */
 export function generateRandomCode(length = 6): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-  let code = 'ZOU-';
+  let code = '';
   for (let i = 0; i < length; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -133,6 +133,7 @@ export async function backfillMissingReferralCodes(): Promise<number> {
  * RULE: The referrer does NOT get an immediate reward on signup;
  *       a pending referral log is created until the user subscribes and passes the 14-day refund period.
  */
+const activeRedeems = new Set<string>();
 export async function redeemReferralCode(userId: string, inputCode: string) {
   const supabase = getSupabaseAdmin();
   const cleanCode = (inputCode || '').trim().toUpperCase();
@@ -140,6 +141,12 @@ export async function redeemReferralCode(userId: string, inputCode: string) {
   if (!cleanCode) {
     return { success: false, error: 'Invalid referral code.' };
   }
+
+  if (activeRedeems.has(userId)) {
+    return { success: false, error: 'Redeem in progress.' };
+  }
+  activeRedeems.add(userId);
+  try {
 
   // 1. Fetch redeeming user profile (ensure profile exists)
   let { data: userProfile } = await supabase
@@ -224,11 +231,14 @@ export async function redeemReferralCode(userId: string, inputCode: string) {
     console.warn('[referrals] Could not insert referral log:', logErr);
   }
 
-  return {
-    success: true,
-    message: 'Referral code linked successfully.',
-    referrerName: 'A friend',
-  };
+    return {
+      success: true,
+      message: 'Referral code linked successfully.',
+      referrerName: 'A friend',
+    };
+  } finally {
+    activeRedeems.delete(userId);
+  }
 }
 
 /**

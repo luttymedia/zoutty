@@ -73,7 +73,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
       navigator
         .share({
           title: 'Zoutty - Dance Notes & AI Assistant',
-          text: `${t('billing.referrals.shareText')} ${referralLink}`,
+          text: t('billing.referrals.shareText'),
           url: referralLink,
         })
         .catch(() => {});

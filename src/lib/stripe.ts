@@ -221,3 +221,99 @@ export async function startTopupCheckout(): Promise<CheckoutResult> {
   }
 }
 
+
+/**
+ * Updates an existing Stripe subscription directly via API
+ */
+export async function updateStripeSubscription(targetTier: 'student' | 'teacher'): Promise<{ success: boolean; mock?: boolean; error?: string }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch('/api/stripe/update-subscription', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ targetTier }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data?.error || 'Failed to update subscription.' };
+    }
+
+    return { success: true, mock: data.mock };
+  } catch (err: any) {
+    console.error('[stripe] Error updating subscription:', err);
+    return { success: false, error: err?.message || 'Network error occurred.' };
+  }
+}
+
+/**
+ * Cancels an existing Stripe subscription directly via API
+ */
+export async function cancelStripeSubscription(): Promise<{ success: boolean; mock?: boolean; error?: string }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch('/api/stripe/cancel-subscription', {
+      method: 'POST',
+      headers,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data?.error || 'Failed to cancel subscription.' };
+    }
+
+    return { success: true, mock: data.mock };
+  } catch (err: any) {
+    console.error('[stripe] Error cancelling subscription:', err);
+    return { success: false, error: err?.message || 'Network error occurred.' };
+  }
+}
+
+export async function reactivateStripeSubscription(): Promise<{ success: boolean; mock?: boolean; error?: string }> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return { success: false, error: 'User must be authenticated.' };
+
+    const response = await fetch('/api/stripe/reactivate-subscription', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Failed to reactivate subscription');
+    }
+
+    const result = await response.json();
+    return { success: true, mock: result.mock };
+  } catch (error: any) {
+    console.error('Error reactivating Stripe subscription:', error);
+    return { success: false, error: error.message || 'Failed to reactivate subscription' };
+  }
+}

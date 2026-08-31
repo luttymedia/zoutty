@@ -370,6 +370,21 @@ export async function handleStripeWebhook(req, res) {
                 console.log(`[stripe-webhook] checkout.session.completed for user=${userId}, customer=${customerId}, tier=${targetTier}`);
                 if (userId) {
                     // 1. Update user profile
+                    let currentPeriodEnd = null;
+                    if (subscriptionId) {
+                        try {
+                            const stripe = getStripe();
+                            if (stripe) {
+                                const sub = await stripe.subscriptions.retrieve(subscriptionId);
+                                if (sub.current_period_end) {
+                                    currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+                                }
+                            }
+                        }
+                        catch (err) {
+                            console.warn('[stripe-webhook] Could not fetch subscription for current_period_end:', err);
+                        }
+                    }
                     const { error: profileErr } = await supabase
                         .from('profiles')
                         .update({
@@ -378,6 +393,7 @@ export async function handleStripeWebhook(req, res) {
                         stripe_customer_id: customerId,
                         stripe_subscription_id: subscriptionId,
                         cancel_at_period_end: false,
+                        current_period_end: currentPeriodEnd,
                         updated_at: new Date().toISOString(),
                     })
                         .eq('id', userId);
@@ -774,4 +790,164 @@ export async function confirmCheckoutSession({ sessionId, targetTier, authHeader
         console.warn('[stripe] Could not transition referral log on confirmCheckoutSession:', refErr);
     }
     return { success: true, tier };
+}
+export async function updateSubscription(targetTier, authHeader) {
+    const stripe = getStripe();
+    if (!stripe) {
+        return { mock: true, message: 'Simulated subscription update.' };
+    }
+    const user = await getAuthenticatedUser(authHeader);
+    if (!user)
+        throw { statusCode: 401, error: 'Authentication required' };
+    const profile = await getUserProfile(user.id);
+    if (!profile?.stripe_customer_id) {
+        throw { statusCode: 400, error: 'No Stripe customer found.' };
+    }
+    if (targetTier === 'free') {
+        return cancelSubscription(authHeader);
+    }
+    const priceId = targetTier === 'teacher' ? process.env.STRIPE_TEACHER_PRICE_ID : process.env.STRIPE_STUDENT_PRICE_ID;
+    if (!priceId)
+        throw { statusCode: 500, error: "Missing STRIPE_TEACHER_PRICE_ID or STRIPE_STUDENT_PRICE_ID" };
+    const subscriptions = await stripe.subscriptions.list({
+        customer: profile.stripe_customer_id,
+        status: 'active',
+        limit: 1,
+    });
+    if (subscriptions.data.length === 0) {
+        throw { statusCode: 400, error: 'No active subscription to update.' };
+    }
+    const subscription = subscriptions.data[0];
+    const itemId = subscription.items.data[0].id;
+    const currentPriceId = subscription.items.data[0].price.id;
+    // Determine if it's an upgrade or downgrade
+    const isDowngrade = (targetTier === 'student' && currentPriceId === process.env.STRIPE_TEACHER_PRICE_ID);
+    if (isDowngrade) {
+        console.log(`[stripe] Scheduling downgrade to student at period end for sub=${subscription.id}`);
+        let scheduleId = subscription.schedule;
+        if (!scheduleId) {
+            const schedule = await stripe.subscriptionSchedules.create({
+                from_subscription: subscription.id,
+            });
+            scheduleId = schedule.id;
+        }
+        const schedule = await stripe.subscriptionSchedules.retrieve(scheduleId);
+        const currentPhase = schedule.phases[0];
+        await stripe.subscriptionSchedules.update(scheduleId, {
+            end_behavior: 'release',
+            phases: [
+                {
+                    start_date: currentPhase.start_date,
+                    end_date: currentPhase.end_date,
+                    items: [{ price: currentPriceId, quantity: 1 }],
+                },
+                {
+                    start_date: currentPhase.end_date,
+                    items: [{ price: priceId, quantity: 1 }],
+                }
+            ],
+        });
+        // Also update metadata on the subscription so we know a downgrade is pending
+        await stripe.subscriptions.update(subscription.id, {
+            metadata: { pending_downgrade: targetTier }
+        });
+        return { success: true, message: 'Downgrade scheduled for end of billing period.' };
+    }
+    else {
+        console.log(`[stripe] Immediate upgrade to ${targetTier} for sub=${subscription.id}`);
+        const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
+            items: [{
+                    id: itemId,
+                    price: priceId,
+                }],
+            metadata: {
+                target_tier: targetTier,
+            },
+            proration_behavior: 'always_invoice',
+        });
+        return { success: true, subscription: updatedSubscription };
+    }
+}
+export async function cancelSubscription(authHeader) {
+    const stripe = getStripe();
+    if (!stripe) {
+        return { mock: true, message: 'Simulated subscription cancellation.' };
+    }
+    const user = await getAuthenticatedUser(authHeader);
+    if (!user)
+        throw { statusCode: 401, error: 'Authentication required' };
+    const profile = await getUserProfile(user.id);
+    if (!profile?.stripe_customer_id) {
+        throw { statusCode: 400, error: 'No Stripe customer found.' };
+    }
+    const subscriptions = await stripe.subscriptions.list({
+        customer: profile.stripe_customer_id,
+        status: 'active',
+        limit: 1,
+    });
+    if (subscriptions.data.length === 0) {
+        throw { statusCode: 400, error: 'No active subscription to cancel.' };
+    }
+    const subscription = subscriptions.data[0];
+    // If there's a schedule (e.g., a pending downgrade), we MUST release it first.
+    // Otherwise, Stripe blocks the cancellation request.
+    if (subscription.schedule) {
+        console.log(`[stripe] Releasing schedule ${subscription.schedule} before canceling subscription ${subscription.id}`);
+        await stripe.subscriptionSchedules.release(subscription.schedule);
+    }
+    const canceledSubscription = await stripe.subscriptions.update(subscription.id, {
+        cancel_at_period_end: true,
+    });
+    return { success: true, subscription: canceledSubscription };
+}
+export async function getSubscriptionStatus(authHeader) {
+    const stripe = getStripe();
+    if (!stripe) {
+        return { mock: true, pending_downgrade: null };
+    }
+    const user = await getAuthenticatedUser(authHeader);
+    if (!user)
+        throw { statusCode: 401, error: 'Authentication required' };
+    const profile = await getUserProfile(user.id);
+    if (!profile?.stripe_customer_id) {
+        return { pending_downgrade: null };
+    }
+    const subscriptions = await stripe.subscriptions.list({
+        customer: profile.stripe_customer_id,
+        status: 'active',
+        limit: 1,
+    });
+    if (subscriptions.data.length === 0) {
+        return { pending_downgrade: null };
+    }
+    const subscription = subscriptions.data[0];
+    return {
+        pending_downgrade: subscription.metadata?.pending_downgrade || null,
+    };
+}
+export async function reactivateSubscription(authHeader) {
+    const stripe = getStripe();
+    if (!stripe) {
+        return { mock: true, message: 'Simulated subscription reactivation.' };
+    }
+    const user = await getAuthenticatedUser(authHeader);
+    if (!user)
+        throw { statusCode: 401, error: 'Authentication required' };
+    const profile = await getUserProfile(user.id);
+    if (!profile?.stripe_customer_id) {
+        throw { statusCode: 400, error: 'No Stripe customer found.' };
+    }
+    const subscriptions = await stripe.subscriptions.list({
+        customer: profile.stripe_customer_id,
+        status: 'active',
+        limit: 1,
+    });
+    if (subscriptions.data.length === 0) {
+        throw { statusCode: 400, error: 'No active subscription to reactivate.' };
+    }
+    const subscription = subscriptions.data[0];
+    const reactivatedSubscription = await stripe.subscriptions.update(subscription.id, {
+        cancel_at_period_end: false,
+    });
+    return { success: true, subscription: reactivatedSubscription };
 }

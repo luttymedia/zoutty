@@ -16,7 +16,7 @@ export function getSupabaseAdmin() {
  */
 export function generateRandomCode(length = 6) {
     const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-    let code = 'ZOU-';
+    let code = '';
     for (let i = 0; i < length; i++) {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -121,88 +121,98 @@ export async function backfillMissingReferralCodes() {
  * RULE: The referrer does NOT get an immediate reward on signup;
  *       a pending referral log is created until the user subscribes and passes the 14-day refund period.
  */
+const activeRedeems = new Set();
 export async function redeemReferralCode(userId, inputCode) {
     const supabase = getSupabaseAdmin();
     const cleanCode = (inputCode || '').trim().toUpperCase();
     if (!cleanCode) {
         return { success: false, error: 'Invalid referral code.' };
     }
-    // 1. Fetch redeeming user profile (ensure profile exists)
-    let { data: userProfile } = await supabase
-        .from('profiles')
-        .select('id, tier, referred_by')
-        .eq('id', userId)
-        .maybeSingle();
-    if (!userProfile) {
-        await getOrCreateReferralCode(userId);
-        const { data: refreshed } = await supabase
+    if (activeRedeems.has(userId)) {
+        return { success: false, error: 'Redeem in progress.' };
+    }
+    activeRedeems.add(userId);
+    try {
+        // 1. Fetch redeeming user profile (ensure profile exists)
+        let { data: userProfile } = await supabase
             .from('profiles')
             .select('id, tier, referred_by')
             .eq('id', userId)
             .maybeSingle();
-        userProfile = refreshed;
-    }
-    if (!userProfile) {
-        return { success: false, error: 'User profile not found.' };
-    }
-    if (userProfile.referred_by) {
-        return { success: false, error: 'You have already redeemed a referral code.' };
-    }
-    // 2. Fetch referrer profile
-    const { data: referrer } = await supabase
-        .from('profiles')
-        .select('id, tier, referral_code')
-        .ilike('referral_code', cleanCode)
-        .maybeSingle();
-    if (!referrer) {
-        return { success: false, error: 'Referral code not found.' };
-    }
-    if (referrer.id === userId) {
-        return { success: false, error: 'You cannot use your own referral code.' };
-    }
-    // 3. Update redeeming user: link to referrer only (no boost for new user)
-    const { error: userUpdateErr } = await supabase
-        .from('profiles')
-        .update({
-        referred_by: referrer.id,
-        updated_at: new Date().toISOString(),
-    })
-        .eq('id', userId);
-    if (userUpdateErr) {
-        console.error('[referrals] Failed to update redeeming user profile:', userUpdateErr);
-        return { success: false, error: 'Could not link referral code.' };
-    }
-    // 4. Log the referral entry as 'pending' (avoid duplicate insert if already exists)
-    try {
-        const { data: existingLog } = await supabase
-            .from('referral_logs')
-            .select('id')
-            .eq('referred_user_id', userId)
-            .maybeSingle();
-        if (!existingLog) {
-            const rewardType = referrer.tier === 'teacher'
-                ? 'teacher_credit'
-                : referrer.tier === 'student'
-                    ? 'student_credit'
-                    : 'free_boost';
-            await supabase.from('referral_logs').insert({
-                referrer_id: referrer.id,
-                referred_user_id: userId,
-                reward_type: rewardType,
-                reward_value: 0,
-                status: 'pending',
-                created_at: new Date().toISOString(),
-            });
+        if (!userProfile) {
+            await getOrCreateReferralCode(userId);
+            const { data: refreshed } = await supabase
+                .from('profiles')
+                .select('id, tier, referred_by')
+                .eq('id', userId)
+                .maybeSingle();
+            userProfile = refreshed;
         }
+        if (!userProfile) {
+            return { success: false, error: 'User profile not found.' };
+        }
+        if (userProfile.referred_by) {
+            return { success: false, error: 'You have already redeemed a referral code.' };
+        }
+        // 2. Fetch referrer profile
+        const { data: referrer } = await supabase
+            .from('profiles')
+            .select('id, tier, referral_code')
+            .ilike('referral_code', cleanCode)
+            .maybeSingle();
+        if (!referrer) {
+            return { success: false, error: 'Referral code not found.' };
+        }
+        if (referrer.id === userId) {
+            return { success: false, error: 'You cannot use your own referral code.' };
+        }
+        // 3. Update redeeming user: link to referrer only (no boost for new user)
+        const { error: userUpdateErr } = await supabase
+            .from('profiles')
+            .update({
+            referred_by: referrer.id,
+            updated_at: new Date().toISOString(),
+        })
+            .eq('id', userId);
+        if (userUpdateErr) {
+            console.error('[referrals] Failed to update redeeming user profile:', userUpdateErr);
+            return { success: false, error: 'Could not link referral code.' };
+        }
+        // 4. Log the referral entry as 'pending' (avoid duplicate insert if already exists)
+        try {
+            const { data: existingLog } = await supabase
+                .from('referral_logs')
+                .select('id')
+                .eq('referred_user_id', userId)
+                .maybeSingle();
+            if (!existingLog) {
+                const rewardType = referrer.tier === 'teacher'
+                    ? 'teacher_credit'
+                    : referrer.tier === 'student'
+                        ? 'student_credit'
+                        : 'free_boost';
+                await supabase.from('referral_logs').insert({
+                    referrer_id: referrer.id,
+                    referred_user_id: userId,
+                    reward_type: rewardType,
+                    reward_value: 0,
+                    status: 'pending',
+                    created_at: new Date().toISOString(),
+                });
+            }
+        }
+        catch (logErr) {
+            console.warn('[referrals] Could not insert referral log:', logErr);
+        }
+        return {
+            success: true,
+            message: 'Referral code linked successfully.',
+            referrerName: 'A friend',
+        };
     }
-    catch (logErr) {
-        console.warn('[referrals] Could not insert referral log:', logErr);
+    finally {
+        activeRedeems.delete(userId);
     }
-    return {
-        success: true,
-        message: 'Referral code linked successfully.',
-        referrerName: 'A friend',
-    };
 }
 /**
  * Checks and activates referral rewards that have successfully passed the 14-day refund window.

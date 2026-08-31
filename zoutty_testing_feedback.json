@@ -1,0 +1,289 @@
+[
+  {
+    "comment_number": 1,
+    "section": "1. PWA Install Experience",
+    "subsection": null,
+    "paragraph": "[ ] Visiting the Render URL directly in the browser (not standalone) still shows the install wall, not the app",
+    "comment": "Text “Preparing installation…” doesn’t disappear from both the root and the /onboarding.html pages"
+  },
+  {
+    "comment_number": 2,
+    "section": "2. Authentication",
+    "subsection": "2b. Email/Password Signup",
+    "paragraph": "[ ] 🔍 Supabase Check: Go to Table Editor → profiles and confirm a row was created for this user with tier: 'free' and a referral_code of the format ZOU-XXXXXX. (This row is created by backfillMissingReferralCodes() which runs on every server start — if it's missing, something is wrong with the server startup.)",
+    "comment": "Referral code is SSM5TTS. There's no \"ZOU-\" in the referral codes, and it's ok."
+  },
+  {
+    "comment_number": 3,
+    "section": "2. Authentication",
+    "subsection": "2e. Guest Mode",
+    "paragraph": "[ ] The settings drawer shows \"Local sandbox mode\" for account type and a \"Sign In / Sign Up\" CTA instead of Logout",
+    "comment": "The button is correct, but there's still a text above the \"Guest User\" card saying \"Log out of Zoutty Cloud. This will clear...\""
+  },
+  {
+    "comment_number": 4,
+    "section": "2. Authentication",
+    "subsection": "2f. Referral Code Capture on Signup",
+    "paragraph": "[ ] While logged out, visit your Render URL + ?ref=ZOU-DANCE (or your actual referral code)",
+    "comment": "Typed https://zoutty-staging.onrender.com?ref=SSM5TTS and was redirected to https://zoutty-staging.onrender.com/?ref=SSM5TTS\nIt still opened the install wall, nothing else.\nBut when I came back to the app and opened the sign in/sign up page, the \"Referred by friend\" badge was there. There's room for UX improvement here."
+  },
+  {
+    "comment_number": 5,
+    "section": "2. Authentication",
+    "subsection": "2f. Referral Code Capture on Signup",
+    "paragraph": "[ ] 🔍 Supabase Check: Go to Table Editor → referral_logs. A row should exist with the new user's ID as referred_user_id, the referrer's ID as referrer_id, and status 'pending'. If the code you used was ZOU-DANCE (the default placeholder), this will fail because it's not a real code — use your actual code from the Referral modal.",
+    "comment": "There were actually 2 rows created in referral_logs, both with the same data, except \"id\". Timestamps were 2026-08-27 10:40:09.183+00 and 2026-08-27 10:40:09.226+00."
+  },
+  {
+    "comment_number": 6,
+    "section": "2. Authentication",
+    "subsection": "2f. Referral Code Capture on Signup",
+    "paragraph": "[ ] 🔍 Render Log Check: You should see a log line for POST /api/referrals/redeem returning 200. If it returned 400, check what error the server sent.",
+    "comment": "After deployment, there are no Render logs, unless Gemini API is called."
+  },
+  {
+    "comment_number": 7,
+    "section": "3. First Launch & Logo Animation",
+    "subsection": null,
+    "paragraph": "[ ] On a fresh account (not previously logged in), the Zoutty logo animation plays on first launch",
+    "comment": "Even after clearing all data from the website and from the app, no logo animation on first launch."
+  },
+  {
+    "comment_number": 8,
+    "section": "5. Home Screen / List View",
+    "subsection": "5a. Layout & Navigation",
+    "paragraph": "[ ] Zoutty logo and title in the header are visible and tapping the logo doesn't crash",
+    "comment": "The title \"Private Lesson Companion\" doesn't appear. I've noticed it does appear in desktop view (local deployment test, as online desktop launching is blocked)"
+  },
+  {
+    "comment_number": 9,
+    "section": "5. Home Screen / List View",
+    "subsection": "5e. Session Card Management",
+    "paragraph": "[ ] Each session card shows title, subtitle (if set), and last-modified indicator",
+    "comment": "There's no last-modified indicator."
+  },
+  {
+    "comment_number": 10,
+    "section": "5. Home Screen / List View",
+    "subsection": "5e. Session Card Management",
+    "paragraph": "[ ] 🔍 Supabase Check (after a few operations): Go to Table Editor → sessions. You should see rows appearing/updating within a couple of seconds of any action (sync engine debounce is 2 seconds). Deleted sessions should NOT appear (they're soft-deleted locally and hard-deleted from the cloud on next sync).",
+    "comment": "Something interesting here. My test user appeared in \"profiles\". His folders (deleted or not) appeared correctly in \"session groups\". But his sessions did NOT appear in \"sessions\", even after waiting and refreshing. Once I logged out and back in, the sessions were gone. After that, then the sessions started to appear in Supabase. I deleted the account and started fresh, with no problems. Maybe it was a hiccup, but it's never a bad idea to check,"
+  },
+  {
+    "comment_number": 11,
+    "section": "8. Audio Recording",
+    "subsection": null,
+    "paragraph": "[ ] The audio plays back correctly when you tap play",
+    "comment": "It does play correctly, but the player renders weirdly. 1. It doesn't show the length of the audio. 2. When playing the playhead moves almost all the way to the end (because apparently it's still loading the audio), then it starts getting to its correct position. How can we improve these small issues (non-priority)?"
+  },
+  {
+    "comment_number": 12,
+    "section": "9. File Upload (Audio & Video)",
+    "subsection": null,
+    "paragraph": "[ ] Select multiple files at once → all valid files are added, any that exceed 3 min show the duration modal",
+    "comment": "I tested selecting 5 files, 3 under 3 minutes and 2 over. It imported correctly only the 3 short files, but it only flagged the 1st detected long file, not both. Both should be listed in the duration modal."
+  },
+  {
+    "comment_number": 13,
+    "section": "10. AI Processing — Single Clip",
+    "subsection": null,
+    "paragraph": "[ ] 🔍 Render Log Check: In your Render logs, find the POST /api/gemini/process-single-audio call. It should log \"Tokens used: input=X, output=Y\" for this clip.",
+    "comment": "CRITICAL: I only processed 1 clip, but the log shows 2 calls for the same clip. Could it possibly be because I tapped the Zap button then immediately canceled, and after 1 minute I let the processing finish? If so, this needs to be fixed. A cancelled processing/consolidation should cut the call and save tokens:\n\n2026-08-27T14:35:41.477542515Z [/api/gemini/process-single-audio] Request received\n2026-08-27T14:35:41.478015851Z [/api/gemini/process-single-audio] Processing audio for session=aeed3178-94f0-4c7f-9468-a618f55d9f77, style=Auto\n2026-08-27T14:35:45.635404896Z [Gemini Transcription Usage] Prompt: 377 tokens\n2026-08-27T14:35:45.636630022Z [Gemini Transcription Usage] Response: 32 tokens\n2026-08-27T14:35:45.636647893Z [Gemini Transcription Usage] Total: 981 tokens\n2026-08-27T14:36:38.937299771Z [/api/gemini/process-single-audio] Request received\n2026-08-27T14:36:38.937355302Z [/api/gemini/process-single-audio] Processing audio for session=aeed3178-94f0-4c7f-9468-a618f55d9f77, style=Auto\n2026-08-27T14:36:42.918118001Z [Gemini Transcription Usage] Prompt: 456 tokens\n2026-08-27T14:36:42.918144561Z [Gemini Transcription Usage] Response: 36 tokens\n2026-08-27T14:36:42.918149051Z [Gemini Transcription Usage] Total: 991 tokens"
+  },
+  {
+    "comment_number": 14,
+    "section": "12. AI Glossary Generation",
+    "subsection": null,
+    "paragraph": "12. AI Glossary Generation",
+    "comment": "\"Add glossary\" button is unresponsive, as is the whole \"Custom glossaries\" section of the settings. No testing was done."
+  },
+  {
+    "comment_number": 15,
+    "section": "14. Media Gallery",
+    "subsection": null,
+    "paragraph": "[ ] 🔍 Supabase / Storage Check: Go to Storage → sessionMedia bucket. Within a few seconds of adding media, you should see files at {userId}/{sessionId}/{mediaId}.{ext}. Also confirm rows in Table Editor → sessionmedia.",
+    "comment": "Are the files in the storage deleted when the user deletes them from their sessions (audios and media)? If not, then they should."
+  },
+  {
+    "comment_number": 16,
+    "section": "15. Card Reorder (Drag and Drop)",
+    "subsection": null,
+    "paragraph": "[ ] In session detail, tap the GripHorizontal (⠀) toggle button → drag handles appear on each card",
+    "comment": "Reorder mode is enabled, but there are no drag handles."
+  },
+  {
+    "comment_number": 17,
+    "section": "15. Card Reorder (Drag and Drop)",
+    "subsection": null,
+    "paragraph": "[ ] On mobile, the touch sensor requires a 250ms hold before drag begins (this is intentional — confirm it works)",
+    "comment": "This isn't working. I can move the cards by dragging them immediately when in reorder mode."
+  },
+  {
+    "comment_number": 18,
+    "section": "16. Share & Import",
+    "subsection": "16a. Share by Code",
+    "paragraph": "[ ] Share modal opens in checklist state",
+    "comment": "Share modal is too tall and doesn't fit the screen's height. Must fit and add scrolling."
+  },
+  {
+    "comment_number": 19,
+    "section": "16. Share & Import",
+    "subsection": "16a. Share by Code",
+    "paragraph": "[ ] The session shows \"Previously shared via code\" state with timestamp after generating",
+    "comment": "In a session with only a short audio clip and a consolidated section, no media, when I togggle \"Include Media\" on, a \"Heavy media selected. This session will be exported as a local file\" warning appears. It should only appear when the attached media in the gallery reaches a limit we've set."
+  },
+  {
+    "comment_number": 20,
+    "section": "16. Share & Import",
+    "subsection": "16a. Share by Code",
+    "paragraph": "[ ] navigator.share (if available on your phone) → native share sheet opens",
+    "comment": "I'm not sure what this means."
+  },
+  {
+    "comment_number": 21,
+    "section": "18. Search",
+    "subsection": null,
+    "paragraph": "[ ] Search filters work (if filter options are present in the modal)",
+    "comment": "\"Has gallery items\" isn't working. When toggled on, it never finds results."
+  },
+  {
+    "comment_number": 22,
+    "section": "19. Settings Drawer — Full Walkthrough",
+    "subsection": "19a. Plan & AI Quota Section",
+    "paragraph": "19a. Plan & AI Quota Section",
+    "comment": "The modals that open from this section (Upgrade Plan, Manage Subscription, Top-Up, Refer a Friend + Sign In/Sign Up and Log Out), when closed, should all go back to the settings drawer, not to the homepage."
+  },
+  {
+    "comment_number": 23,
+    "section": "19. Settings Drawer — Full Walkthrough",
+    "subsection": "19a. Plan & AI Quota Section",
+    "paragraph": "[ ] For paid tier: \"Resets on [date]\" label appears next to bars",
+    "comment": "Currently displays \"today + 30 days\", which is incorrect. Fix: set it up to get the current_period_end data from Stripe and do the correct calculation."
+  },
+  {
+    "comment_number": 24,
+    "section": "19. Settings Drawer — Full Walkthrough",
+    "subsection": "19a. Plan & AI Quota Section",
+    "paragraph": "[ ] Top-Up button (paid tier only) → initiates top-up checkout",
+    "comment": "We should first open a modal explaining the top-ups. Confirming this modal initiates the top-up checkout."
+  },
+  {
+    "comment_number": 25,
+    "section": "19. Settings Drawer — Full Walkthrough",
+    "subsection": "19d. Backup & Restore",
+    "paragraph": "[ ] Confirm modal appears with 3 options: Cancel / Merge / Replace",
+    "comment": "Buttons are not centered. They're slightly to the left."
+  },
+  {
+    "comment_number": 26,
+    "section": "19. Settings Drawer — Full Walkthrough",
+    "subsection": "19f. Custom Glossaries",
+    "paragraph": "19f. Custom Glossaries",
+    "comment": "As mentioned before, this whole section is unresponsive and will also need some rework done."
+  },
+  {
+    "comment_number": 27,
+    "section": "19. Settings Drawer — Full Walkthrough",
+    "subsection": "19g. Offline Usage Guide",
+    "paragraph": "[ ] The offline usage guide section is visible and readable (static text content)",
+    "comment": "The text \"AI transcriptions... will automatically consolidate\" is incorrect. Nothing is automatically processed or consolidated, as far as I know."
+  },
+  {
+    "comment_number": 28,
+    "section": "19. Settings Drawer — Full Walkthrough",
+    "subsection": "19h. Dev & Testing",
+    "paragraph": "19h. Dev & Testing",
+    "comment": "Since we already have the shortcut for the Gemini Mock Mode in the homepage (the \"lab\" icon), rename this section in the Settings drawer and remove the \"Gemini mock mode\" and \"Test lab & dev Tools\" buttons. Leave only the buttons a normal user would need (Replay Onboarding and Refer a Friend)."
+  },
+  {
+    "comment_number": 29,
+    "section": "21. Stripe — Sandbox Monetization Testing",
+    "subsection": "21a. Pricing Modal",
+    "paragraph": "[ ] Tap Upgrade (from Settings → Plan section, or from QuotaExceededModal)",
+    "comment": "Clicking one of the plans in the QuotaExceededModal should go directly to Stripe checkout, not to PricingModal."
+  },
+  {
+    "comment_number": 30,
+    "section": "21. Stripe — Sandbox Monetization Testing",
+    "subsection": "21b. Subscribe — Student Plan",
+    "paragraph": "[ ] 🔍 Render Log Check: Confirm you see a POST /api/stripe/webhook log for checkout.session.completed and customer.subscription.updated events.",
+    "comment": "I don't see anything about customer.subscription.updated:\n\n2026-08-28T14:02:48.611717613Z [stripe-webhook] Received verified event: checkout.session.completed (id: evt_1U9QMmAKTDZzny5WTZY3RToO)\n2026-08-28T14:02:48.611755084Z [stripe-webhook] checkout.session.completed for user=8e85b5f2-3e8b-48ae-8a69-3c0ae80316b3, customer=cus_V9gFtrNfzoZeJ8, tier=student\n2026-08-28T14:02:48.929757312Z [stripe-webhook] Updated referral log 16fc3cf7-664f-4451-866c-059371979623 to pending_refund_period (14-day timer started).\n2026-08-28T14:02:49.030167606Z [stripe-webhook] Received verified event: invoice.payment_succeeded (id: evt_1U9QMmAKTDZzny5WqdHJKbri)\n2026-08-28T14:02:49.030439392Z [stripe-webhook] invoice.payment_succeeded for customer=cus_V9gFtrNfzoZeJ8, reason=subscription_create\n2026-08-28T14:02:51.249518557Z [stripe] Created pending_refund_period log for referrer=828ca272-818a-4fe4-b9c5-94f92d000c00\n\n\n---\n\nIt might have something to do with the previously mentioned profile.current_period_end field."
+  },
+  {
+    "comment_number": 31,
+    "section": "21. Stripe — Sandbox Monetization Testing",
+    "subsection": "21c. Manage Subscription Modal",
+    "paragraph": "[ ] Back on the Stripe portal, cancel the subscription → redirect back → the cancel reflects in the app",
+    "comment": "I've cancelled the subscription via the Stripe portal, came back to Zoutty and nothing's changed."
+  },
+  {
+    "comment_number": 32,
+    "section": "21. Stripe — Sandbox Monetization Testing",
+    "subsection": "21c. Manage Subscription Modal",
+    "paragraph": "[ ] 🔍 Render Log Check: Confirm customer.subscription.deleted webhook was received and logged.",
+    "comment": "No, this is what was logged after cancelling the subscription through the Stripe portal:\n\n2026-08-28T14:13:39.781718522Z [/api/stripe/create-portal-session] Request received\n2026-08-28T14:14:36.325385483Z [stripe-webhook] Received verified event: customer.subscription.updated (id: evt_1U9QYBAKTDZzny5W7epbOqzd)\n2026-08-28T14:14:36.325625149Z [stripe-webhook] customer.subscription.updated for customer=cus_V9gFtrNfzoZeJ8, status=active, tier=student\n2026-08-28T14:14:36.407366225Z [stripe-webhook] Received verified event: customer.subscription.updated (id: evt_1U9QYBAKTDZzny5WxYuCmHj8)\n2026-08-28T14:14:36.407608401Z [stripe-webhook] customer.subscription.updated for customer=cus_V9gFtrNfzoZeJ8, status=active, tier=student"
+  },
+  {
+    "comment_number": 33,
+    "section": "21. Stripe — Sandbox Monetization Testing",
+    "subsection": "21c. Manage Subscription Modal",
+    "paragraph": "[ ] 🔍 Supabase Check: Profile should revert to tier: 'free', subscription_status: 'canceled' or similar.",
+    "comment": "No, still active."
+  },
+  {
+    "comment_number": 34,
+    "section": "21. Stripe — Sandbox Monetization Testing",
+    "subsection": "21d. Downgrade Flow (UI)",
+    "paragraph": "[ ] Confirm → redirects to Stripe Portal to complete the change",
+    "comment": "It doesn't redirect to Stripe. It downgrades to student on Supabase, and when I go to Stripe portal, I now have 2 active subscriptions (Teacher + Student). After a moment, it goes back to Teacher on Supabase/Zoutty, and Stripe still has 2 subscriptions."
+  },
+  {
+    "comment_number": 35,
+    "section": "21. Stripe — Sandbox Monetization Testing",
+    "subsection": "21e. Cancel Subscription Flow (UI)",
+    "paragraph": "[ ] Confirm → redirects to Stripe Portal",
+    "comment": "Doesn't redirect to Stripe and doesn't update Supabase.  In Zoutty's Stripe dashboard, even after I cancelled the subscriptions via the user's Stripe Portal, they're all displayed as active. So there's a data miscommunication there."
+  },
+  {
+    "comment_number": 36,
+    "section": "21. Stripe — Sandbox Monetization Testing",
+    "subsection": "21f. Top-Up Pack",
+    "paragraph": "[ ] Tap the Top-Up button from Settings (paid tier only, or from QuotaExceededModal)",
+    "comment": "Tapping \"Top up\" from the settings drawer should open a modal explaining the top up before redirecting to Stripe. QuotaExceededModal for paid tiers doesn't fit the screen, it's too tall."
+  },
+  {
+    "comment_number": 37,
+    "section": "22. Referral Program",
+    "subsection": "22a. Your Referral Code & Stats",
+    "paragraph": "[ ] Your referral code (ZOU-XXXXXX) is displayed prominently",
+    "comment": "Yes, but there's no \"ZOU-\", as I've mentioned before. And it's ok."
+  },
+  {
+    "comment_number": 38,
+    "section": "22. Referral Program",
+    "subsection": "22a. Your Referral Code & Stats",
+    "paragraph": "[ ] Share button → native share sheet opens with the link",
+    "comment": "The link is duplicated. This is the message when shared on whatsapp:\nJoin me on Zoutty for dance lessons and practice notes! Use my link: https://zoutty-staging.onrender.com?ref=5D83XW8 https://zoutty-staging.onrender.com/?ref=5D83XW8"
+  },
+  {
+    "comment_number": 39,
+    "section": "22. Referral Program",
+    "subsection": "22c. Active Referral Boost (Free Tier)",
+    "paragraph": "22c. Active Referral Boost (Free Tier)",
+    "comment": "I've run many test scenarios by modifying Supabase directly. Results:\nFREE PLAN\n- Test 1. Referral within 14-day refund window: OK\n\n- Test 2. Referral past 14-day refund window: KO\nThe \"Refer a friend\" modal is updated, but not the quota counter. No banner in the settings drawer.\n\n- Test 3. Another referral within the 10-day boost window: KO.\nSame results as the previous test.\n\n- Test 4. 10-day boost window expired: OK.\n\nSTUDENT PLAN\n- Test 1. OK\n\n- Test 2. OK.\n\n- Test 3. OK.\n\n- Test 4. Discounts have already been given and used (simulating months in the future): KO.\n\"Refer a friend\" modal still shows \"available discount: €3\" and \"€1 off per upcoming payment...\", when this isn't true anymore, since the discounts have been consumed already."
+  },
+  {
+    "comment_number": 40,
+    "section": "22. Referral Program",
+    "subsection": "22d. Self-Referral Prevention",
+    "paragraph": "[ ] Try to redeem your own code → a toast appears: \"You can't use your own referral code\"",
+    "comment": "It works, But we need a frontend way for a user to introduce a referral code manually. \"Have an invite code?\" input field on the Sign-Up screen"
+  },
+  {
+    "comment_number": 41,
+    "section": "25. Sync Engine & Offline",
+    "subsection": "25a. Basic Sync Verification",
+    "paragraph": "[ ] Delete a session → check Supabase → row is GONE (hard deleted on sync after soft delete)",
+    "comment": "It's not GONE, but \"deleted\" changes to TRUE, which is correct."
+  }
+]

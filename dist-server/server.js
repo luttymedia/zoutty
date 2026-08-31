@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { checkGatekeeper, recordUsageIncrement } from './server/gatekeeper.js';
-import { createCheckoutSession, createTopupCheckoutSession, createPortalSession, handleStripeWebhook, getAuthenticatedUser, confirmCheckoutSession } from './server/stripe.js';
+import { createCheckoutSession, createTopupCheckoutSession, createPortalSession, handleStripeWebhook, getAuthenticatedUser, confirmCheckoutSession, updateSubscription, cancelSubscription, getSubscriptionStatus, reactivateSubscription } from './server/stripe.js';
 import { redeemReferralCode, getReferralStats, backfillMissingReferralCodes } from './server/referrals.js';
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -550,6 +550,61 @@ Return ONLY a valid JSON array matching this schema:
     catch (error) {
         console.error('[/api/gemini/generate-glossary] Glossary generation failed:', error);
         return res.status(500).json({ error: 'Failed to generate glossary', details: error.message });
+    }
+});
+// Stripe Subscription Status Route
+app.get('/api/stripe/subscription-status', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const result = await getSubscriptionStatus(authHeader);
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/subscription-status] Error:', error);
+        const status = error.statusCode || 500;
+        return res.status(status).json({ error: error.error || error.message });
+    }
+});
+// Stripe Reactivate Subscription Route
+app.post('/api/stripe/reactivate-subscription', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const result = await reactivateSubscription(authHeader);
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/reactivate-subscription] Error:', error);
+        const status = error.statusCode || 500;
+        return res.status(status).json({ error: error.error || error.message });
+    }
+});
+// Stripe Update Subscription Route (Downgrade/Upgrade API)
+app.post('/api/stripe/update-subscription', async (req, res) => {
+    try {
+        console.log('[/api/stripe/update-subscription] Request received');
+        const { targetTier } = req.body;
+        const authHeader = req.headers.authorization;
+        const result = await updateSubscription(targetTier, authHeader);
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/update-subscription] Error:', error);
+        const status = error.statusCode || 500;
+        return res.status(status).json({ error: error.error || error.message });
+    }
+});
+// Stripe Cancel Subscription Route
+app.post('/api/stripe/cancel-subscription', async (req, res) => {
+    try {
+        console.log('[/api/stripe/cancel-subscription] Request received');
+        const authHeader = req.headers.authorization;
+        const result = await cancelSubscription(authHeader);
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/cancel-subscription] Error:', error);
+        const status = error.statusCode || 500;
+        return res.status(status).json({ error: error.error || error.message });
     }
 });
 // Stripe Create Checkout Session Route
