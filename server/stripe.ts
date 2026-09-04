@@ -42,6 +42,22 @@ export async function getAuthenticatedUser(authHeader?: string) {
 }
 
 /**
+ * Safely extracts current_period_end from a Stripe Subscription object.
+ * In newer Stripe API versions, this might not be at the root of the subscription
+ * but rather inside items.data[0].current_period_end.
+ */
+function getPeriodEnd(sub: any): number | null {
+  if (!sub || typeof sub !== 'object') return null;
+  if (sub.current_period_end) return sub.current_period_end;
+  if (sub.items && sub.items.data && sub.items.data.length > 0) {
+    if (sub.items.data[0].current_period_end) {
+      return sub.items.data[0].current_period_end;
+    }
+  }
+  return null;
+}
+
+/**
  * Helper to fetch user profile from Supabase
  */
 async function getUserProfile(userId: string) {
@@ -120,6 +136,23 @@ export async function createCheckoutSession(params: CreateCheckoutParams) {
   if (user) {
     const profile = await getUserProfile(user.id);
     customerId = profile?.stripe_customer_id;
+
+    if (customerId) {
+      try {
+        const cust = await stripe.customers.retrieve(customerId);
+        if (cust.deleted) {
+          console.warn(`[stripe] Customer ${customerId} was deleted in Stripe. Clearing...`);
+          customerId = undefined;
+        }
+      } catch (err: any) {
+        if (err.code === 'resource_missing') {
+          console.warn(`[stripe] Customer ${customerId} no longer exists in Stripe. Clearing...`);
+          customerId = undefined;
+        } else {
+          throw err;
+        }
+      }
+    }
 
     if (!customerId) {
       console.log(`[stripe] Creating new Stripe customer for user=${user.id}, email=${user.email}`);
@@ -233,6 +266,23 @@ export async function createTopupCheckoutSession(params: CreateTopupParams) {
 
   const profile = await getUserProfile(user.id);
   let customerId = profile?.stripe_customer_id;
+
+  if (customerId) {
+    try {
+      const cust = await stripe.customers.retrieve(customerId);
+      if (cust.deleted) {
+        console.warn(`[stripe] Customer ${customerId} was deleted in Stripe. Clearing for topup...`);
+        customerId = undefined;
+      }
+    } catch (err: any) {
+      if (err.code === 'resource_missing') {
+        console.warn(`[stripe] Customer ${customerId} no longer exists in Stripe. Clearing for topup...`);
+        customerId = undefined;
+      } else {
+        throw err;
+      }
+    }
+  }
 
   if (!customerId) {
     console.log(`[stripe] Creating new Stripe customer for top-up user=${user.id}, email=${user.email}`);
@@ -436,37 +486,51 @@ export async function handleStripeWebhook(req: any, res: any) {
         const targetTier = (session.metadata?.target_tier as 'student' | 'teacher') || 'student';
         const referralCode = session.metadata?.referral_code;
 
-        console.log(`[stripe-webhook] checkout.session.completed for user=${userId}, customer=${customerId}, tier=${targetTier}`);
+        let resolvedUserId = userId;
+        if (!resolvedUserId && customerId) {
+          const { data: prof } = await supabase.from('profiles').select('id').eq('stripe_customer_id', customerId).maybeSingle();
+          if (prof?.id) resolvedUserId = prof.id;
+        }
 
-        if (userId) {
-          // 1. Update user profile
-          let currentPeriodEnd = null;
-          if (subscriptionId) {
-            try {
-              const stripe = getStripe();
-              if (stripe) {
-                const sub: any = await stripe.subscriptions.retrieve(subscriptionId);
-                if (sub.current_period_end) {
-                  currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
-                }
-              }
-            } catch (err) {
-              console.warn('[stripe-webhook] Could not fetch subscription for current_period_end:', err);
+        console.log(`[stripe-webhook] checkout.session.completed for user=${resolvedUserId}, customer=${customerId}, tier=${targetTier}`);
+
+        const subObj = typeof session.subscription === 'object' && session.subscription !== null ? (session.subscription as any) : null;
+        const subId = typeof session.subscription === 'string' ? session.subscription : subObj?.id;
+
+        let currentPeriodEnd: string | null = null;
+        if (subObj) {
+          const epoch = getPeriodEnd(subObj);
+          if (epoch) currentPeriodEnd = new Date(epoch * 1000).toISOString();
+        } else if (subId) {
+          try {
+            const stripe = getStripe();
+            if (stripe) {
+              const sub: any = await stripe.subscriptions.retrieve(subId);
+              const epoch = getPeriodEnd(sub);
+              if (epoch) currentPeriodEnd = new Date(epoch * 1000).toISOString();
             }
+          } catch (err) {
+            console.warn('[stripe-webhook] Could not fetch subscription for current_period_end:', err);
           }
+        }
 
+        console.log(`[stripe-webhook] checkout.session.completed subId=${subId}, current_period_end=${currentPeriodEnd}`);
+
+        if (resolvedUserId) {
+          // 1. Update user profile
           const { error: profileErr } = await supabase
             .from('profiles')
             .update({
               tier: targetTier,
               subscription_status: 'active',
               stripe_customer_id: customerId,
-              stripe_subscription_id: subscriptionId,
+              stripe_subscription_id: subId,
               cancel_at_period_end: false,
+              pending_downgrade: null,
               current_period_end: currentPeriodEnd,
               updated_at: new Date().toISOString(),
             })
-            .eq('id', userId);
+            .eq('id', resolvedUserId);
 
           if (profileErr) {
             console.error('[stripe-webhook] Error updating profile on checkout:', profileErr);
@@ -574,30 +638,56 @@ export async function handleStripeWebhook(req: any, res: any) {
         const studentPriceId = process.env.STRIPE_STUDENT_PRICE_ID;
 
         let tier: 'free' | 'student' | 'teacher' = 'student';
-        if (priceId === teacherPriceId || subscription.metadata?.target_tier === 'teacher') {
+        if (priceId === teacherPriceId) {
           tier = 'teacher';
-        } else if (priceId === studentPriceId || subscription.metadata?.target_tier === 'student') {
+        } else if (priceId === studentPriceId) {
+          tier = 'student';
+        } else if (subscription.metadata?.target_tier === 'teacher') {
+          tier = 'teacher';
+        } else if (subscription.metadata?.target_tier === 'student') {
           tier = 'student';
         } else if (status !== 'active' && status !== 'trialing') {
           tier = 'free';
         }
 
-        console.log(`[stripe-webhook] customer.subscription.updated for customer=${customerId}, status=${status}, tier=${tier}`);
+        let pendingDowngrade = subscription.metadata?.pending_downgrade || null;
+        if (pendingDowngrade === tier) {
+          pendingDowngrade = null;
+          // Clean up stale metadata in Stripe
+          stripe.subscriptions.update(subscription.id, { metadata: { pending_downgrade: null } }).catch(console.error);
+        }
 
-        const currentPeriodEnd = (subscription as any).current_period_end 
-          ? new Date((subscription as any).current_period_end * 1000).toISOString()
-          : null;
+        const epoch = getPeriodEnd(subscription);
+        const currentPeriodEnd = epoch ? new Date(epoch * 1000).toISOString() : null;
 
-        await supabase
-          .from('profiles')
-          .update({
-            tier,
-            subscription_status: status as any,
-            cancel_at_period_end: cancelAtPeriodEnd,
-            current_period_end: currentPeriodEnd,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('stripe_customer_id', customerId);
+        const metaUserId = subscription.metadata?.supabase_user_id;
+        console.log(`[stripe-webhook] customer.subscription.updated customer=${customerId}, user=${metaUserId}, status=${status}, tier=${tier}, currentPeriodEnd=${currentPeriodEnd}`);
+
+        const updatePayload: any = {
+          tier,
+          subscription_status: status as any,
+          cancel_at_period_end: cancelAtPeriodEnd,
+          current_period_end: currentPeriodEnd,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscription.id,
+          pending_downgrade: pendingDowngrade,
+          updated_at: new Date().toISOString(),
+        };
+
+        let updated = false;
+        if (metaUserId) {
+          const { error: metaErr } = await supabase
+            .from('profiles')
+            .update(updatePayload)
+            .eq('id', metaUserId);
+          if (!metaErr) updated = true;
+        }
+        if (!updated) {
+          await supabase
+            .from('profiles')
+            .update(updatePayload)
+            .eq('stripe_customer_id', customerId);
+        }
         break;
       }
 
@@ -827,16 +917,65 @@ export async function confirmCheckoutSession({
 
   const tier = targetTier || 'student';
   const nowIso = new Date().toISOString();
+  const stripe = getStripe();
+  let currentPeriodEnd: string | null = null;
+  let customerId: string | undefined = undefined;
+  let subscriptionId: string | undefined = undefined;
+
+  if (sessionId && stripe) {
+    try {
+      const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['subscription'],
+      });
+      if (checkoutSession.customer) {
+        customerId = typeof checkoutSession.customer === 'string' ? checkoutSession.customer : checkoutSession.customer.id;
+      }
+      const sub = checkoutSession.subscription as any;
+      if (sub) {
+        subscriptionId = typeof sub === 'string' ? sub : sub.id;
+        const periodEndEpoch = getPeriodEnd(sub);
+        if (periodEndEpoch) {
+          currentPeriodEnd = new Date(periodEndEpoch * 1000).toISOString();
+        } else if (subscriptionId) {
+          const fetchedSub: any = await stripe.subscriptions.retrieve(subscriptionId);
+          const fetchedEpoch = getPeriodEnd(fetchedSub);
+          if (fetchedEpoch) {
+            currentPeriodEnd = new Date(fetchedEpoch * 1000).toISOString();
+          }
+        }
+      }
+      console.log(`[stripe] confirmCheckoutSession retrieved: customerId=${customerId}, subscriptionId=${subscriptionId}, currentPeriodEnd=${currentPeriodEnd}`);
+    } catch (sessionErr) {
+      console.warn('[stripe] Could not retrieve checkout session details on confirm:', sessionErr);
+    }
+  } else {
+    // If no sessionId is provided, this is a simulated/mock checkout.
+    // We should set a mock current_period_end (30 days from now) so the DB updates.
+    currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  }
 
   // 1. Update user profile to active subscription
-  await supabase
+  const profileUpdate: any = {
+    tier,
+    subscription_status: 'active',
+    updated_at: nowIso,
+  };
+  if (currentPeriodEnd) profileUpdate.current_period_end = currentPeriodEnd;
+  if (customerId) profileUpdate.stripe_customer_id = customerId;
+  if (subscriptionId) profileUpdate.stripe_subscription_id = subscriptionId;
+
+  console.log(`[stripe] confirmCheckoutSession about to update DB for user=${user.id} with payload:`, profileUpdate);
+
+  const { error: dbErr } = await supabase
     .from('profiles')
-    .update({
-      tier,
-      subscription_status: 'active',
-      updated_at: nowIso,
-    })
+    .update(profileUpdate)
     .eq('id', user.id);
+  
+  if (dbErr) {
+    console.error(`[stripe] confirmCheckoutSession DB Update Failed:`, dbErr);
+  } else {
+    console.log(`[stripe] confirmCheckoutSession DB Update Succeeded for user=${user.id}`);
+  }
 
   // 2. Reset period counters in usage_tracking
   try {
@@ -920,6 +1059,20 @@ export async function confirmCheckoutSession({
 export async function updateSubscription(targetTier: 'student' | 'teacher' | 'free', authHeader?: string) {
   const stripe = getStripe();
   if (!stripe) {
+    const user = await getAuthenticatedUser(authHeader);
+    if (user) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+      const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const payload = { 
+        tier: targetTier, 
+        subscription_status: 'active',
+        current_period_end: currentPeriodEnd
+      };
+      console.log(`[stripe] updateSubscription (mock) about to update DB for user=${user.id} with payload:`, payload);
+      const { error: dbErr } = await supabase.from('profiles').update(payload).eq('id', user.id);
+      if (dbErr) console.error(`[stripe] updateSubscription (mock) DB Update Failed:`, dbErr);
+      else console.log(`[stripe] updateSubscription (mock) DB Update Succeeded`);
+    }
     return { mock: true, message: 'Simulated subscription update.' };
   }
 
@@ -988,27 +1141,50 @@ export async function updateSubscription(targetTier: 'student' | 'teacher' | 'fr
       metadata: { pending_downgrade: targetTier }
     });
 
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+    await supabase.from('profiles').update({
+      pending_downgrade: targetTier,
+      updated_at: new Date().toISOString()
+    }).eq('id', user.id);
+
     return { success: true, message: 'Downgrade scheduled for end of billing period.' };
   } else {
-    console.log(`[stripe] Immediate upgrade to ${targetTier} for sub=${subscription.id}`);
+    console.log(`[stripe] Upgrading subscription ${subscription.id} to ${targetTier} directly via API.`);
+    
     const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
       items: [{
         id: itemId,
         price: priceId,
       }],
-      metadata: {
-        target_tier: targetTier,
-      },
       proration_behavior: 'always_invoice',
     });
 
-    return { success: true, subscription: updatedSubscription };
+    // Synchronously update the Supabase profile so the UI doesn't revert before the webhook arrives
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+    await supabase.from('profiles').update({
+      tier: targetTier,
+      subscription_status: 'active',
+      pending_downgrade: null,
+      updated_at: new Date().toISOString()
+    }).eq('id', user.id);
+
+    return { success: true, message: `Successfully upgraded to ${targetTier}.`, subscription: updatedSubscription };
   }
 }
 
 export async function cancelSubscription(authHeader?: string) {
   const stripe = getStripe();
   if (!stripe) {
+    const user = await getAuthenticatedUser(authHeader);
+    if (user) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+      await supabase.from('profiles').update({ 
+        tier: 'free', 
+        subscription_status: 'canceled',
+        cancel_at_period_end: false,
+        current_period_end: null
+      }).eq('id', user.id);
+    }
     return { mock: true, message: 'Simulated subscription cancellation.' };
   }
 
@@ -1042,6 +1218,21 @@ export async function cancelSubscription(authHeader?: string) {
   const canceledSubscription = await stripe.subscriptions.update(subscription.id, {
     cancel_at_period_end: true,
   });
+
+  const epoch = getPeriodEnd(canceledSubscription);
+  const currentPeriodEnd = epoch ? new Date(epoch * 1000).toISOString() : null;
+
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+    await supabase.from('profiles').update({
+      cancel_at_period_end: true,
+      current_period_end: currentPeriodEnd,
+      updated_at: new Date().toISOString(),
+    }).eq('id', user.id);
+    console.log(`[stripe] Updated profile user=${user.id} cancel_at_period_end=true, currentPeriodEnd=${currentPeriodEnd}`);
+  } catch (e) {
+    console.warn('[stripe] Could not update profile after cancellation:', e);
+  }
 
   return { success: true, subscription: canceledSubscription };
 }

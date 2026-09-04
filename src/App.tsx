@@ -68,6 +68,7 @@ import { TopupSuccessModal } from './components/TopupSuccessModal';
 import { TopupConfirmModal } from './components/TopupConfirmModal';
 import { ManageSubscriptionModal } from './components/ManageSubscriptionModal';
 import { getMediaDuration } from './lib/audioDuration';
+import { formatSafeDate } from './lib/dateUtils';
 import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout, updateStripeSubscription, cancelStripeSubscription, reactivateStripeSubscription } from './lib/stripe';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
@@ -2786,7 +2787,7 @@ export default function App() {
                   ? TIER_LIMITS.student.monthly_clips + topupClips
                   : Infinity;
                 const currentClips = isFree ? (devState.lifetime_clips || 0) : (devState.period_clips || 0);
-                const nextResetDate = new Intl.DateTimeFormat(uiLanguage === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+                const nextResetDate = formatSafeDate(devState.current_period_end, uiLanguage);
 
                 return (
                   <div className="space-y-3">
@@ -2869,7 +2870,13 @@ export default function App() {
                         <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-white/50">
                           <span className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 text-sky-400" />
-                            <span>{t('billing.usage.resetDate', { date: nextResetDate })}</span>
+                            {devState.cancel_at_period_end ? (
+                              <span>{t('billing.usage.cancelsOn', { date: nextResetDate })}</span>
+                            ) : devState.pending_downgrade ? (
+                              <span>{t('billing.usage.downgradesOn', { date: nextResetDate })}</span>
+                            ) : (
+                              <span>{t('billing.usage.resetDate', { date: nextResetDate })}</span>
+                            )}
                           </span>
                         </div>
                       )}
@@ -3317,7 +3324,7 @@ export default function App() {
           isOpen={showManageSubscriptionModal}
           onClose={() => setShowManageSubscriptionModal(false)}
           currentTier={devState.tier as 'student' | 'teacher'}
-          renewalDate={devState.current_period_end ? new Date(devState.current_period_end).toLocaleDateString() : undefined}
+          renewalDate={formatSafeDate(devState.current_period_end, uiLanguage)}
           pendingDowngrade={devState.pending_downgrade}
           isCanceling={devState.cancel_at_period_end}
           onReactivate={async () => {
@@ -3336,6 +3343,10 @@ export default function App() {
           }}
           onUpgrade={async () => {
             const result = await updateStripeSubscription('teacher');
+            if (result.url) {
+              window.location.href = result.url;
+              return;
+            }
             if (result.success) {
               setShowManageSubscriptionModal(false);
               const updated = saveDevState({
@@ -3391,6 +3402,7 @@ export default function App() {
         subscriptionStatus={devState.subscription_status}
         reason={showQuotaModal.reason}
         canBoost={!devState.referral_boost_active}
+        resetDate={devState.current_period_end}
         onUpgradeClick={async (targetTier) => {
           setShowQuotaModal({ isOpen: false, reason: 'sessions' });
           if (!targetTier) {
@@ -3398,34 +3410,18 @@ export default function App() {
             return;
           }
           
-          if (devState.tier === 'free') {
-            const result = await startStripeCheckout(targetTier);
-            if (result.mock) {
-              const updated = saveDevState({
-                tier: targetTier,
-                subscription_status: 'active',
-                period_sessions: 0,
-                period_clips: 0,
-              });
-              setDevState(updated);
-              setShowSubscriptionSuccessModal({ isOpen: true, tier: targetTier });
-            } else if (!result.success) {
-              showToast(result.error || t('billing.plans.checkoutError'), true);
-            }
-          } else if (devState.tier === 'student' && targetTier === 'teacher') {
-            const result = await updateStripeSubscription('teacher');
-            if (result.success) {
-              const updated = saveDevState({
-                tier: 'teacher',
-                subscription_status: 'active',
-                period_sessions: 0,
-                period_clips: 0,
-              });
-              setDevState(updated);
-              showToast('Upgraded to Teacher Plan successfully!');
-            } else {
-              showToast(result.error || t('billing.plans.checkoutError'), true);
-            }
+          const result = await startStripeCheckout(targetTier);
+          if (result.mock) {
+            const updated = saveDevState({
+              tier: targetTier,
+              subscription_status: 'active',
+              period_sessions: 0,
+              period_clips: 0,
+            });
+            setDevState(updated);
+            setShowSubscriptionSuccessModal({ isOpen: true, tier: targetTier });
+          } else if (!result.success) {
+            showToast(result.error || t('billing.plans.checkoutError'), true);
           }
         }}
         onReferralClick={() => {
@@ -3529,7 +3525,7 @@ export default function App() {
       {/* Confirm Restore Modal */}
       {restoreBackupFile && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
-          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+          <div className="glass p-6 sm:p-8 max-w-md w-full space-y-6 animate-in zoom-in-95">
             <h3 className="text-xl font-bold flex items-center gap-2 text-white">
               <Upload className="w-6 h-6 text-brand" />
               {t('modals.restoreDbTitle')}
@@ -3537,10 +3533,10 @@ export default function App() {
             <p className="text-white/70 text-sm leading-relaxed">
               {t('modals.restoreDbMsg')}
             </p>
-            <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setRestoreBackupFile(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
-              <button onClick={() => executeImportBackup(restoreBackupFile, true)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors shadow-lg text-white min-h-[44px] text-sm">{t('modals.restoreMergeBtn')}</button>
-              <button onClick={() => executeImportBackup(restoreBackupFile, false)} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">{t('modals.restoreReplaceBtn')}</button>
+            <div className="flex flex-wrap gap-3 justify-center items-center mt-6">
+              <button onClick={() => setRestoreBackupFile(null)} className="px-4 sm:px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile, true)} className="px-4 sm:px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors shadow-lg text-white min-h-[44px] text-sm">{t('modals.restoreMergeBtn')}</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile, false)} className="px-4 sm:px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">{t('modals.restoreReplaceBtn')}</button>
             </div>
           </div>
         </div>

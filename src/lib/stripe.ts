@@ -250,7 +250,7 @@ export async function updateStripeSubscription(targetTier: 'student' | 'teacher'
       return { success: false, error: data?.error || 'Failed to update subscription.' };
     }
 
-    return { success: true, mock: data.mock };
+    return { success: true, mock: data.mock, url: data.url };
   } catch (err: any) {
     console.error('[stripe] Error updating subscription:', err);
     return { success: false, error: err?.message || 'Network error occurred.' };

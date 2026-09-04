@@ -488,5 +488,81 @@ export const DEFAULT_GLOSSARIES: DanceGlossary[] = [
         category: "style"
       }
     ]
+  },
+  {
+    id: 'westcoastswing',
+    name: 'West Coast Swing',
+    isSystem: true,
+    terms: [
+      { canonicalTerm: "Sugar Push", variants: ["Push Break", "6-count push"], category: "foundation" },
+      { canonicalTerm: "Left Side Pass", variants: ["Side Pass", "Underarm left pass"], category: "foundation" },
+      { canonicalTerm: "Underarm Turn", variants: ["Right Side Pass", "Underarm pass"], category: "turns" },
+      { canonicalTerm: "Whip", variants: ["Basic Whip", "8-count whip"], category: "foundation" },
+      { canonicalTerm: "Anchor Step", variants: ["Anchor", "Slot anchor"], category: "mechanics" },
+      { canonicalTerm: "Starter Step", variants: ["Starter", "Entry step"], category: "foundation" },
+      { canonicalTerm: "Tuck Turn", variants: ["Sugar Tuck", "Tuck pass"], category: "turns" },
+      { canonicalTerm: "Inside Roll", variants: ["Inside turn"], category: "turns" },
+      { canonicalTerm: "Outside Roll", variants: ["Outside turn"], category: "turns" },
+      { canonicalTerm: "Compression", variants: ["Compress", "Spring connection"], category: "mechanics" },
+      { canonicalTerm: "Leverage", variants: ["Tension", "Away connection"], category: "mechanics" },
+      { canonicalTerm: "The Slot", variants: ["Slot line", "Slotted track"], category: "mechanics" },
+      { canonicalTerm: "Triple Step", variants: ["Triple", "Chassé"], category: "footwork" }
+    ]
+  },
+  {
+    id: 'tango',
+    name: 'Argentine Tango',
+    isSystem: true,
+    terms: [
+      { canonicalTerm: "Caminata", variants: ["Tango walk", "Walking"], category: "foundation" },
+      { canonicalTerm: "Salida Básica", variants: ["Basic 8-count", "Salida"], category: "foundation" },
+      { canonicalTerm: "Cruzada", variants: ["Cross", "Cross step"], category: "foundation" },
+      { canonicalTerm: "Ocho Adelante", variants: ["Front Ocho", "Forward Ocho"], category: "turns" },
+      { canonicalTerm: "Ocho Atrás", variants: ["Back Ocho", "Backward Ocho"], category: "turns" },
+      { canonicalTerm: "Giro", variants: ["Turn", "Grapevine turn"], category: "turns" },
+      { canonicalTerm: "Molinete", variants: ["Windmill step", "Grapevine"], category: "footwork" },
+      { canonicalTerm: "Boleo", variants: ["Voleo", "Whip kick"], category: "tricks" },
+      { canonicalTerm: "Gancho", variants: ["Hook"], category: "tricks" },
+      { canonicalTerm: "Sacada", variants: ["Displacement"], category: "mechanics" },
+      { canonicalTerm: "Parada", variants: ["Stop", "Block"], category: "mechanics" },
+      { canonicalTerm: "Barrida", variants: ["Sweep", "Drag"], category: "footwork" },
+      { canonicalTerm: "Abrazo", variants: ["Embrace", "Close embrace", "Open embrace"], category: "mechanics" },
+      { canonicalTerm: "Disociación", variants: ["Dissociation", "Torso twist"], category: "mechanics" }
+    ]
+  },
+  {
+    id: 'lindyhop',
+    name: 'Lindy Hop',
+    isSystem: true,
+    terms: [
+      { canonicalTerm: "Swingout", variants: ["Swing out", "8-count swingout"], category: "foundation" },
+      { canonicalTerm: "Lindy Circle", variants: ["Circle"], category: "foundation" },
+      { canonicalTerm: "Charleston", variants: ["Basic Charleston", "20s Charleston"], category: "foundation" },
+      { canonicalTerm: "Side by Side Charleston", variants: ["Side by side"], category: "footwork" },
+      { canonicalTerm: "Tandem Charleston", variants: ["Shadow Charleston"], category: "footwork" },
+      { canonicalTerm: "Promenade", variants: ["Promenade walk"], category: "foundation" },
+      { canonicalTerm: "Send Out", variants: ["Sendout"], category: "turns" },
+      { canonicalTerm: "Texas Tommy", variants: ["Behind the back pass"], category: "turns" },
+      { canonicalTerm: "Triple Step", variants: ["Triple footwork"], category: "footwork" },
+      { canonicalTerm: "Rock Step", variants: ["Rock-step"], category: "mechanics" }
+    ]
+  },
+  {
+    id: 'contemporary',
+    name: 'Contemporary',
+    isSystem: true,
+    terms: [
+      { canonicalTerm: "Contraction", variants: ["Center contraction"], category: "mechanics" },
+      { canonicalTerm: "Release", variants: ["Spinal release"], category: "mechanics" },
+      { canonicalTerm: "Fall and Recovery", variants: ["Drop and recover"], category: "foundation" },
+      { canonicalTerm: "Spiral", variants: ["Torso spiral"], category: "mechanics" },
+      { canonicalTerm: "Floor Work", variants: ["Floorwork", "Floor transitions"], category: "foundation" },
+      { canonicalTerm: "Suspension", variants: ["Suspend", "Breath suspension"], category: "mechanics" },
+      { canonicalTerm: "Tilt", variants: ["Tilt jump", "Side tilt"], category: "foundation" },
+      { canonicalTerm: "Arabesque", variants: ["Arabesque line"], category: "foundation" },
+      { canonicalTerm: "Développé", variants: ["Developpe leg extension"], category: "foundation" },
+      { canonicalTerm: "Grand Jeté", variants: ["Grand jete leap"], category: "tricks" },
+      { canonicalTerm: "Pirouette", variants: ["Pirouette turn"], category: "turns" }
+    ]
   }
 ];

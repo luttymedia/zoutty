@@ -130,7 +130,9 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                 <span className="text-[11px] text-white/50">
                   {isCanceling
                     ? t('billing.manage.cancelsOn', { date: effectiveRenewalDate })
-                    : t('billing.manage.renewsOn', { date: effectiveRenewalDate })}
+                    : pendingDowngrade
+                      ? t('billing.usage.downgradesOn', { date: effectiveRenewalDate })
+                      : t('billing.manage.renewsOn', { date: effectiveRenewalDate })}
                 </span>
               </div>
             </div>
@@ -181,7 +183,9 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                       <span>
                         {isCanceling
                           ? t('billing.manage.cancelsOn', { date: effectiveRenewalDate })
-                          : t('billing.manage.renewsOn', { date: effectiveRenewalDate })}
+                          : pendingDowngrade
+                            ? t('billing.usage.downgradesOn', { date: effectiveRenewalDate })
+                            : t('billing.manage.renewsOn', { date: effectiveRenewalDate })}
                       </span>
                     </div>
                   </div>

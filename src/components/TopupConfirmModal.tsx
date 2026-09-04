@@ -113,7 +113,7 @@ export const TopupConfirmModal: React.FC<TopupConfirmModalProps> = ({
             </span>
           ) : (
             <>
-              <span>{t('billing.topup.confirmBtn', { fallback: 'Proceed to Checkout (€5.00)' })}</span>
+              <span>{t('billing.topup.confirmBtn', { fallback: 'Proceed to Checkout (€3.99)' })}</span>
               <ArrowRight className="w-4 h-4" />
             </>
           )}

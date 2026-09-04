@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { UserTier, TIER_LIMITS } from '../types';
+import { formatSafeDate } from '../lib/dateUtils';
 
 interface QuotaExceededModalProps {
   isOpen: boolean;
@@ -49,12 +50,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
   const isStudent = tier === 'student' && !isPaymentIssue;
 
   const formattedResetDate = React.useMemo(() => {
-    const d = resetDate ? new Date(resetDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    return new Intl.DateTimeFormat(uiLanguage === 'es' ? 'es-ES' : 'en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(d);
+    return formatSafeDate(resetDate, uiLanguage);
   }, [resetDate, uiLanguage]);
 
   if (!isOpen) return null;
@@ -67,7 +63,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-[80] p-4 sm:p-6 overflow-y-auto">
       <div
-        className={`glass p-6 sm:p-8 max-w-md w-full rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col text-center border ${
+        className={`glass p-6 sm:p-8 max-w-md w-full rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col text-center border max-h-[90vh] overflow-y-auto custom-scrollbar my-auto ${
           isPaymentIssue ? 'border-red-500/50 shadow-red-950/40' : 'border-brand/40'
         }`}
         onClick={(e) => e.stopPropagation()}
