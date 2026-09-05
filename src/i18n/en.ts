@@ -126,6 +126,31 @@ const en = {
 
   glossary: {
     addTitle: 'Add Glossary',
+    mandatoryTitle: 'Select Your Dance Styles',
+    mandatoryDesc: 'Please select the dance styles you teach or learn. We use this to optimize the AI\'s transcription accuracy and processing speed.',
+    continueBtn: 'Continue',
+    requireOne: 'Please select at least one style to continue.',
+    myDanceStyles: 'My Dance Styles',
+    myDanceStylesDesc: 'Select the styles you teach or learn to optimize AI detection.',
+    searchPlaceholder: 'Search dance styles...',
+    requestGlossary: 'Can\'t find your style? Request a Glossary'
+  },
+
+  danceStyles: {
+    'bachata': 'Bachata',
+    'salsa': 'Salsa',
+    'kizomba': 'Kizomba',
+    'reggaeton': 'Reggaeton',
+    'brazilian-zouk': 'Brazilian Zouk',
+    'afro-beats': 'Afro Beats',
+    'dancehall': 'DanceHall',
+    'hip-hop': 'Hip Hop',
+    'contemporary-dance': 'Contemporary Dance',
+    'tango': 'Tango',
+    'west-coast-swing': 'West Coast Swing',
+    'swing': 'Swing',
+    'belly-dance': 'Belly Dance',
+    'ballet': 'Ballet'
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────

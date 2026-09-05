@@ -76,17 +76,6 @@ create table sessionGroups (
   "deleted" boolean default false not null
 );
 
--- GLOSSARIES
-create table glossaries (
-  "id" text primary key,
-  "user_id" uuid references auth.users not null,
-  "name" text not null,
-  "terms" jsonb not null,
-  "isSystem" boolean default false,
-  "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null,
-  "deleted" boolean default false not null
-);
-
 -- SESSION MEDIA
 create table sessionMedia (
   "id" text primary key,
@@ -107,7 +96,6 @@ alter table sessions enable row level security;
 alter table audios enable row level security;
 alter table finalReports enable row level security;
 alter table sessionGroups enable row level security;
-alter table glossaries enable row level security;
 alter table sessionMedia enable row level security;
 
 -- Create RLS Policies
@@ -115,7 +103,6 @@ create policy "Users can only see their own sessions" on sessions for all using 
 create policy "Users can only see their own audios" on audios for all using (auth.uid() = user_id);
 create policy "Users can only see their own finalReports" on finalReports for all using (auth.uid() = user_id);
 create policy "Users can only see their own groups" on sessionGroups for all using (auth.uid() = user_id);
-create policy "Users can only see their own glossaries" on glossaries for all using (auth.uid() = user_id);
 create policy "Users can only see their own media" on sessionMedia for all using (auth.uid() = user_id);
 
 -- Create the missing storage buckets

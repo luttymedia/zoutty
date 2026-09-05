@@ -37,7 +37,6 @@ const STORE_TO_TABLE: Record<string, string> = {
   audios: 'audios',
   finalReports: 'finalreports',
   sessionGroups: 'sessiongroups',
-  glossaries: 'glossaries',
   sessionMedia: 'sessionmedia',
 };
 
@@ -130,16 +129,15 @@ export const readFromCloud = async (userId: string): Promise<{
     return strip(data ?? []).filter((i: any) => !i.deleted);
   };
 
-  const [sessions, audios, groups, glossaries, finalReports, media] = await Promise.all([
+  const [sessions, audios, groups, finalReports, media] = await Promise.all([
     fetchTable('sessions'),
     fetchTable('audios'),
     fetchTable('sessiongroups'),
-    fetchTable('glossaries'),
     fetchTable('finalreports'),
     fetchTable('sessionmedia'),
   ]);
 
-  return { sessions, audios, groups, glossaries, finalReports, media };
+  return { sessions, audios, groups, glossaries: [], finalReports, media };
 };
 
 

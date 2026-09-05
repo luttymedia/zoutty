@@ -76,7 +76,7 @@ ${text}`
         return text;
     }
 }
-async function processAudioWithGemini(base64Audio, mimeType, language, danceGlossary, danceStyle = 'Auto') {
+async function processAudioWithGemini(base64Audio, mimeType, language, danceGlossary, danceStyle = 'Auto', availableGlossaries = []) {
     let totalPromptTokens = 0;
     let totalResponseTokens = 0;
     const languageNames = {
@@ -86,22 +86,30 @@ async function processAudioWithGemini(base64Audio, mimeType, language, danceGlos
         'auto': 'Auto-Detect'
     };
     const targetLanguage = languageNames[language.toLowerCase()] || 'Auto-Detect';
+    const isAuto = danceStyle.toLowerCase() === 'auto';
+    const availableStyleNames = Array.isArray(availableGlossaries)
+        ? availableGlossaries.map((g) => typeof g === 'string' ? g : g.name).filter(Boolean)
+        : [];
+    // If in auto mode without a specific glossary, combine terms across all active styles the user selected
+    const effectiveGlossary = (isAuto && (!danceGlossary || (Array.isArray(danceGlossary) && danceGlossary.length === 0)) && Array.isArray(availableGlossaries))
+        ? availableGlossaries.flatMap((g) => Array.isArray(g.terms) ? g.terms : [])
+        : danceGlossary;
     // Flatten the glossary JSON into a dense, comma-separated string to save tokens
-    const compressedGlossary = Array.isArray(danceGlossary) ? danceGlossary.map((item) => {
+    const compressedGlossary = Array.isArray(effectiveGlossary) ? effectiveGlossary.map((item) => {
         const variants = item.variants && item.variants.length > 0 ? ` (${item.variants.join(', ')})` : '';
         return `${item.canonicalTerm || ''}${variants}`;
     }).filter(Boolean).join(', ') : '';
-    const isAuto = danceStyle.toLowerCase() === 'auto';
-    const glossaryContext = compressedGlossary ? `\n\nKnown ${isAuto ? 'dance' : danceStyle} terminology to listen for:\n${compressedGlossary}` : '';
+    const glossaryContext = compressedGlossary ? `\n\nKnown dance terminology to listen for (preserve original spelling):\n${compressedGlossary}` : '';
     let prompt = '';
     const isTranslate = targetLanguage !== 'Auto-Detect';
     if (isAuto) {
+        const stylesList = availableStyleNames.length > 0 ? availableStyleNames.join(', ') : 'Brazilian Zouk, Salsa, Bachata, Kizomba, West Coast Swing, or another style';
         prompt = `You are an expert dance instructor processing a lesson audio.
-Dancers frequently mix languages (e.g. Portuguese terms in Zouk, Spanish in Salsa, French in Caribbean Zouk, English in Lindy Hop). If foreign dance terms are mixed into the spoken language, preserve their original spelling and meaning instead of phonetically translating them.
+Dancers frequently mix languages (e.g. Portuguese terms in Brazilian Zouk, Spanish in Salsa/Bachata, French in Ballet, etc.). If foreign technical dance terms are mixed into the spoken language, preserve their exact technical spelling and original language rather than phonetically transcribing or mistranslating them.
 
 Provide:
 1. A clean transcription of the audio in the language it is spoken. Remove speech disfluencies and false starts.
-2. The detected dance style of this lesson (e.g. Brazilian Zouk, Salsa, Bachata, Kizomba, West Coast Swing, or another style).
+2. The detected dance style of this lesson (must be one of: ${stylesList}).
 
 Return ONLY valid JSON matching this schema:
 {
@@ -249,7 +257,7 @@ Return ONLY valid JSON matching this schema:
 app.post('/api/gemini/process-single-audio', async (req, res) => {
     try {
         console.log('[/api/gemini/process-single-audio] Request received');
-        const { sessionId, language, filename, base64Audio, mimeType, glossary, danceStyle, mockMode, durationSeconds } = req.body;
+        const { sessionId, language, filename, base64Audio, mimeType, glossary, danceStyle, availableGlossaries, mockMode, durationSeconds } = req.body;
         const authHeader = req.headers.authorization;
         const devOverride = req.headers['x-dev-override'] || (req.body.devState ? JSON.stringify(req.body.devState) : undefined);
         // 1. Gatekeeper: Enforce 3-minute hard cap and user tier quotas
@@ -310,7 +318,7 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
         console.log(`[/api/gemini/process-single-audio] Processing audio for session=${sessionId}, style=${activeStyle}`);
         let result;
         try {
-            result = await processAudioWithGemini(base64Audio, resolvedMimeType, language || 'Auto', activeGlossary, activeStyle);
+            result = await processAudioWithGemini(base64Audio, resolvedMimeType, language || 'Auto', activeGlossary, activeStyle, availableGlossaries);
         }
         catch (geminiError) {
             const status = geminiError?.status || geminiError?.code;
@@ -461,7 +469,7 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             const resolvedMimeType = audio.mimeType || 'audio/webm';
             console.log(`[/api/gemini/process-audio] Transcribing audio ${i + 1}/${audios.length}, id=${audioId}`);
             try {
-                const result = await processAudioWithGemini(audio.base64, resolvedMimeType, language, activeGlossary, activeStyle);
+                const result = await processAudioWithGemini(audio.base64, resolvedMimeType, language, activeGlossary, activeStyle, availableGlossaries);
                 if (result.transcript) {
                     allTranscripts.push(result.transcript);
                     newTranscriptsRecord[audioId] = result.transcript;

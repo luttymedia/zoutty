@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.3.0',
+    date: '2026-09-05',
+    changes: [
+      'Glossary Refactoring: Preloaded 14 system dance styles with authentic technical terminology, removed legacy custom glossary database bloat, and synced active styles directly to user cloud profiles',
+      'AI Transcription & Consolidation Optimization: Injected foreign technical dance terms directly into Gemini prompts in Auto-Detect mode for accurate multi-lingual terminology spelling without token waste',
+      'Searchable Multi-Select Combobox: Added searchable comboboxes for dance styles in both session settings and the mandatory style selection modal',
+      'Settings Drawer Reordering: Reorganized settings drawer with a compact dance style selector and streamlined preferences'
+    ]
+  },
+  {
     version: '3.2.3',
     date: '2026-09-05',
     changes: [

@@ -49,13 +49,14 @@ import {
   Cloud,
   CreditCard,
   Compass,
+  Check,
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
 import { db, readFromCloud } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
 import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia, TIER_LIMITS, UserTier } from './types';
-import { DEFAULT_GLOSSARIES } from './lib/defaultGlossaries';
+import { SYSTEM_GLOSSARIES } from './lib/systemGlossaries';
 import { DevState, getDevState, saveDevState, syncWithCloudProfile, resetDevState } from './lib/devLab';
 import { TestLabModal } from './components/TestLabModal';
 import { QuotaExceededModal } from './components/QuotaExceededModal';
@@ -63,6 +64,7 @@ import { AudioDurationExceededModal } from './components/AudioDurationExceededMo
 import { RecordingAutoStoppedModal } from './components/RecordingAutoStoppedModal';
 import { PricingModal } from './components/PricingModal';
 import { GlossaryModal } from './components/GlossaryModal';
+import { MandatoryGlossaryModal } from './components/MandatoryGlossaryModal';
 import { ReferralModal } from './components/ReferralModal';
 import { SubscriptionSuccessModal } from './components/SubscriptionSuccessModal';
 import { TopupSuccessModal } from './components/TopupSuccessModal';
@@ -76,6 +78,8 @@ import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
 import { LogoAnimation } from './components/LogoAnimation';
 import { CustomSelect } from './components/CustomSelect';
+import { GlossaryCombobox } from './components/GlossaryCombobox';
+import { MultiSelectCombobox } from './components/MultiSelectCombobox';
 import { CustomCheckbox } from './components/CustomCheckbox';
 import { CustomSwitch } from './components/CustomSwitch';
 import { AutoGrowingTextarea } from './components/AutoGrowingTextarea';
@@ -410,6 +414,11 @@ export default function App() {
         supabase.from('usage_tracking').select('*').eq('user_id', userId).maybeSingle()
       ]);
 
+      if (profile?.active_glossaries && Array.isArray(profile.active_glossaries) && profile.active_glossaries.length > 0) {
+        setActiveGlossaryIds(profile.active_glossaries);
+        localStorage.setItem('zoutty_active_glossaries', JSON.stringify(profile.active_glossaries));
+      }
+
       if (profile || usage) {
         // We only sync to devState if Mock Mode is disabled, to avoid wiping out testing progress!
         // But wait, the user's requirement is: "When I disable mock mode, it goes back to my 1 session and 1 clip".
@@ -553,6 +562,41 @@ export default function App() {
   const [isInitialSync, setIsInitialSync] = useState(() => localStorage.getItem('zoutty_initial_sync_pending') === 'true');
   const [showSyncConflict, setShowSyncConflict] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(() => localStorage.getItem('zoutty_guest_mode') === 'true');
+  const [activeGlossaryIds, setActiveGlossaryIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('zoutty_active_glossaries');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showMandatoryGlossaryModal, setShowMandatoryGlossaryModal] = useState(false);
+
+  const updateActiveGlossaryIds = async (nextIds: string[]) => {
+    setActiveGlossaryIds(nextIds);
+    localStorage.setItem('zoutty_active_glossaries', JSON.stringify(nextIds));
+
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      if (authSession?.user?.id) {
+        await supabase
+          .from('profiles')
+          .update({ active_glossaries: nextIds })
+          .eq('id', authSession.user.id);
+      }
+    } catch (err) {
+      console.warn('[ProfileSync] Failed to sync active_glossaries to profiles table:', err);
+    }
+  };
+  
+  useEffect(() => {
+    // Only show if onboarding is done, none are selected, and not in guest mode
+    if (hasCompletedOnboarding && activeGlossaryIds.length === 0 && !isGuestMode) {
+      setShowMandatoryGlossaryModal(true);
+    } else {
+      setShowMandatoryGlossaryModal(false);
+    }
+  }, [hasCompletedOnboarding, activeGlossaryIds, isGuestMode]);
   const initialSyncCheckedRef = useRef(false);
 
   const finishInitialSync = useCallback(() => {
@@ -911,34 +955,11 @@ export default function App() {
 
     const loadData = async () => {
       try {
-        // Seed default/system glossaries if needed
-        const existingGlossaries = await db.getGlossaries();
-        const defaultIds = DEFAULT_GLOSSARIES.map(g => g.id);
-
-        // Clean up system glossaries that are no longer supported
-        for (const existing of existingGlossaries) {
-          if (existing.isSystem && !defaultIds.includes(existing.id)) {
-            await db.deleteGlossary(existing.id);
-          }
-        }
-
-        // Add or update current system glossaries
-        for (const defaultGlossary of DEFAULT_GLOSSARIES) {
-          const existing = existingGlossaries.find(g => g.id === defaultGlossary.id);
-          if (!existing) {
-            await db.saveGlossary(defaultGlossary);
-          }
-        }
-
         let loadedSessions = await db.getSessions();
         let loadedAudios = await db.getAudioEntries();
         let loadedGroups = await db.getGroups();
-        let loadedGlossaries = await db.getGlossaries();
 
         // ── Cloud read fallback: if local DB is empty and user is signed in, read from Supabase ──
-        // This covers the "app restart while storage is still full" scenario.
-        // We call getSession() directly here because the React `session` state may still
-        // be null at mount time (auth resolves asynchronously).
         if (loadedSessions.length === 0) {
           try {
             const { data: { session: authSession } } = await supabase.auth.getSession();
@@ -947,20 +968,17 @@ export default function App() {
               const cloudData = await readFromCloud(authSession.user.id);
               if (cloudData.sessions.length > 0) {
                 console.log('[LoadData] Cloud read fallback succeeded.');
-                // Do NOT set isStorageFull here — we don’t know if storage is actually full.
-                // The banner only appears when a write fails with QuotaExceededError.
                 loadedSessions = cloudData.sessions;
                 loadedAudios = cloudData.audios;
                 loadedGroups = cloudData.groups;
-                // Merge cloud user glossaries with local system ones
-                const cloudUserGlossaries = cloudData.glossaries.filter((g: any) => !g.isSystem);
-                loadedGlossaries = [...loadedGlossaries.filter(g => g.isSystem), ...cloudUserGlossaries];
               }
             }
           } catch (cloudErr) {
             console.error('[LoadData] Cloud read fallback also failed:', cloudErr);
           }
         }
+
+        const loadedGlossaries = SYSTEM_GLOSSARIES;
 
         // Sort sessions by date descending
         loadedSessions.sort((a, b) => b.date - a.date);
@@ -974,8 +992,7 @@ export default function App() {
         setAudioEntries(audioRecord);
 
         if (loadedSessions.length === 0 && !localStorage.getItem('zoutty_has_launched')) {
-          setLogoAnimationType('onboarding');
-          localStorage.setItem('zoutty_has_launched', 'true');
+          // We no longer trigger the animation here. It will trigger after the Glossary modal.
         }
       } catch (err) {
         console.error("Failed to load IndexedDB", err);
@@ -1773,6 +1790,10 @@ export default function App() {
   };
 
   const handleProcessEntry = async (entryId: string) => {
+    if (activeGlossaryIds.length === 0) {
+      setShowMandatoryGlossaryModal(true);
+      return;
+    }
     const entry = audioEntries[entryId];
     if (!entry) return;
 
@@ -1819,12 +1840,11 @@ export default function App() {
       setProcessingIds(prev => new Set(prev).add(entryId));
       showSpinner(t('toast.processing', { filename: entry.filename || 'audio' }), handleCancel);
 
-      const isOther = selectedSession?.glossaryId === 'other';
-      const activeGlossary = !isOther && (glossaries.find(g => g.id === selectedSession?.glossaryId) || glossaries.find(g => g.id === 'zouk'));
+      const activeGlossary = glossaries.find(g => g.id === selectedSession?.glossaryId);
       const danceStyle = selectedSession?.glossaryId === 'auto'
         ? 'Auto'
-        : (isOther ? (selectedSession?.customGlossaryStyle || 'Other') : (activeGlossary ? activeGlossary.name : 'Brazilian Zouk'));
-      const glossary = (selectedSession?.glossaryId === 'auto' || isOther) ? undefined : (activeGlossary ? activeGlossary.terms : undefined);
+        : (activeGlossary ? activeGlossary.name : 'Brazilian Zouk');
+      const glossary = selectedSession?.glossaryId === 'auto' ? undefined : (activeGlossary ? activeGlossary.terms : undefined);
 
       // Call MCP Skill
       const result: any = await callZoukAudioProcessor({
@@ -1907,6 +1927,10 @@ export default function App() {
   };
 
   const handleConsolidate = async () => {
+    if (activeGlossaryIds.length === 0) {
+      setShowMandatoryGlossaryModal(true);
+      return;
+    }
     if (!selectedSession) return;
 
     const controller = new AbortController();
@@ -1957,12 +1981,11 @@ export default function App() {
 
       if (controller.signal.aborted) return;
 
-      const isOther = selectedSession.glossaryId === 'other';
-      const activeGlossary = !isOther && (glossaries.find(g => g.id === selectedSession.glossaryId) || glossaries.find(g => g.id === 'zouk'));
+      const activeGlossary = glossaries.find(g => g.id === selectedSession.glossaryId);
       const danceStyle = selectedSession.glossaryId === 'auto'
         ? 'Auto'
-        : (isOther ? (selectedSession.customGlossaryStyle || 'Other') : (activeGlossary ? activeGlossary.name : 'Brazilian Zouk'));
-      const glossary = (selectedSession.glossaryId === 'auto' || isOther) ? undefined : (activeGlossary ? activeGlossary.terms : undefined);
+        : (activeGlossary ? activeGlossary.name : 'Brazilian Zouk');
+      const glossary = selectedSession.glossaryId === 'auto' ? undefined : (activeGlossary ? activeGlossary.terms : undefined);
 
       const currentDev = getDevState();
       const headers: Record<string, string> = {
@@ -1987,7 +2010,7 @@ export default function App() {
           audios: audiosPayload,
           glossary,
           danceStyle,
-          availableGlossaries: glossaries,
+          availableGlossaries: glossaries.filter(g => activeGlossaryIds.includes(g.id)),
           appLanguage: uiLanguage,
           mockMode: currentDev.mockGemini
         }),
@@ -2738,9 +2761,76 @@ export default function App() {
             {/* Drawer Content */}
             <div className="flex-1 overflow-y-auto space-y-8 pr-6">
 
+              {/* Language Section */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <Globe className="w-4 h-4 text-brand" />
+                  {t('appSettings.languageSection')}
+                </h4>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  {t('appSettings.languageSectionDesc')}
+                </p>
+                <CustomSelect
+                  value={uiLanguage}
+                  onChange={(val) => setUILanguage(val as any)}
+                  options={Object.entries(UI_LANGUAGE_NAMES).map(([code, name]) => ({
+                    value: code,
+                    label: name
+                  }))}
+                />
+              </div>
+
+              {/* Account / Logout Section */}
+              <div className="space-y-3 border-t border-white/5 pt-6">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <LogOut className="w-4 h-4 text-orange-400" />
+                  {t('appSettings.accountSection')}
+                </h4>
+                {!isGuestMode && (
+                  <p className="text-xs text-white/60 leading-relaxed text-orange-300/80">
+                    {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
+                  </p>
+                )}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold uppercase">
+                    {session?.user?.email ? session.user.email[0] : 'G'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-white truncate">
+                      {session?.user?.email ? session.user.email : t('appSettings.guestUser')}
+                    </div>
+                    <div className="text-xs text-white/40 truncate">
+                      {session?.user?.email ? t('appSettings.authenticatedAccount') : t('appSettings.localSandboxMode')}
+                    </div>
+                  </div>
+                </div>
+                {isGuestMode ? (
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('zoutty_guest_mode');
+                      setIsGuestMode(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                    {t('appSettings.signInBtn')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShowLogoutConfirm(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    {t('modals.logoutBtn')}
+                  </button>
+                )}
+              </div>
+
               {/* Plan & AI Quota Section */}
               {isGuestMode ? (
-                <div className="space-y-3">
+                <div className="space-y-3 border-t border-white/5 pt-6">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
                       <Cloud className="w-4 h-4 text-brand" />
@@ -2795,7 +2885,7 @@ export default function App() {
                 const nextResetDate = formatSafeDate(devState.current_period_end, uiLanguage);
 
                 return (
-                  <div className="space-y-3">
+                  <div className="space-y-3 border-t border-white/5 pt-6">
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
                         <Sparkles className="w-4 h-4 text-brand" />
@@ -2976,71 +3066,63 @@ export default function App() {
                 );
               })()}
 
-              {/* Language Section */}
+              {/* My Dance Styles Section */}
               <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Globe className="w-4 h-4 text-brand" />
-                  {t('appSettings.languageSection')}
+                  <BookOpen className="w-4 h-4 text-brand" />
+                  {t('glossary.myDanceStyles')}
                 </h4>
                 <p className="text-xs text-white/60 leading-relaxed">
-                  {t('appSettings.languageSectionDesc')}
+                  {t('glossary.myDanceStylesDesc')}
                 </p>
-                <CustomSelect
-                  value={uiLanguage}
-                  onChange={(val) => setUILanguage(val as any)}
-                  options={Object.entries(UI_LANGUAGE_NAMES).map(([code, name]) => ({
-                    value: code,
-                    label: name
-                  }))}
+                <MultiSelectCombobox
+                  selectedValues={activeGlossaryIds}
+                  onChange={updateActiveGlossaryIds}
+                  options={SYSTEM_GLOSSARIES.map(g => ({ value: g.id, label: (t(`danceStyles.${g.id}`) as string) || g.name }))}
+                  placeholder={t('glossary.searchPlaceholder')}
                 />
               </div>
 
-              {/* Account / Logout Section */}
+              {/* Offline Usage Guidance */}
               <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <LogOut className="w-4 h-4 text-orange-400" />
-                  {t('appSettings.accountSection')}
+                  <Globe className="w-4 h-4 text-brand" />
+                  {t('appSettings.offlineGuideSection')}
                 </h4>
-                {!isGuestMode && (
-                  <p className="text-xs text-white/60 leading-relaxed text-orange-300/80">
-                    {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
-                  </p>
-                )}
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold uppercase">
-                    {session?.user?.email ? session.user.email[0] : 'G'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-white truncate">
-                      {session?.user?.email ? session.user.email : t('appSettings.guestUser')}
-                    </div>
-                    <div className="text-xs text-white/40 truncate">
-                      {session?.user?.email ? t('appSettings.authenticatedAccount') : t('appSettings.localSandboxMode')}
-                    </div>
-                  </div>
+                <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs text-white/70 leading-relaxed">
+                  <p>• {t('appSettings.offlineGuide1')}</p>
+                  <p>• {t('appSettings.offlineGuide2')}</p>
+                  <p>• {t('appSettings.offlineGuide3')}</p>
                 </div>
-                {isGuestMode ? (
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('zoutty_guest_mode');
-                      setIsGuestMode(false);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                    {t('appSettings.signInBtn')}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setShowLogoutConfirm(true);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    {t('modals.logoutBtn')}
-                  </button>
-                )}
+              </div>
+
+              {/* Other Section */}
+              <div className="space-y-3 border-t border-white/5 pt-6">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
+                  <SlidersHorizontal className="w-4 h-4 text-brand" />
+                  {t('appSettings.devSection')}
+                </h4>
+
+                {/* Replay Onboarding Guide Button */}
+                <button
+                  onClick={handleStartOnboardingTour}
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 hover:text-white transition-all text-xs font-bold shadow-xs cursor-pointer"
+                >
+                  <Compass className="w-4 h-4 text-brand" />
+                  {t('onboarding.replayOnboardingBtn')}
+                </button>
+
+                {/* Referral Program Button */}
+                <button
+                  onClick={() => {
+                    setShowAppSettings(false);
+                    setShowReferralModal(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all text-xs font-bold shadow-sm cursor-pointer"
+                >
+                  <Gift className="w-4 h-4 text-purple-400" />
+                  {t('billing.referrals.title')}
+                </button>
               </div>
 
               {/* Backup & Restore (local) — SECONDARY */}
@@ -3123,84 +3205,6 @@ export default function App() {
                     </button>
                   </div>
                 </AppSettingsCollapsible>
-              </div>
-
-              {/* Custom Glossaries Section */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <BookOpen className="w-4 h-4 text-brand" />
-                  {t('appSettings.customGlossariesSection')}
-                </h4>
-                <p className="text-xs text-white/60 leading-relaxed">
-                  {t('appSettings.customGlossariesDesc')}
-                </p>
-                <div className="space-y-2">
-                  {glossaries.map(g => (
-                    <div key={g.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
-                      <span className="text-sm font-medium text-white">{g.name}</span>
-                      <button
-                        onClick={() => {
-                          setEditingGlossary(g);
-                          setShowGlossaryModal(true);
-                        }}
-                        className="p-1.5 hover:bg-white/10 rounded-lg text-brand transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      setEditingGlossary(null);
-                      setShowGlossaryModal(true);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-white/20 text-xs font-bold text-white/70 hover:text-white hover:border-brand/40 transition-colors mt-2"
-                  >
-                    + {t('glossary.addTitle')}
-                  </button>
-                </div>
-              </div>
-
-              {/* Offline Usage Guidance */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Globe className="w-4 h-4 text-brand" />
-                  {t('appSettings.offlineGuideSection')}
-                </h4>
-                <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs text-white/70 leading-relaxed">
-                  <p>• {t('appSettings.offlineGuide1')}</p>
-                  <p>• {t('appSettings.offlineGuide2')}</p>
-                  <p>• {t('appSettings.offlineGuide3')}</p>
-                </div>
-              </div>
-
-              {/* Other Section */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <SlidersHorizontal className="w-4 h-4 text-brand" />
-                  {t('appSettings.devSection')}
-                </h4>
-
-                {/* Replay Onboarding Guide Button */}
-                <button
-                  onClick={handleStartOnboardingTour}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 hover:text-white transition-all text-xs font-bold shadow-xs cursor-pointer"
-                >
-                  <Compass className="w-4 h-4 text-brand" />
-                  {t('onboarding.replayOnboardingBtn')}
-                </button>
-
-                {/* Referral Program Button */}
-                <button
-                  onClick={() => {
-                    setShowAppSettings(false);
-                    setShowReferralModal(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all text-xs font-bold shadow-sm cursor-pointer"
-                >
-                  <Gift className="w-4 h-4 text-purple-400" />
-                  {t('billing.referrals.title')}
-                </button>
               </div>
 
             </div>
@@ -3405,6 +3409,18 @@ export default function App() {
         glossaries={glossaries}
         onGlossariesChange={async (updatedGlossaries) => {
           setGlossaries(updatedGlossaries);
+        }}
+      />
+
+      <MandatoryGlossaryModal
+        isOpen={showMandatoryGlossaryModal}
+        onSave={(ids) => {
+          updateActiveGlossaryIds(ids);
+          setShowMandatoryGlossaryModal(false);
+          if (!localStorage.getItem('zoutty_has_launched')) {
+            setLogoAnimationType('onboarding');
+            localStorage.setItem('zoutty_has_launched', 'true');
+          }
         }}
       />
 
@@ -4599,12 +4615,22 @@ export default function App() {
             onRecording={(blob, lang, silent) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipRecord'), false) : addAudioEntry(selectedSession.id, blob, lang, 'recording', undefined, silent)}
             onAutoStoppedLimit={() => setShowAutoStoppedModal(true)}
             onUpload={(e, lang) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipUpload'), false) : handleFileUpload(e, lang)}
-            onConsolidate={isGuestMode ? () => setShowGuestLockModal(true) : selectedSession.isDemo ? () => showToast(t('onboarding.demoTooltipConsolidate'), false) : handleConsolidate}
+            onConsolidate={
+              activeGlossaryIds.length === 0 
+                ? () => setShowMandatoryGlossaryModal(true)
+                : isGuestMode 
+                ? () => setShowGuestLockModal(true) 
+                : selectedSession.isDemo 
+                ? () => showToast(t('onboarding.demoTooltipConsolidate'), false) 
+                : handleConsolidate
+            }
             onUpdateSession={(changes) => updateSession(selectedSession.id, changes)}
             onUpdateEntry={(id, changes) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipEdit'), false) : updateAudioEntry(id, changes)}
             onDeleteEntry={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipDelete'), false) : requestDeleteAudio(id, 'Audio Entry')}
             onProcessEntry={async (id) => {
-              if (isGuestMode) {
+              if (activeGlossaryIds.length === 0) {
+                setShowMandatoryGlossaryModal(true);
+              } else if (isGuestMode) {
                 setShowGuestLockModal(true);
               } else if (selectedSession.isDemo) {
                 showToast(t('onboarding.demoTooltipConsolidate'), false);
@@ -4613,6 +4639,7 @@ export default function App() {
               }
             }}
             onRequestReprocess={(id) => isGuestMode ? setShowGuestLockModal(true) : selectedSession.isDemo ? showToast(t('onboarding.demoTooltipReprocess'), false) : setReprocessModal(id)}
+            activeGlossaryIds={activeGlossaryIds}
             showToast={showToast}
             groups={groups}
             glossaries={glossaries}
@@ -4660,7 +4687,8 @@ function SessionDetail({
   glossaries,
   onDeleteSession,
   mediaItems,
-  onMediaChange
+  onMediaChange,
+  activeGlossaryIds
 }: {
   session: Session;
   entries: AudioEntry[];
@@ -4680,6 +4708,7 @@ function SessionDetail({
   onDeleteSession: () => void;
   mediaItems: SessionMedia[];
   onMediaChange: (items: SessionMedia[]) => void;
+  activeGlossaryIds: string[];
 }) {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
@@ -5104,7 +5133,7 @@ function SessionDetail({
             <span>
               {session.glossaryId === 'auto'
                 ? t('sessionSettings.glossaryAuto')
-                : (session.glossaryId === 'other' ? (session.customGlossaryStyle || t('sessionSettings.glossaryOther')) : (glossaries.find(g => g.id === session.glossaryId)?.name || 'Brazilian Zouk'))
+                : ((t(`danceStyles.${session.glossaryId}`) as string) || glossaries.find(g => g.id === session.glossaryId)?.name || 'Brazilian Zouk')
               }
             </span>
           </button>
@@ -5366,31 +5395,15 @@ function SessionDetail({
                   <BookOpen className="w-3.5 h-3.5 text-brand" />
                   {t('sessionSettings.glossaryLabel')}
                 </label>
-                <CustomSelect
+                <GlossaryCombobox
                   value={tempGlossaryId}
                   onChange={setTempGlossaryId}
-                  position="relative"
                   options={[
                     { value: 'auto', label: t('sessionSettings.glossaryAuto') },
-                    ...glossaries.map(g => ({ value: g.id, label: g.name })),
-                    { value: 'other', label: t('sessionSettings.glossaryOther') }
+                    ...glossaries.filter(g => activeGlossaryIds.includes(g.id)).map(g => ({ value: g.id, label: (t(`danceStyles.${g.id}`) as string) || g.name }))
                   ]}
                 />
               </div>
-
-              {/* Specify Custom Dance Style */}
-              {tempGlossaryId === 'other' && (
-                <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-1 duration-200">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-brand font-semibold">{t('sessionSettings.specifyDanceStyleLabel')}</label>
-                  <input
-                    type="text"
-                    placeholder={t('sessionSettings.specifyDanceStylePlaceholder')}
-                    value={tempCustomGlossaryStyle}
-                    onChange={(e) => setTempCustomGlossaryStyle(e.target.value)}
-                    className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-brand/50 transition-colors w-full placeholder:text-white/20"
-                  />
-                </div>
-              )}
 
 
             </div>

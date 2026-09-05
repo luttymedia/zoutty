@@ -23,6 +23,7 @@ create table if not exists public.profiles (
   referral_credits_balance integer default 0 not null, -- count of €1 discount units remaining
   topup_extra_sessions integer default 0 not null, -- non-expiring one-time top-up sessions
   topup_extra_clips integer default 0 not null, -- non-expiring one-time top-up clips
+  active_glossaries text[] default '{}'::text[],
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

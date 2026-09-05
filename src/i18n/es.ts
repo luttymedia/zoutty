@@ -128,6 +128,31 @@ const es: Translations = {
 
   glossary: {
     addTitle: 'Añadir Glosario',
+    mandatoryTitle: 'Selecciona tus Estilos de Baile',
+    mandatoryDesc: 'Por favor, selecciona los estilos de baile que enseñas o aprendes. Usamos esto para optimizar la precisión y velocidad de la IA.',
+    continueBtn: 'Continuar',
+    requireOne: 'Por favor selecciona al menos un estilo para continuar.',
+    myDanceStyles: 'Mis Estilos de Baile',
+    myDanceStylesDesc: 'Selecciona los estilos que enseñas o aprendes para optimizar la detección de IA.',
+    searchPlaceholder: 'Buscar estilos de baile...',
+    requestGlossary: '¿No encuentras tu estilo? Solicitar un glosario'
+  },
+
+  danceStyles: {
+    'bachata': 'Bachata',
+    'salsa': 'Salsa',
+    'kizomba': 'Kizomba',
+    'reggaeton': 'Reguetón',
+    'brazilian-zouk': 'Zouk Brasileño',
+    'afro-beats': 'Afrobeats',
+    'dancehall': 'Dancehall',
+    'hip-hop': 'Hip Hop',
+    'contemporary-dance': 'Danza Contemporánea',
+    'tango': 'Tango',
+    'west-coast-swing': 'West Coast Swing',
+    'swing': 'Swing',
+    'belly-dance': 'Danza del Vientre',
+    'ballet': 'Ballet'
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────

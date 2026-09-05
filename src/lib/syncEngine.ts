@@ -72,7 +72,7 @@ export const syncEngine = {
 
       console.log(`[Sync] Pushing ${pendingItems.length} changes for ${localTableName}...`);
 
-      const itemsToPush = pendingItems.filter(item => !(localTableName === 'glossaries' && item.isSystem));
+      const itemsToPush = pendingItems;
 
       if (itemsToPush.length > 0) {
         const payload = await Promise.all(itemsToPush.map(async item => {
@@ -159,9 +159,6 @@ export const syncEngine = {
 
     const groups = await db.getGroups(true);
     await pushTable('sessionGroups', 'sessiongroups', groups);
-
-    const glossaries = await db.getGlossaries(true);
-    await pushTable('glossaries', 'glossaries', glossaries);
     
     // Note: Session Media involves files, so a simple DB push is insufficient.
     // For this MVP, we only sync metadata.
@@ -228,13 +225,12 @@ export const syncEngine = {
     await pullTable('audios', 'audios');
     await pullTable('finalReports', 'finalreports');
     await pullTable('sessionGroups', 'sessiongroups');
-    await pullTable('glossaries', 'glossaries');
     await pullTable('sessionMedia', 'sessionmedia');
   },
 
   async wipeCloudData(userId: string) {
     console.log('[Sync] Wiping cloud data for user', userId);
-    const tables = ['sessions', 'audios', 'finalreports', 'sessiongroups', 'glossaries', 'sessionmedia'];
+    const tables = ['sessions', 'audios', 'finalreports', 'sessiongroups', 'sessionmedia'];
     for (const table of tables) {
       const { error } = await supabase.from(table).delete().eq('user_id', userId);
       if (error) {
