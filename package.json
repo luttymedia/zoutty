@@ -1,10 +1,10 @@
 {
   "name": "zoutty",
   "private": true,
-  "version": "3.2.2",
+  "version": "3.2.3",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch server.ts",
+    "dev": "node --import tsx --watch-path=server.ts --watch-path=server server.ts",
     "build": "vite build && npm run build:server",
     "build:server": "tsc --project tsconfig.server.json",
     "start": "node dist-server/server.js",

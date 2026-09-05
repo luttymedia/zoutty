@@ -122,8 +122,7 @@ const es: Translations = {
     authenticatedAccount: 'Cuenta Autenticada',
     localSandboxMode: 'Solo en este dispositivo',
     // Dev & Testing
-    devSection: 'Desarrollo y Pruebas',
-    devDesc: 'Activa el flujo de bienvenida o reinyecta la sesión de demostración simulada para realizar pruebas.',
+    devSection: 'Otros',
     devTestOnboardingBtn: 'Probar Flujo de Bienvenida',
   },
 

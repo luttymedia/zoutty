@@ -6,6 +6,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.2.3',
+    date: '2026-09-05',
+    changes: [
+      'Guest Mode Text Hidden: Removed misleading cloud logout description in settings drawer when using guest mode',
+      'Audio Player Duration Fix: Resolved Infinity/NaN duration and playhead jumping on audio clips',
+      'Dedicated Drag Handles & Instant Drag: Grip-only card reordering with zero delay and smooth mobile scrolling',
+      'Forced Collapsed Cards in Reorder Mode: Keep cards and reports collapsed while sorting for a cleaner reordering view',
+      'Install Wall Cleanup: Automatically hide preparing installation text once the PWA install completes',
+      'Logo Animation on Fresh Launch: Trigger onboarding brand animation on first device launch',
+      'Removed Developer Toggles: Cleaned up settings drawer by moving user tools under "Other" and hiding dev/mock controls'
+    ]
+  },
+  {
     version: '3.2.2',
     date: '2026-08-31',
     changes: [

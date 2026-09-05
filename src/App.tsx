@@ -19,6 +19,7 @@ import {
   Download,
   Zap,
   GripHorizontal,
+  GripVertical,
   X,
   Folder,
   FolderPlus,
@@ -94,7 +95,6 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
-  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent
@@ -972,6 +972,11 @@ export default function App() {
         const audioRecord: Record<string, AudioEntry> = {};
         loadedAudios.forEach(a => audioRecord[a.id] = a);
         setAudioEntries(audioRecord);
+
+        if (loadedSessions.length === 0 && !localStorage.getItem('zoutty_has_launched')) {
+          setLogoAnimationType('onboarding');
+          localStorage.setItem('zoutty_has_launched', 'true');
+        }
       } catch (err) {
         console.error("Failed to load IndexedDB", err);
         showToast(t('toast.failedLoadData'), true);
@@ -2996,9 +3001,11 @@ export default function App() {
                   <LogOut className="w-4 h-4 text-orange-400" />
                   {t('appSettings.accountSection')}
                 </h4>
-                <p className="text-xs text-white/60 leading-relaxed text-orange-300/80">
-                  {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
-                </p>
+                {!isGuestMode && (
+                  <p className="text-xs text-white/60 leading-relaxed text-orange-300/80">
+                    {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
+                  </p>
+                )}
                 <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold uppercase">
                     {session?.user?.email ? session.user.email[0] : 'G'}
@@ -3167,46 +3174,12 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Dev & Testing Section */}
+              {/* Other Section */}
               <div className="space-y-3 border-t border-white/5 pt-6">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <FlaskConical className="w-4 h-4 text-brand" />
+                  <SlidersHorizontal className="w-4 h-4 text-brand" />
                   {t('appSettings.devSection')}
                 </h4>
-                <p className="text-xs text-white/60 leading-relaxed">
-                  {t('appSettings.devDesc')}
-                </p>
-
-                {/* Quick Gemini Mock Mode Toggle */}
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <Bot className={`w-4 h-4 ${devState.mockGemini ? 'text-brand animate-pulse' : 'text-zinc-400'}`} />
-                    <div>
-                      <div className="text-xs font-bold text-white">
-                        {t('billing.dev.geminiMockToggle')}
-                      </div>
-                      <div className="text-[10px] text-white/50">
-                        {devState.mockGemini ? t('billing.dev.mockActiveBadge') : t('billing.dev.mockInactiveBadge')}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const updated = saveDevState({ mockGemini: !devState.mockGemini });
-                      if (!updated.mockGemini) fetchCloudProfileAndUsage();
-                    }}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                      devState.mockGemini ? 'bg-brand' : 'bg-zinc-700'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        devState.mockGemini ? 'translate-x-4' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
 
                 {/* Replay Onboarding Guide Button */}
                 <button
@@ -3215,15 +3188,6 @@ export default function App() {
                 >
                   <Compass className="w-4 h-4 text-brand" />
                   {t('onboarding.replayOnboardingBtn')}
-                </button>
-
-                {/* Open Test Lab Full Modal Button */}
-                <button
-                  onClick={() => setShowTestLabModal(true)}
-                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 hover:text-white transition-all text-xs font-bold shadow-sm cursor-pointer"
-                >
-                  <FlaskConical className="w-4 h-4" />
-                  {t('billing.dev.panelTitle')}
                 </button>
 
                 {/* Referral Program Button */}
@@ -5916,6 +5880,7 @@ function SortableCard({ id, children, isDraggable = true, isReordering = false }
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -5927,19 +5892,29 @@ function SortableCard({ id, children, isDraggable = true, isReordering = false }
     zIndex: isDragging ? 50 : 1,
     opacity: isDragging ? 0.9 : 1,
     position: 'relative' as const,
-    ...(isReordering ? { touchAction: 'none' } : {})
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...(isDraggable && isReordering ? attributes : {})}
-      {...(isDraggable && isReordering ? listeners : {})}
-      className={isDragging ? 'shadow-2xl scale-[1.02] cursor-grabbing ring-2 ring-brand rounded-2xl bg-[#141414]' : (isDraggable && isReordering ? 'cursor-grab touch-none active:scale-[0.99] transition-all ring-2 ring-brand/40 bg-brand/5 rounded-2xl' : 'transition-all')}
+      className={isDragging ? 'shadow-2xl scale-[1.02] ring-2 ring-brand rounded-2xl bg-[#141414]' : (isDraggable && isReordering ? 'transition-all ring-2 ring-brand/40 bg-brand/5 rounded-2xl' : 'transition-all')}
     >
-      <div className={isDraggable && isReordering && !isDragging ? 'opacity-80 pointer-events-none' : ''}>
-        {children}
+      <div className="relative flex items-center">
+        <div className={`flex-1 min-w-0 ${isDraggable && isReordering && !isDragging ? 'opacity-80 pointer-events-none' : ''}`}>
+          {children}
+        </div>
+        {isDraggable && isReordering && (
+          <div 
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            className="p-4 cursor-grab active:cursor-grabbing touch-none text-white/40 hover:text-white transition-colors shrink-0 flex items-center justify-center select-none"
+            style={{ touchAction: 'none' }}
+          >
+            <GripVertical className="w-6 h-6" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -6067,7 +6042,9 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
       <div className={`border rounded-2xl overflow-hidden shadow-sm ${consolidatedStrictSummary ? 'border-brand/40 bg-brand/5 print:bg-transparent print:border-black/10' : 'border-white/10 glass'}`}>
         <div
           className="px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 bg-brand/10 print:bg-black/5 cursor-pointer select-none transition-colors hover:bg-brand/20"
-          onClick={() => setIsConsolidatedOpen(o => !o)}
+          onClick={() => {
+            if (!isReordering) setIsConsolidatedOpen(o => !o);
+          }}
         >
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-brand" />
@@ -6079,7 +6056,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
             </span>
           )}
         </div>
-        <div className={`p-4 space-y-4 bg-black/20 print:bg-transparent border-t border-brand/20 print:border-black/10 ${isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
+        <div className={`p-4 space-y-4 bg-black/20 print:bg-transparent border-t border-brand/20 print:border-black/10 ${!isReordering && isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
           {consolidatedStrictSummary && (
             <>
               <div>
@@ -6104,7 +6081,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     const time = formatClipDate(audio.timestamp);
     const displayTitleRaw = audio.filename || `Audio Entry ${entries.length - index}`;
     const displayTitle = displayTitleRaw.replace(/\.(webm|mp4|mp3|wav|caf)$/i, '');
-    const isOpen = isEntryOpen(audio.id);
+    const isOpen = !isReordering && isEntryOpen(audio.id);
     const isProcessing = processingIds.has(audio.id);
 
     const hasNewShape = Array.isArray(audio.strictSummary);
@@ -6135,7 +6112,9 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
         isProcessing={isProcessing}
         hasNewShape={hasNewShape}
         legacyContent={legacyContent}
-        onToggle={() => toggleEntry(audio.id)}
+        onToggle={() => {
+          if (!isReordering) toggleEntry(audio.id);
+        }}
         onUpdateTitle={(newTitle) => onUpdateEntry(audio.id, { filename: newTitle })}
         onDelete={() => onDeleteEntry(audio.id)}
         onProcess={() => onProcessEntry(audio.id)}
@@ -6154,7 +6133,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     <div className="bg-white/5 print:bg-transparent backdrop-blur-md border border-white/10 print:border-transparent p-6 rounded-2xl shadow-sm print:shadow-none relative w-full box-border mt-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('session.notesHeading')}</h3>
-        {!isNoteVisible && (
+        {!isNoteVisible && !isReordering && (
           <button
             onClick={() => {
               if (sessionId === 'demo-session' && showToast) {
@@ -6180,7 +6159,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
         </div>
       )}
 
-      {isNoteVisible && (
+      {isNoteVisible && !isReordering && (
         <div className="flex flex-col gap-3 mt-4">
           <AutoGrowingTextarea
             autoFocus
@@ -6252,14 +6231,8 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8
+        distance: 5,
       }
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,      // "Tap and hold" on mobile
-        tolerance: 5,
-      },
     }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
@@ -6431,7 +6404,20 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
 
       <div className={`p-4 sm:p-5 bg-black/20 print:bg-transparent border-t border-white/5 print:border-black/10 space-y-4 ${isOpen ? 'block' : 'hidden'} print-expand`}>
         {audioUrl ? (
-          <audio controls src={audioUrl} className="w-full h-10 opacity-90 rounded-xl bg-black/20 print-hide" />
+          <audio 
+            controls 
+            src={audioUrl} 
+            onLoadedMetadata={(e) => {
+              const target = e.currentTarget;
+              if (target.duration === Infinity || isNaN(target.duration)) {
+                target.currentTime = 1e101;
+                target.addEventListener('timeupdate', function getDuration() {
+                  target.currentTime = 0;
+                  target.removeEventListener('timeupdate', getDuration);
+                });
+              }
+            }}
+            className="w-full h-10 opacity-90 rounded-xl bg-black/20 print-hide" />
         ) : audio.sessionId === 'demo-session' ? (
           <div className="w-full h-10 flex items-center gap-3 bg-black/20 rounded-xl px-4 overflow-hidden relative cursor-not-allowed print-hide">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
@@ -6558,7 +6544,20 @@ function CollapsibleSection({ title, contentObj, isReport = false, isOpen, onTog
       {isOpen && (
         <div className="p-4 sm:p-5 bg-black/20 border-t border-white/5">
           {audioUrl && (
-            <audio controls src={audioUrl} className="w-full h-10 mb-5 opacity-90 transition-opacity rounded-xl bg-black/20 print-hide" />
+            <audio 
+            controls 
+            src={audioUrl} 
+            onLoadedMetadata={(e) => {
+              const target = e.currentTarget;
+              if (target.duration === Infinity || isNaN(target.duration)) {
+                target.currentTime = 1e101;
+                target.addEventListener('timeupdate', function getDuration() {
+                  target.currentTime = 0;
+                  target.removeEventListener('timeupdate', getDuration);
+                });
+              }
+            }}
+            className="w-full h-10 mb-5 opacity-90 transition-opacity rounded-xl bg-black/20 print-hide" />
           )}
 
           {Object.keys(contentObj).length > 0 ? (

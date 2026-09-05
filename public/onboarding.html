@@ -819,7 +819,12 @@
       }
 
       // Android
-      if (installState === 'accepted') {
+      if (installState === 'installed') {
+        btnText.textContent = t.btnInstall;
+        btn.classList.add('disabled-look');
+        btn.disabled = true;
+        hint.textContent = '';
+      } else if (installState === 'accepted') {
         btnText.textContent = t.btnInstallInstalling;
         btn.classList.add('disabled-look');
         btn.disabled = true;

@@ -120,8 +120,7 @@ const en = {
     authenticatedAccount: 'Authenticated Account',
     localSandboxMode: 'Offline Device Only',
     // Dev & Testing
-    devSection: 'Development & Testing',
-    devDesc: 'Trigger onboarding flow or re-inject the mock demo session for testing purposes.',
+    devSection: 'Other',
     devTestOnboardingBtn: 'Test Onboarding Flow',
   },
 
