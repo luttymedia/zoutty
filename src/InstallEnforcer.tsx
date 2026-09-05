@@ -28,9 +28,24 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
       console.log('InstallEnforcer: Bypassing install screen. checkStandalone:', checkStandalone, 'isLocalhost:', isLocalhost, 'isLocalIp:', isLocalIp);
       setIsStandalone(true);
       setInstallState('installed');
+      try { localStorage.setItem('zoutty_pwa_installed', 'true'); } catch (_) {}
     } else {
       console.log('InstallEnforcer: Blocking access. Not standalone and no bypass matched.');
       setIsStandalone(false);
+      try {
+        if (localStorage.getItem('zoutty_pwa_installed') === 'true') {
+          setInstallState('installed');
+        }
+      } catch (_) {}
+    }
+
+    if (typeof navigator !== 'undefined' && 'getInstalledRelatedApps' in navigator) {
+      (navigator as any).getInstalledRelatedApps().then((apps: any[]) => {
+        if (apps && apps.length > 0) {
+          setInstallState('installed');
+          try { localStorage.setItem('zoutty_pwa_installed', 'true'); } catch (_) {}
+        }
+      }).catch(() => {});
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -42,14 +57,23 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
     const handleAppInstalled = () => {
       setDeferredPrompt(null);
       setInstallState('installed');
+      try { localStorage.setItem('zoutty_pwa_installed', 'true'); } catch (_) {}
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
+    let idleTimer: any = null;
+    if (isAndroid) {
+      idleTimer = setTimeout(() => {
+        setInstallState(prev => (prev === 'idle' ? 'installed' : prev));
+      }, 2000);
+    }
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      if (idleTimer) clearTimeout(idleTimer);
     };
   }, []);
 
@@ -84,7 +108,7 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
     btnText = t('installEnforcer.btnInstalled');
     btnClasses += "bg-white/10 text-white/50 cursor-not-allowed";
     isDisabled = true;
-    hintText = t('installEnforcer.btnInstalledHint');
+    hintText = '';
   } else if (isDesktop) {
     btnText = t('installEnforcer.btnInstallDesktop');
     btnClasses += "bg-white/10 text-white/50 cursor-not-allowed";
@@ -112,13 +136,15 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
     } else if (installState === 'ready') {
       btnText = t('installEnforcer.btnInstallText');
       btnClasses += "bg-[#2DD4BF] text-black shadow-[0_0_20px_rgba(45,212,191,0.4)] active:scale-95";
+      hintText = '';
     } else {
       btnText = t('installEnforcer.btnInstallText');
       btnClasses += "bg-white/10 text-white/50 cursor-wait";
-      hintText = t('installEnforcer.btnInstallPreparingHint');
+      hintText = '';
     }
   } else {
     btnClasses += "bg-[#2DD4BF] text-black shadow-[0_0_20px_rgba(45,212,191,0.4)] active:scale-95";
+    hintText = '';
   }
 
   return (

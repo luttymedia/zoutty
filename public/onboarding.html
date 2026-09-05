@@ -639,6 +639,23 @@
     let deferredPrompt = null;
     let installState = 'idle'; // idle | ready | prompting | accepted | dismissed | installed
 
+    const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    let _wasInstalled = false;
+    try { _wasInstalled = localStorage.getItem('zoutty_pwa_installed') === 'true'; } catch (_) {}
+    if (_isStandalone || _wasInstalled) {
+      installState = 'installed';
+    }
+
+    if (typeof navigator !== 'undefined' && 'getInstalledRelatedApps' in navigator) {
+      navigator.getInstalledRelatedApps().then(apps => {
+        if (apps && apps.length > 0) {
+          installState = 'installed';
+          try { localStorage.setItem('zoutty_pwa_installed', 'true'); } catch (_) {}
+          updateInstallButton();
+        }
+      }).catch(() => {});
+    }
+
     /* ─── Translations ─── */
     let currentLang = (navigator.language || 'en').toLowerCase().startsWith('es') ? 'es' : 'en';
 
@@ -820,7 +837,7 @@
 
       // Android
       if (installState === 'installed') {
-        btnText.textContent = t.btnInstall;
+        btnText.textContent = t.btnInstalled;
         btn.classList.add('disabled-look');
         btn.disabled = true;
         hint.textContent = '';
@@ -838,7 +855,7 @@
         btnText.textContent = t.btnInstall;
         btn.classList.add('disabled-look');
         btn.disabled = true;
-        hint.textContent = t.hintAndroidPreparing;
+        hint.textContent = '';
       } else {
         // ready
         btnText.textContent = t.btnInstall;
@@ -857,8 +874,18 @@
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null;
       installState = 'installed';
+      try { localStorage.setItem('zoutty_pwa_installed', 'true'); } catch (_) {}
       updateInstallButton();
     });
+
+    if (_isAndroid && installState === 'idle') {
+      setTimeout(() => {
+        if (installState === 'idle') {
+          installState = 'installed';
+          updateInstallButton();
+        }
+      }, 2000);
+    }
 
     /* ─── Trigger install ─── */
     function triggerInstall() {
