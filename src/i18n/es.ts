@@ -361,6 +361,7 @@ const es: Translations = {
     audioEntryDefault: 'Entrada de audio {index}',
     processing: 'PROCESANDO...',
     processAudio: 'Procesar audio',
+    processClip: 'Procesar clip',
     reprocessClip: 'Reprocesar clip',
     liveType: 'En vivo',
     clipType: 'Clip',

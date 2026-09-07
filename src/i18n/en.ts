@@ -359,6 +359,7 @@ const en = {
     audioEntryDefault: 'Audio Entry {index}',
     processing: 'PROCESSING...',
     processAudio: 'Process audio',
+    processClip: 'Process Clip',
     reprocessClip: 'Reprocess Clip',
     liveType: 'Live',
     clipType: 'Clip',

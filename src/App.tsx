@@ -6768,15 +6768,6 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
           )}
         </div>
         <div className="flex items-center gap-3">
-          {!isProcessing && !audio.transcript && !audio.strictSummary && !audio.bulletPoints && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onProcess(); }}
-              className="p-3 bg-brand/20 hover:bg-brand/30 text-brand rounded-xl border border-brand/30 transition-all shadow-lg shadow-brand/10 flex items-center justify-center min-h-[44px] min-w-[44px]"
-              title={t('session.processAudio')}
-            >
-              <Zap className="w-5 h-5" />
-            </button>
-          )}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -6857,18 +6848,33 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
           </>
         )}
 
-        {!isProcessing && (audio.transcript || audio.strictSummary || audio.bulletPoints || Object.keys(legacyContent).length > 0) && (
-          <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRequestReprocess();
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm font-bold shadow-sm"
-            >
-              <Zap className="w-4 h-4" />
-              {t('session.reprocessClip')}
-            </button>
+        {!isProcessing && (
+          <div className="mt-4 pt-4 border-t border-white/5 flex justify-end print-hide">
+            {(audio.transcript || audio.strictSummary || audio.bulletPoints || Object.keys(legacyContent).length > 0) ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestReprocess();
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm font-bold shadow-sm"
+                title={t('session.reprocessClip')}
+              >
+                <Zap className="w-4 h-4" />
+                {t('session.reprocessClip')}
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onProcess();
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm font-bold shadow-sm"
+                title={t('session.processClip')}
+              >
+                <Zap className="w-4 h-4" />
+                {t('session.processClip')}
+              </button>
+            )}
           </div>
         )}
       </div>
