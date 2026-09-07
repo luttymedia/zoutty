@@ -89,7 +89,7 @@ export const GlossaryCombobox: React.FC<GlossaryComboboxProps> = ({ value, onCha
               ))
             ) : (
               <div className="px-3 py-4 text-center text-xs text-white/40">
-                No styles found.
+                {t('glossary.noStylesFound')}
               </div>
             )}
           </div>

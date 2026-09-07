@@ -120,9 +120,20 @@ export const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({ select
               })
             ) : (
               <div className="px-3 py-4 text-center text-xs text-white/40">
-                No styles found.
+                {t('glossary.noStylesFound')}
               </div>
             )}
+          </div>
+          <div className="p-2 border-t border-white/5 shrink-0 bg-black/20">
+            <a
+              href="mailto:lewtchy@gmail.com?subject=Requesting%20a%20Dance%20Style%20Glossary&body=Hi%2C%0A%0AI%20would%20like%20to%20request%20a%20new%20dance%20style%20glossary%20for%3A%0A%0ADance%20Style%3A%20%5BEnter%20Style%5D"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-center px-3 py-2.5 rounded-lg text-xs text-brand/80 hover:text-brand hover:bg-brand/10 flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              {t('glossary.requestGlossary')}
+            </a>
           </div>
         </div>
       )}

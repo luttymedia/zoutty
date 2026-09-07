@@ -180,6 +180,7 @@ const es: Translations = {
     myDanceStyles: 'Mis Estilos de Baile',
     myDanceStylesDesc: 'Selecciona los estilos que enseñas o aprendes para optimizar la detección de IA.',
     searchPlaceholder: 'Buscar estilos de baile...',
+    noStylesFound: 'No se encontraron estilos.',
     requestGlossary: '¿No encuentras tu estilo? Solicitar un glosario'
   },
 

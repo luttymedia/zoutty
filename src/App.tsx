@@ -5140,6 +5140,7 @@ export default function App() {
             }}
             onRequestReprocess={(id) => isGuestMode ? setShowGuestLockModal(true) : selectedSession.isDemo ? showToast(t('onboarding.demoTooltipReprocess'), false) : setReprocessModal(id)}
             activeGlossaryIds={activeGlossaryIds}
+            onUpdateActiveGlossaryIds={updateActiveGlossaryIds}
             showToast={showToast}
             groups={groups}
             glossaries={glossaries}
@@ -5188,7 +5189,8 @@ function SessionDetail({
   onDeleteSession,
   mediaItems,
   onMediaChange,
-  activeGlossaryIds
+  activeGlossaryIds,
+  onUpdateActiveGlossaryIds
 }: {
   session: Session;
   entries: AudioEntry[];
@@ -5209,6 +5211,7 @@ function SessionDetail({
   mediaItems: SessionMedia[];
   onMediaChange: (items: SessionMedia[]) => void;
   activeGlossaryIds: string[];
+  onUpdateActiveGlossaryIds: (ids: string[]) => void;
 }) {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
@@ -5453,13 +5456,32 @@ function SessionDetail({
   const [tempGroupId, setTempGroupId] = useState('');
   const [tempGlossaryId, setTempGlossaryId] = useState('auto');
   const [tempCustomGlossaryStyle, setTempCustomGlossaryStyle] = useState('');
+  const [tempActiveGlossaryIds, setTempActiveGlossaryIds] = useState<string[]>(activeGlossaryIds);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      setTempActiveGlossaryIds(activeGlossaryIds);
+    }
+  }, [activeGlossaryIds, isSettingsOpen]);
 
   const handleConfirmSettings = () => {
+    if (tempActiveGlossaryIds.length === 0) return;
+
+    let nextGlossaryId = session.glossaryId;
+    if (nextGlossaryId && nextGlossaryId !== 'auto' && !tempActiveGlossaryIds.includes(nextGlossaryId)) {
+      nextGlossaryId = tempActiveGlossaryIds.length === 1 ? tempActiveGlossaryIds[0] : 'auto';
+    } else if (tempActiveGlossaryIds.length === 1) {
+      nextGlossaryId = tempActiveGlossaryIds[0];
+    } else if (!nextGlossaryId) {
+      nextGlossaryId = 'auto';
+    }
+
     onUpdateSession({
       groupId: tempGroupId || undefined,
-      glossaryId: tempGlossaryId,
+      glossaryId: nextGlossaryId,
       customGlossaryStyle: tempCustomGlossaryStyle || undefined
     });
+    onUpdateActiveGlossaryIds(tempActiveGlossaryIds);
     setIsSettingsOpen(false);
   };
 
@@ -5649,6 +5671,7 @@ function SessionDetail({
                 setTempGroupId(session.groupId || '');
                 setTempGlossaryId(session.glossaryId || 'auto');
                 setTempCustomGlossaryStyle(session.customGlossaryStyle || '');
+                setTempActiveGlossaryIds(activeGlossaryIds);
                 setIsSettingsOpen(true);
               }
             }}
@@ -5762,6 +5785,7 @@ function SessionDetail({
                     setTempGroupId(session.groupId || '');
                     setTempGlossaryId(session.glossaryId || 'auto');
                     setTempCustomGlossaryStyle(session.customGlossaryStyle || '');
+                    setTempActiveGlossaryIds(activeGlossaryIds);
                     setIsSettingsOpen(true);
                   }
                 }}
@@ -5922,14 +5946,17 @@ function SessionDetail({
                   <BookOpen className="w-3.5 h-3.5 text-brand" />
                   {t('sessionSettings.glossaryLabel')}
                 </label>
-                <GlossaryCombobox
-                  value={tempGlossaryId}
-                  onChange={setTempGlossaryId}
-                  options={[
-                    { value: 'auto', label: t('sessionSettings.glossaryAuto') },
-                    ...glossaries.filter(g => activeGlossaryIds.includes(g.id)).map(g => ({ value: g.id, label: (t(`danceStyles.${g.id}`) as string) || g.name }))
-                  ]}
+                <MultiSelectCombobox
+                  selectedValues={tempActiveGlossaryIds}
+                  onChange={setTempActiveGlossaryIds}
+                  options={SYSTEM_GLOSSARIES.map(g => ({ value: g.id, label: (t(`danceStyles.${g.id}`) as string) || g.name }))}
+                  placeholder={t('glossary.searchPlaceholder')}
                 />
+                {tempActiveGlossaryIds.length === 0 && (
+                  <p className="text-[11px] text-amber-400 mt-1">
+                    {t('glossary.requireOne')}
+                  </p>
+                )}
               </div>
 
 
@@ -5946,7 +5973,8 @@ function SessionDetail({
                 </button>
                 <button
                   onClick={handleConfirmSettings}
-                  className="flex-1 px-4 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors text-xs min-h-[40px]"
+                  disabled={tempActiveGlossaryIds.length === 0}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors text-xs min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('sessionSettings.confirmBtn')}
                 </button>

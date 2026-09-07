@@ -178,6 +178,7 @@ const en = {
     myDanceStyles: 'My Dance Styles',
     myDanceStylesDesc: 'Select the styles you teach or learn to optimize AI detection.',
     searchPlaceholder: 'Search dance styles...',
+    noStylesFound: 'No styles found.',
     requestGlossary: 'Can\'t find your style? Request a Glossary'
   },
 
