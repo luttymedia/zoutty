@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.5.1',
+    date: '2026-09-07',
+    changes: [
+      'Clean Logout & State Reset: Logging out now clears local storage and IndexedDB databases completely while preserving user language preference',
+      'Onboarding Fix for New Accounts: Prevented premature onboarding completion on signup and Google OAuth so new users always receive the guide and style selection',
+      'Guest Mode Style Selection: Enabled mandatory dance style selection for guest users upon completing onboarding'
+    ]
+  },
+  {
     version: '3.5.0',
     date: '2026-09-07',
     changes: [

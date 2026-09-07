@@ -445,6 +445,9 @@ export default function App() {
       if (profile?.active_glossaries && Array.isArray(profile.active_glossaries) && profile.active_glossaries.length > 0) {
         setActiveGlossaryIds(profile.active_glossaries);
         localStorage.setItem('zoutty_active_glossaries', JSON.stringify(profile.active_glossaries));
+        localStorage.setItem('zoutty_onboarding_completed', 'true');
+        setHasCompletedOnboarding(true);
+        setOnboardingTourStep(null);
       }
 
       if (profile || usage) {
@@ -629,13 +632,13 @@ export default function App() {
   };
   
   useEffect(() => {
-    // Only show if onboarding is done, none are selected, and not in guest mode
-    if (hasCompletedOnboarding && activeGlossaryIds.length === 0 && !isGuestMode) {
+    // Show when onboarding is done and no glossaries/dance styles are selected yet (including guest mode)
+    if (hasCompletedOnboarding && activeGlossaryIds.length === 0) {
       setShowMandatoryGlossaryModal(true);
     } else {
       setShowMandatoryGlossaryModal(false);
     }
-  }, [hasCompletedOnboarding, activeGlossaryIds, isGuestMode]);
+  }, [hasCompletedOnboarding, activeGlossaryIds]);
   const initialSyncCheckedRef = useRef(false);
 
   const finishInitialSync = useCallback(() => {
@@ -687,7 +690,6 @@ export default function App() {
       setSession(session);
       setIsInitializingAuth(false);
       if (session) {
-        setHasCompletedOnboarding(true);
         handleInitialSyncCheck(session);
         redeemPendingReferral(session.access_token);
         fetchReferralStats();
@@ -707,7 +709,6 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
-        setHasCompletedOnboarding(true);
         handleInitialSyncCheck(session);
         redeemPendingReferral(session.access_token);
         fetchReferralStats();
@@ -1246,8 +1247,12 @@ export default function App() {
       // 1. Clear IndexedDB
       await db.clearDatabase();
 
-      // 2. Clear LocalStorage
+      // 2. Clear LocalStorage (preserve user's selected language)
+      const savedLang = localStorage.getItem('zoutty_language');
       localStorage.clear();
+      if (savedLang) {
+        localStorage.setItem('zoutty_language', savedLang);
+      }
 
       // 3. Sign out
       await supabase.auth.signOut();
@@ -3965,19 +3970,13 @@ export default function App() {
               <button 
                 onClick={async () => {
                   try {
-                    const idb = await dbStart();
-                    const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
-                    await new Promise<void>((resolve, reject) => {
-                      const tx = idb.transaction(tables, 'readwrite');
-                      tx.oncomplete = () => resolve();
-                      tx.onerror = () => reject(tx.error);
-                      for (const table of tables) {
-                        tx.objectStore(table).clear();
-                      }
-                    });
-                    localStorage.removeItem('zoutty_migrated_to_supabase');
+                    await db.clearDatabase();
+                    const savedLang = localStorage.getItem('zoutty_language');
+                    localStorage.clear();
+                    if (savedLang) {
+                      localStorage.setItem('zoutty_language', savedLang);
+                    }
                     resetDevState();
-                    localStorage.removeItem('zoutty_dev_state');
                     await supabase.auth.signOut();
                     window.location.reload();
                   } catch (e) {

@@ -63,7 +63,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        localStorage.setItem('zoutty_onboarding_completed', 'true');
         localStorage.setItem('zoutty_initial_sync_pending', 'true');
         window.location.reload(); // Force reload to completely clean state and trigger sync correctly
       } else {
@@ -94,7 +93,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
       if (!isLogin && inviteCode.trim()) {
         localStorage.setItem('zoutty_referral_signup_code', inviteCode.trim());
       }
-      localStorage.setItem('zoutty_onboarding_completed', 'true');
       localStorage.setItem('zoutty_initial_sync_pending', 'true');
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
