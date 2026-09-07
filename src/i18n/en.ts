@@ -787,7 +787,9 @@ const en = {
       recordingAutoStoppedTitle: '3-Minute Limit Reached',
       recordingAutoStoppedDesc: 'Your recording reached the 3-minute limit and was automatically saved as an audio clip in this session.',
       uploadTooLongTitle: 'Audio Exceeds 3 Minutes',
+      uploadTooLongTitleMultiple: 'Multiple Audios Exceed 3 Minutes',
       uploadTooLongDesc: 'Clips are limited to a maximum of 3 minutes (180 seconds). Please trim your audio file and try again.',
+      uploadTooLongDescMultiple: 'The following {count} clips exceed the 3-minute (180 seconds) limit. Please trim them and try again.',
       quotaExceededTitle: 'AI Quota Reached',
       quotaExceededFreeDesc: 'You have used all {limit} free AI sessions. Upgrade your plan or invite a friend to earn a 10-day boost!',
       quotaExceededFreeSessionsDesc: 'You have used all {limit} free AI sessions. Upgrade your plan or invite a friend to earn a 10-day boost!',
@@ -818,6 +820,7 @@ const en = {
       fileLabel: 'File',
       detectedDuration: 'Detected Duration',
       allowedLimit: 'Allowed Limit',
+      allowedLimitValue: '{duration} (3 mins)',
     },
     referrals: {
       title: 'Refer a Friend',

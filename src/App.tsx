@@ -62,7 +62,7 @@ import { SYSTEM_GLOSSARIES } from './lib/systemGlossaries';
 import { DevState, getDevState, saveDevState, syncWithCloudProfile, resetDevState } from './lib/devLab';
 import { TestLabModal } from './components/TestLabModal';
 import { QuotaExceededModal } from './components/QuotaExceededModal';
-import { AudioDurationExceededModal } from './components/AudioDurationExceededModal';
+import { AudioDurationExceededModal, ExceededAudioFile } from './components/AudioDurationExceededModal';
 import { RecordingAutoStoppedModal } from './components/RecordingAutoStoppedModal';
 import { PricingModal } from './components/PricingModal';
 import { GlossaryModal } from './components/GlossaryModal';
@@ -332,7 +332,7 @@ export default function App() {
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showTestLabModal, setShowTestLabModal] = useState(false);
   const [showQuotaModal, setShowQuotaModal] = useState<{ isOpen: boolean; reason: 'sessions' | 'clips' }>({ isOpen: false, reason: 'sessions' });
-  const [showDurationExceededModal, setShowDurationExceededModal] = useState<{ isOpen: boolean; duration: number; filename?: string }>({ isOpen: false, duration: 0 });
+  const [showDurationExceededModal, setShowDurationExceededModal] = useState<{ isOpen: boolean; files: ExceededAudioFile[] }>({ isOpen: false, files: [] });
   const [showAutoStoppedModal, setShowAutoStoppedModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
@@ -2201,14 +2201,22 @@ export default function App() {
     const files = e.target.files;
     if (!files || files.length === 0 || !selectedSession) return;
 
-    for (const file of Array.from(files)) {
+    const fileList = Array.from(files);
+    const exceededFiles: ExceededAudioFile[] = [];
+
+    for (const file of fileList) {
       const duration = await getMediaDuration(file);
       if (duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
-        setShowDurationExceededModal({ isOpen: true, duration, filename: file.name });
+        exceededFiles.push({ name: file.name, duration });
         continue;
       }
       await addAudioEntry(selectedSession.id, file, language, 'upload', file.name);
     }
+
+    if (exceededFiles.length > 0) {
+      setShowDurationExceededModal({ isOpen: true, files: exceededFiles });
+    }
+
     // reset input
     e.target.value = '';
   };
@@ -3845,10 +3853,9 @@ export default function App() {
       <GlossaryModal
         isOpen={showGlossaryModal}
         onClose={() => setShowGlossaryModal(false)}
-        glossaries={glossaries}
-        onGlossariesChange={async (updatedGlossaries) => {
-          setGlossaries(updatedGlossaries);
-        }}
+        glossary={null}
+        onSave={async () => {}}
+        onDelete={async () => {}}
       />
 
       <MandatoryGlossaryModal
@@ -3866,9 +3873,8 @@ export default function App() {
       {/* Audio Duration Exceeded Modal */}
       <AudioDurationExceededModal
         isOpen={showDurationExceededModal.isOpen}
-        onClose={() => setShowDurationExceededModal({ isOpen: false, duration: 0 })}
-        durationSeconds={showDurationExceededModal.duration}
-        filename={showDurationExceededModal.filename}
+        onClose={() => setShowDurationExceededModal({ isOpen: false, files: [] })}
+        files={showDurationExceededModal.files}
       />
 
       {/* Recording Auto-Stopped Hard Cap Modal */}

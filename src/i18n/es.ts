@@ -789,7 +789,9 @@ const es: Translations = {
       recordingAutoStoppedTitle: 'Límite de 3 Minutos Alcanzado',
       recordingAutoStoppedDesc: 'Tu grabación alcanzó el límite de 3 minutos y se guardó automáticamente como un audio en esta sesión.',
       uploadTooLongTitle: 'El audio supera los 3 minutos',
+      uploadTooLongTitleMultiple: 'Varios audios superan los 3 minutos',
       uploadTooLongDesc: 'Los audios están limitados a un máximo de 3 minutos (180 segundos). Por favor, recorta el archivo e inténtalo de nuevo.',
+      uploadTooLongDescMultiple: 'Los siguientes {count} audios superan el límite de 3 minutos (180 segundos). Por favor, recórtalos e inténtalo de nuevo.',
       quotaExceededTitle: 'Límite de IA alcanzado',
       quotaExceededFreeDesc: 'Has usado todas tus {limit} sesiones gratuitas con IA. ¡Mejora tu plan o invita a un amigo para obtener un impulso de 10 días!',
       quotaExceededFreeSessionsDesc: 'Has usado todas tus {limit} sesiones gratuitas con IA. ¡Mejora tu plan o invita a un amigo para obtener un impulso de 10 días!',
@@ -820,6 +822,7 @@ const es: Translations = {
       fileLabel: 'Archivo',
       detectedDuration: 'Duración Detectada',
       allowedLimit: 'Límite Permitido',
+      allowedLimitValue: '{duration} (3 min)',
     },
     referrals: {
       title: 'Invitar a un Amigo',

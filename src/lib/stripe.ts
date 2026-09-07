@@ -225,7 +225,7 @@ export async function startTopupCheckout(): Promise<CheckoutResult> {
 /**
  * Updates an existing Stripe subscription directly via API
  */
-export async function updateStripeSubscription(targetTier: 'student' | 'teacher'): Promise<{ success: boolean; mock?: boolean; error?: string }> {
+export async function updateStripeSubscription(targetTier: 'student' | 'teacher'): Promise<{ success: boolean; mock?: boolean; error?: string; url?: string }> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
