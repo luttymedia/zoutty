@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, CheckCircle2, Gift, CloudOff, AlertTriangle } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, CheckCircle2, Gift, CloudOff, AlertTriangle, User } from 'lucide-react';
 import { ZouttyIcon } from './ZouttyIcon';
 import { useTranslation } from '../i18n/TranslationContext';
 import { UI_LANGUAGE_NAMES } from '../i18n';
@@ -15,6 +15,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
   // If user landed with a referral code, open directly in "Create Account" mode
   const [isLogin, setIsLogin] = useState(!referralSignupCode);
   const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +30,24 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (!isLogin && !displayName.trim()) {
+      setError(t('auth.displayNameRequired'));
+      setLoading(false);
+      return;
+    }
+
+    if (!email.trim()) {
+      setError(t('auth.emailRequired'));
+      setLoading(false);
+      return;
+    }
+
+    if (!password) {
+      setError(t('auth.passwordRequired'));
+      setLoading(false);
+      return;
+    }
 
     if (!isLogin && password !== confirmPassword) {
       setError(t('auth.passwordsDoNotMatch'));
@@ -48,7 +67,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
         localStorage.setItem('zoutty_initial_sync_pending', 'true');
         window.location.reload(); // Force reload to completely clean state and trigger sync correctly
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            data: {
+              display_name: displayName.trim()
+            }
+          }
+        });
         if (error) throw error;
         
         // With email confirmations disabled, Supabase logs them in immediately.
@@ -155,14 +182,29 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleAuth} noValidate className="space-y-4">
+          {!isLogin && (
+            <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">{t('auth.displayNameLabel', { fallback: 'Display Name' })}</label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
+                  placeholder={t('auth.displayNamePlaceholder', { fallback: 'e.g. DanceLover99' })}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1">
             <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">{t('auth.emailLabel')}</label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
               <input
                 type="email"
-                required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
@@ -177,7 +219,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
               <input
                 type={showPassword ? "text" : "password"}
-                required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-12 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
@@ -200,7 +241,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
-                  required
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-12 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"

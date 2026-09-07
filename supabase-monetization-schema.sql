@@ -9,6 +9,7 @@ create extension if not exists "pgcrypto";
 -- 2. PROFILES (User Tier, Billing & Referral State)
 create table if not exists public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
+  display_name text,
   tier text check (tier in ('free', 'student', 'teacher')) default 'free' not null,
   subscription_status text check (subscription_status in ('none', 'active', 'trialing', 'past_due', 'canceled', 'unpaid')) default 'none' not null,
   stripe_customer_id text,
@@ -110,12 +111,14 @@ begin
   -- Insert profile
   insert into public.profiles (
     id,
+    display_name,
     tier,
     subscription_status,
     referral_code,
     referred_by
   ) values (
     new.id,
+    coalesce(new.raw_user_meta_data->>'display_name', new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', null),
     'free',
     'none',
     v_ref_code,
@@ -236,4 +239,49 @@ begin
   where user_id = target_user_id;
 end;
 $$;
+
+-- 11. HELPER FUNCTION: Delete User Account and all related data (RPC)
+create or replace function public.delete_user()
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user_id uuid;
+begin
+  v_user_id := auth.uid();
+  if v_user_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  -- Delete from all user data tables
+  delete from public.sessions where user_id = v_user_id;
+  delete from public.audios where user_id = v_user_id;
+  delete from public."finalReports" where user_id = v_user_id;
+  delete from public."sessionGroups" where user_id = v_user_id;
+  delete from public."sessionMedia" where user_id = v_user_id;
+  
+  -- Delete user storage objects if any
+  delete from storage.objects where owner = v_user_id;
+
+  -- Delete auth user (cascades to profiles, usage_tracking, referral_logs)
+  delete from auth.users where id = v_user_id;
+end;
+$$;
+
+-- 12. HELPER FUNCTION: Check if current user has a password set in auth.users
+create or replace function public.user_has_password()
+returns boolean
+language sql
+security definer set search_path = auth, public
+as $$
+  select exists (
+    select 1 from auth.users
+    where id = auth.uid()
+      and encrypted_password is not null
+      and encrypted_password <> ''
+  );
+$$;
+grant execute on function public.user_has_password() to authenticated;
+
 

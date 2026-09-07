@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import { checkGatekeeper, recordUsageIncrement } from './server/gatekeeper.js';
 import { createCheckoutSession, createTopupCheckoutSession, createPortalSession, handleStripeWebhook, getAuthenticatedUser, confirmCheckoutSession, updateSubscription, cancelSubscription, getSubscriptionStatus, reactivateSubscription } from './server/stripe.js';
@@ -837,6 +838,55 @@ app.get('/api/referrals/stats', async (req, res) => {
     } catch (error: any) {
         console.error('[/api/referrals/stats] Error:', error);
         return res.status(500).json({ error: error?.message || 'Failed to fetch referral stats' });
+    }
+});
+
+// Delete User Account Route
+app.post('/api/user/delete-account', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const user = await getAuthenticatedUser(authHeader);
+
+        if (!user) {
+            return res.status(401).json({ error: 'Authentication required to delete account.' });
+        }
+
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+
+        if (!supabaseUrl || !serviceKey) {
+            return res.status(500).json({ error: 'Supabase server configuration is missing.' });
+        }
+
+        const adminSupabase = createClient(supabaseUrl, serviceKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+        });
+
+        console.log(`[delete-account] Permanently deleting all data and auth identity for user ${user.id}...`);
+
+        // 1. Delete rows from all user tables to ensure no FK or orphaned data remains
+        await Promise.allSettled([
+            adminSupabase.from('sessions').delete().eq('user_id', user.id),
+            adminSupabase.from('audios').delete().eq('user_id', user.id),
+            adminSupabase.from('finalReports').delete().eq('user_id', user.id),
+            adminSupabase.from('sessionGroups').delete().eq('user_id', user.id),
+            adminSupabase.from('sessionMedia').delete().eq('user_id', user.id),
+            adminSupabase.from('usage_tracking').delete().eq('user_id', user.id),
+            adminSupabase.from('profiles').delete().eq('id', user.id),
+        ]);
+
+        // 2. Delete user identity from Supabase Auth
+        const { error: deleteAuthErr } = await adminSupabase.auth.admin.deleteUser(user.id);
+        if (deleteAuthErr) {
+            console.error('[delete-account] Failed to delete from auth.users:', deleteAuthErr);
+            return res.status(500).json({ error: deleteAuthErr.message });
+        }
+
+        console.log(`[delete-account] User ${user.id} successfully wiped from Supabase Auth and all tables.`);
+        return res.json({ success: true });
+    } catch (error: any) {
+        console.error('[delete-account] Unexpected error:', error);
+        return res.status(500).json({ error: error?.message || 'Failed to delete account' });
     }
 });
 

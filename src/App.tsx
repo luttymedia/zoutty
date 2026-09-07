@@ -50,6 +50,8 @@ import {
   CreditCard,
   Compass,
   Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -365,6 +367,32 @@ export default function App() {
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [showGuestLockModal, setShowGuestLockModal] = useState(false);
 
+  // Account Management States
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [hasPasswordSet, setHasPasswordSet] = useState<boolean | null>(null);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountConfirmInput, setDeleteAccountConfirmInput] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const checkUserHasPassword = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('user_has_password');
+      if (!error && typeof data === 'boolean') {
+        setHasPasswordSet(data);
+      }
+    } catch {
+      // RPC might not exist or network offline
+    }
+  }, []);
+
   const fetchReferralStats = useCallback(async () => {
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -551,6 +579,17 @@ export default function App() {
       fetchReferralStats();
     }
   }, [showReferralModal, fetchReferralStats]);
+
+  useEffect(() => {
+    if (showAppSettings) {
+      const currentName = devState.display_name || session?.user?.user_metadata?.display_name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '';
+      setEditDisplayName(currentName);
+      if (session?.access_token) {
+        fetchCloudProfileAndUsage(session.access_token);
+      }
+      checkUserHasPassword();
+    }
+  }, [showAppSettings, devState.display_name, session, fetchCloudProfileAndUsage, checkUserHasPassword]);
   const [restoreBackupFile, setRestoreBackupFile] = useState<File | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -652,6 +691,8 @@ export default function App() {
         handleInitialSyncCheck(session);
         redeemPendingReferral(session.access_token);
         fetchReferralStats();
+        fetchCloudProfileAndUsage(session.access_token);
+        checkUserHasPassword();
       } else {
         finishInitialSync();
       }
@@ -671,6 +712,7 @@ export default function App() {
         redeemPendingReferral(session.access_token);
         fetchReferralStats();
         fetchCloudProfileAndUsage(session.access_token);
+        checkUserHasPassword();
       } else {
         finishInitialSync();
       }
@@ -1095,6 +1137,127 @@ export default function App() {
       console.error("Reset failed", err);
       showToast(t('toast.failedReset'), true);
     } finally {
+      hideSpinner();
+    }
+  };
+
+  const handleSaveDisplayName = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!session?.user?.id) return;
+    const trimmed = editDisplayName.trim();
+    if (!trimmed) return;
+    setIsSavingDisplayName(true);
+    try {
+      const [{ error: profileErr }, { error: authErr }] = await Promise.all([
+        supabase.from('profiles').update({ display_name: trimmed }).eq('id', session.user.id),
+        supabase.auth.updateUser({ data: { display_name: trimmed } })
+      ]);
+      if (profileErr && authErr) throw profileErr;
+      saveDevState({ display_name: trimmed });
+      showToast(t('appSettings.displayNameUpdated'), false, undefined, undefined, undefined, 'success');
+    } catch (err: any) {
+      console.error('[SaveDisplayName] Failed:', err);
+      showToast(err.message || t('auth.authFailed'), true);
+    } finally {
+      setIsSavingDisplayName(false);
+    }
+  };
+
+  const isEmailAuthUser = session?.user?.app_metadata?.provider === 'email' ||
+    session?.user?.app_metadata?.providers?.includes('email') ||
+    Boolean(session?.user?.identities?.some((i: any) => i.provider === 'email')) ||
+    session?.user?.user_metadata?.has_password === true;
+
+  const userHasPassword = hasPasswordSet !== null ? hasPasswordSet : isEmailAuthUser;
+
+  const handleUpdatePassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!session?.user?.email) return;
+
+    if (newPassword !== confirmNewPassword) {
+      showToast(t('appSettings.passwordsDoNotMatch'), true);
+      return;
+    }
+    if (newPassword.length < 6) {
+      showToast(t('appSettings.passwordTooShort'), true);
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      // If user already has a password set, verify current password first
+      if (userHasPassword) {
+        if (!currentPassword) {
+          showToast(t('appSettings.currentPasswordIncorrect'), true);
+          setIsUpdatingPassword(false);
+          return;
+        }
+        const { error: verifyErr } = await supabase.auth.signInWithPassword({
+          email: session.user.email,
+          password: currentPassword,
+        });
+        if (verifyErr) {
+          showToast(t('appSettings.currentPasswordIncorrect'), true);
+          setIsUpdatingPassword(false);
+          return;
+        }
+      }
+
+      const { error: updateErr } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: { has_password: true },
+      });
+      if (updateErr) throw updateErr;
+
+      setHasPasswordSet(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      showToast(t('appSettings.passwordUpdated'), false, undefined, undefined, undefined, 'success');
+    } catch (err: any) {
+      console.error('[UpdatePassword] Failed:', err);
+      showToast(err.message || t('auth.authFailed'), true);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!session?.user?.id) return;
+    setIsDeletingAccount(true);
+    setShowDeleteAccountModal(false);
+    showSpinner(t('common.processing'));
+    try {
+      const token = session?.access_token;
+      const res = await fetch('/api/user/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || `Failed to delete account (status ${res.status})`);
+      }
+
+      // 1. Clear IndexedDB
+      await db.clearDatabase();
+
+      // 2. Clear LocalStorage
+      localStorage.clear();
+
+      // 3. Sign out
+      await supabase.auth.signOut();
+
+      // 4. Reload page
+      window.location.reload();
+    } catch (err: any) {
+      console.error('[DeleteAccount] Failed:', err);
+      showToast(err.message || t('appSettings.deleteAccountFailed'), true);
+      setIsDeletingAccount(false);
       hideSpinner();
     }
   };
@@ -2770,14 +2933,24 @@ export default function App() {
                 <p className="text-xs text-white/60 leading-relaxed">
                   {t('appSettings.languageSectionDesc')}
                 </p>
-                <CustomSelect
-                  value={uiLanguage}
-                  onChange={(val) => setUILanguage(val as any)}
-                  options={Object.entries(UI_LANGUAGE_NAMES).map(([code, name]) => ({
-                    value: code,
-                    label: name
-                  }))}
-                />
+                <div className="flex gap-1 bg-white/5 border border-white/10 p-[3px] rounded-full w-fit">
+                  {Object.entries(UI_LANGUAGE_NAMES).map(([code, name]) => (
+                    <button
+                      key={code}
+                      onClick={() => setUILanguage(code as any)}
+                      className={`px-4 py-1.5 text-xs font-bold rounded-full tracking-wider transition-all duration-300 flex items-center gap-1.5 ${
+                        uiLanguage === code
+                          ? 'bg-brand text-bg-dark shadow-[0_2px_8px_rgba(45,212,191,0.3)]'
+                          : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+                      }`}
+                    >
+                      <span className="uppercase">{code}</span>
+                      <span className={`text-[11px] font-medium ${uiLanguage === code ? 'text-bg-dark/80' : 'text-white/40'}`}>
+                        ({name})
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Account / Logout Section */}
@@ -2791,19 +2964,161 @@ export default function App() {
                     {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
                   </p>
                 )}
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold uppercase">
-                    {session?.user?.email ? session.user.email[0] : 'G'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-white truncate">
-                      {session?.user?.email ? session.user.email : t('appSettings.guestUser')}
+                {(() => {
+                  const resolvedDisplayName = devState.display_name || session?.user?.user_metadata?.display_name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '';
+                  return (
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold uppercase">
+                        {resolvedDisplayName ? resolvedDisplayName[0].toUpperCase() : (session?.user?.email ? session.user.email[0].toUpperCase() : 'G')}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-white truncate">
+                          {resolvedDisplayName || (session?.user?.email ? session.user.email : t('appSettings.guestUser'))}
+                        </div>
+                        <div className="text-xs text-white/40 truncate">
+                          {session?.user?.email ? (resolvedDisplayName ? session.user.email : t('appSettings.authenticatedAccount')) : t('appSettings.localSandboxMode')}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-white/40 truncate">
-                      {session?.user?.email ? t('appSettings.authenticatedAccount') : t('appSettings.localSandboxMode')}
+                  );
+                })()}
+
+                {!isGuestMode && session?.user && (
+                  <AppSettingsCollapsible
+                    label={t('appSettings.editAccountSection')}
+                    icon={<Edit2 className="w-4 h-4 text-brand" />}
+                  >
+                    <div className="space-y-5 pt-1">
+                      {/* Edit Display Name */}
+                      <form onSubmit={handleSaveDisplayName} className="space-y-2.5">
+                        <label className="text-xs font-semibold text-white/70 block">
+                          {t('appSettings.editDisplayNameLabel')}
+                        </label>
+                        <input
+                          type="text"
+                          value={editDisplayName}
+                          onChange={(e) => setEditDisplayName(e.target.value)}
+                          placeholder={t('appSettings.editDisplayNamePlaceholder')}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
+                        />
+                        <button
+                          type="submit"
+                          disabled={
+                            isSavingDisplayName ||
+                            !editDisplayName.trim() ||
+                            editDisplayName.trim() === (devState.display_name || session?.user?.user_metadata?.display_name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '')
+                          }
+                          className="w-full py-2 bg-brand text-bg-dark text-xs font-bold rounded-xl hover:bg-brand/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer shadow-sm"
+                        >
+                          {isSavingDisplayName ? (
+                            <LoaderIcon className="w-4 h-4" />
+                          ) : (
+                            t('appSettings.saveDisplayNameBtn')
+                          )}
+                        </button>
+                      </form>
+
+                      {/* Edit Password */}
+                      <form onSubmit={handleUpdatePassword} className="space-y-2.5 border-t border-white/5 pt-4">
+                        <label className="text-xs font-semibold text-white/70 block">
+                          {userHasPassword ? t('appSettings.changePasswordTitle') : t('appSettings.setPasswordTitle')}
+                        </label>
+                        {!userHasPassword && (
+                          <p className="text-[11px] text-white/40 leading-relaxed">
+                            {t('appSettings.setPasswordDesc')}
+                          </p>
+                        )}
+
+                        {/* Current Password - Only shown if user already has a password */}
+                        {userHasPassword && (
+                          <div className="relative">
+                            <input
+                              type={showCurrentPassword ? 'text' : 'password'}
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
+                              placeholder={t('appSettings.currentPasswordPlaceholder')}
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                            >
+                              {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* New Password */}
+                        <div className="relative">
+                          <input
+                            type={showNewPassword ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder={t('appSettings.newPasswordPlaceholder')}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                          >
+                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+
+                        {/* Confirm New Password */}
+                        <div className="relative">
+                          <input
+                            type={showConfirmNewPassword ? 'text' : 'password'}
+                            value={confirmNewPassword}
+                            onChange={(e) => setConfirmNewPassword(e.target.value)}
+                            placeholder={t('appSettings.confirmNewPasswordPlaceholder')}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                          >
+                            {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={isUpdatingPassword || !newPassword || !confirmNewPassword}
+                          className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-white/70" />
+                          {isUpdatingPassword ? t('common.processing') : (userHasPassword ? t('appSettings.updatePasswordBtn') : t('appSettings.setPasswordBtn'))}
+                        </button>
+                      </form>
+
+                      {/* Delete Account */}
+                      <div className="border-t border-white/5 pt-4 space-y-2">
+                        <label className="text-xs font-semibold text-red-400 block">
+                          {t('appSettings.deleteAccountTitle')}
+                        </label>
+                        <p className="text-[11px] text-white/40 leading-relaxed">
+                          {t('appSettings.deleteAccountDesc')}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteAccountConfirmInput('');
+                            setShowDeleteAccountModal(true);
+                          }}
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all text-xs font-bold cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          {t('appSettings.deleteAccountBtn')}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </AppSettingsCollapsible>
+                )}
+
                 {isGuestMode ? (
                   <button
                     onClick={() => {
@@ -3588,6 +3903,56 @@ export default function App() {
         </div>
       )}
 
+      {/* Delete Account Modal */}
+      {showDeleteAccountModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
+          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 border border-red-500/30">
+            <h3 className="text-xl font-bold flex items-center gap-2 text-red-400">
+              <Trash2 className="w-6 h-6 text-red-500" />
+              {t('appSettings.deleteAccountModalTitle')}
+            </h3>
+            <p className="text-white/70 text-sm leading-relaxed">
+              {t('appSettings.deleteAccountModalWarning')}
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-xs text-white/60 font-semibold block">
+                {t('appSettings.deleteAccountConfirmPrompt')}
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={deleteAccountConfirmInput}
+                onChange={(e) => setDeleteAccountConfirmInput(e.target.value)}
+                placeholder={t('appSettings.deleteAccountConfirmPlaceholder')}
+                className="w-full bg-black/40 border border-white/15 focus:border-red-500/60 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-red-500/40 transition-all font-mono uppercase"
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end items-center mt-6">
+              <button
+                type="button"
+                onClick={() => setShowDeleteAccountModal(false)}
+                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm text-white"
+              >
+                {t('modals.cancelBtn')}
+              </button>
+              <button
+                type="button"
+                disabled={
+                  isDeletingAccount ||
+                  (deleteAccountConfirmInput.trim().toUpperCase() !== 'DELETE' &&
+                   deleteAccountConfirmInput.trim().toUpperCase() !== 'BORRAR')
+                }
+                onClick={handleDeleteAccount}
+                className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {t('appSettings.deleteAccountConfirmBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Folder Create/Rename Modal */}
       {folderModal && (
@@ -4220,9 +4585,16 @@ export default function App() {
             <h1 className="text-base sm:text-lg uppercase tracking-[0.2em] text-brand font-bold leading-none truncate">
               {t('appName')}
             </h1>
-            <p className="hidden sm:block text-[10px] font-semibold tracking-[0.04em] text-white/50 mt-1 leading-none truncate">
-              {t('appSubtitle')}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="hidden sm:block text-[10px] font-semibold tracking-[0.04em] text-white/50 leading-none truncate">
+                {t('appSubtitle')}
+              </p>
+              {isGuestMode && (
+                <span className="px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-white/10 text-white/70 border border-white/10 leading-none">
+                  {t('guestModeBadge')}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

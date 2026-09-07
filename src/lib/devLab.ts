@@ -18,6 +18,7 @@ export interface DevState {
   current_period_end?: string | null;
   cancel_at_period_end?: boolean;
   pending_downgrade?: UserTier | null;
+  display_name?: string | null;
 }
 
 const STORAGE_KEY = 'zoutty_dev_state';
@@ -93,6 +94,7 @@ export const syncWithCloudProfile = (profile: any, usage: any): DevState => {
     current_period_end: profile?.current_period_end || null,
     cancel_at_period_end: profile?.cancel_at_period_end || false,
     pending_downgrade: profile?.pending_downgrade || null,
+    display_name: profile?.display_name || null,
   });
 };
 

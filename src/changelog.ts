@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.4.0',
+    date: '2026-09-07',
+    changes: [
+      'User Display Name on Email Signup: Added a display name input to the email signup form, stored in Supabase profiles and auth metadata, with automatic fallback extraction for Google OAuth users',
+      'Edit Account Section: Added collapsible account management in settings drawer with pre-filled display name editing, adaptive password setup/change with visibility toggles, and permanent account deletion via server backend',
+      'Guest Mode Indicator: Enhanced visibility and status clarity for guest mode users with contextual callouts and action buttons',
+      'Unified Dance Style Glossaries: Synchronized dance style selection across sessions, onboarding, and settings into a unified multi-select glossary system with cloud profile persistence'
+    ]
+  },
+  {
     version: '3.3.0',
     date: '2026-09-05',
     changes: [
