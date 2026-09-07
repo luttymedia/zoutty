@@ -71,7 +71,7 @@ import { ReferralModal } from './components/ReferralModal';
 import { SubscriptionSuccessModal } from './components/SubscriptionSuccessModal';
 import { TopupSuccessModal } from './components/TopupSuccessModal';
 import { TopupConfirmModal } from './components/TopupConfirmModal';
-import { ManageSubscriptionModal } from './components/ManageSubscriptionModal';
+import { ManageSubscriptionModal, ModalView as ManageSubscriptionView } from './components/ManageSubscriptionModal';
 import { getMediaDuration } from './lib/audioDuration';
 import { formatSafeDate } from './lib/dateUtils';
 import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout, updateStripeSubscription, cancelStripeSubscription, reactivateStripeSubscription } from './lib/stripe';
@@ -341,6 +341,7 @@ export default function App() {
   const [showTopupConfirmModal, setShowTopupConfirmModal] = useState(false);
   const [isTopupLoading, setIsTopupLoading] = useState(false);
   const [showManageSubscriptionModal, setShowManageSubscriptionModal] = useState(false);
+  const [manageSubscriptionInitialView, setManageSubscriptionInitialView] = useState<ManageSubscriptionView>('overview');
   const [isPortalLoading, setIsPortalLoading] = useState(false);
   const [paymentBannerDismissed, setPaymentBannerDismissed] = useState(false);
   const [showGlossaryModal, setShowGlossaryModal] = useState(false);
@@ -3463,6 +3464,7 @@ export default function App() {
                             if (devState.tier === 'free') {
                               setShowPricingModal(true);
                             } else {
+                              setManageSubscriptionInitialView('overview');
                               setShowManageSubscriptionModal(true);
                             }
                           }}
@@ -3737,7 +3739,11 @@ export default function App() {
       {(devState.tier === 'student' || devState.tier === 'teacher') && (
         <ManageSubscriptionModal
           isOpen={showManageSubscriptionModal}
-          onClose={() => setShowManageSubscriptionModal(false)}
+          onClose={() => {
+            setShowManageSubscriptionModal(false);
+            setManageSubscriptionInitialView('overview');
+          }}
+          initialView={manageSubscriptionInitialView}
           currentTier={devState.tier as 'student' | 'teacher'}
           renewalDate={formatSafeDate(devState.current_period_end, uiLanguage)}
           pendingDowngrade={devState.pending_downgrade}
@@ -3818,10 +3824,20 @@ export default function App() {
         reason={showQuotaModal.reason}
         canBoost={!devState.referral_boost_active}
         resetDate={devState.current_period_end}
+        onStudentUpgradeClick={() => {
+          setShowQuotaModal(prev => ({ ...prev, isOpen: false }));
+          setManageSubscriptionInitialView('upgrade_confirm');
+          setShowManageSubscriptionModal(true);
+        }}
         onUpgradeClick={async (targetTier) => {
           setShowQuotaModal({ isOpen: false, reason: 'sessions' });
           if (!targetTier) {
             setShowPricingModal(true);
+            return;
+          }
+          if (devState.tier === 'student' && targetTier === 'teacher') {
+            setManageSubscriptionInitialView('upgrade_confirm');
+            setShowManageSubscriptionModal(true);
             return;
           }
           

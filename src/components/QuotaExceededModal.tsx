@@ -28,6 +28,7 @@ interface QuotaExceededModalProps {
   onReferralClick: () => void;
   onTopupClick?: () => void;
   onOpenBillingPortal?: () => void;
+  onStudentUpgradeClick?: () => void;
 }
 
 export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
@@ -42,6 +43,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
   onReferralClick,
   onTopupClick,
   onOpenBillingPortal,
+  onStudentUpgradeClick,
 }) => {
   const { t, uiLanguage } = useTranslation();
 
@@ -189,29 +191,58 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
           </div>
         ) : !isPaymentIssue ? (
           /* Plan Highlights for Active Paid Users */
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2.5 mb-5">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-2">
-              {isStudent
-                ? t('billing.limits.unlockTeacherHeading', { price: t('billing.plans.teacherPrice') })
-                : t('billing.usage.unlimitedStorage')}
+          isStudent ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                if (onStudentUpgradeClick) {
+                  onStudentUpgradeClick();
+                } else {
+                  onUpgradeClick('teacher');
+                }
+              }}
+              className="w-full p-4 rounded-2xl bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/30 hover:border-sky-500/50 text-left space-y-2.5 mb-5 transition-all group cursor-pointer block"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-sky-400 group-hover:text-sky-300 transition-colors flex items-center gap-1.5">
+                  <Sparkle className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  <span>{t('billing.limits.unlockTeacherHeading', { price: t('billing.plans.teacherPrice') })}</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-sky-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
+              </div>
+              <div className="flex items-center gap-2 text-xs text-white/90">
+                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                <span>{t('billing.limits.featureTeacherSessions')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-white/90">
+                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                <span>{t('billing.limits.featureSmartOrganization')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-white/90">
+                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                <span>{t('billing.limits.featureTeacherReferralDiscount')}</span>
+              </div>
+            </button>
+          ) : (
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2.5 mb-5">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-2">
+                {t('billing.usage.unlimitedStorage')}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-white/90">
+                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                <span>{t('billing.usage.unlimitedStorage')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-white/90">
+                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                <span>{t('billing.limits.featureSmartOrganization')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-white/90">
+                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                <span>{t('billing.limits.featureTeacherReferralDiscount')}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-xs text-white/90">
-              <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-              <span>
-                {isStudent
-                  ? t('billing.limits.featureTeacherSessions')
-                  : t('billing.usage.unlimitedStorage')}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-white/90">
-              <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-              <span>{t('billing.limits.featureSmartOrganization')}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-white/90">
-              <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-              <span>{t('billing.limits.featureTeacherReferralDiscount')}</span>
-            </div>
-          </div>
+          )
         ) : null}
 
         {/* Action Buttons */}
@@ -251,23 +282,6 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
               <span className="px-2.5 py-1 rounded-lg bg-zinc-950/15 text-zinc-950 text-xs font-mono font-black shrink-0 ml-2">
                 {t('billing.topup.price')}
               </span>
-            </button>
-          )}
-
-          {/* For Student tier, show direct Upgrade to Teacher button */}
-          {isStudent && !isPaymentIssue && (
-            <button
-              onClick={() => {
-                onClose();
-                onUpgradeClick('teacher');
-              }}
-              className="w-full py-3.5 px-4 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold transition-all flex items-center justify-between group cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-sky-400" />
-                <span>{t('billing.limits.unlockTeacherHeading', { price: t('billing.plans.teacherPrice') })}</span>
-              </div>
-              <ArrowRight className="w-4 h-4 text-sky-400 group-hover:translate-x-1 transition-all" />
             </button>
           )}
 

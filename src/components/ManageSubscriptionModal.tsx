@@ -30,9 +30,10 @@ interface ManageSubscriptionModalProps {
   pendingDowngrade?: string | null;
   isCanceling?: boolean;
   onReactivate?: () => void;
+  initialView?: ModalView;
 }
 
-type ModalView = 'overview' | 'downgrade_confirm' | 'cancel_confirm' | 'upgrade_confirm';
+export type ModalView = 'overview' | 'downgrade_confirm' | 'cancel_confirm' | 'upgrade_confirm';
 
 export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = ({
   isOpen,
@@ -47,10 +48,17 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
   pendingDowngrade,
   isCanceling = false,
   onReactivate,
+  initialView = 'overview',
 }) => {
   const { t } = useTranslation();
-  const [view, setView] = useState<ModalView>('overview');
+  const [view, setView] = useState<ModalView>(initialView);
   const [isUpgrading, setIsUpgrading] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setView(initialView);
+    }
+  }, [isOpen, initialView]);
 
   if (!isOpen) return null;
 
