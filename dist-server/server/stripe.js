@@ -1122,9 +1122,69 @@ export async function getSubscriptionStatus(authHeader) {
         pending_downgrade: subscription.metadata?.pending_downgrade || null,
     };
 }
+export async function cancelDowngrade(authHeader) {
+    const stripe = getStripe();
+    if (!stripe) {
+        const user = await getAuthenticatedUser(authHeader);
+        if (user) {
+            const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+            await supabase.from('profiles').update({
+                pending_downgrade: null,
+                updated_at: new Date().toISOString(),
+            }).eq('id', user.id);
+        }
+        return { mock: true, message: 'Simulated downgrade cancellation.' };
+    }
+    const user = await getAuthenticatedUser(authHeader);
+    if (!user)
+        throw { statusCode: 401, error: 'Authentication required' };
+    const profile = await getUserProfile(user.id);
+    if (!profile?.stripe_customer_id) {
+        throw { statusCode: 400, error: 'No Stripe customer found.' };
+    }
+    const subscriptions = await stripe.subscriptions.list({
+        customer: profile.stripe_customer_id,
+        status: 'active',
+        limit: 1,
+    });
+    if (subscriptions.data.length === 0) {
+        throw { statusCode: 400, error: 'No active subscription to cancel downgrade for.' };
+    }
+    const subscription = subscriptions.data[0];
+    // If there's a schedule (e.g. the pending downgrade), release it so the subscription stays on current tier
+    if (subscription.schedule) {
+        console.log(`[stripe] Releasing schedule ${subscription.schedule} to cancel downgrade for sub=${subscription.id}`);
+        await stripe.subscriptionSchedules.release(subscription.schedule);
+    }
+    // Clear pending_downgrade metadata on the subscription
+    await stripe.subscriptions.update(subscription.id, {
+        metadata: { pending_downgrade: null }
+    });
+    // Synchronously update the Supabase profile
+    try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+        await supabase.from('profiles').update({
+            pending_downgrade: null,
+            updated_at: new Date().toISOString(),
+        }).eq('id', user.id);
+        console.log(`[stripe] Updated profile user=${user.id} pending_downgrade=null`);
+    }
+    catch (e) {
+        console.warn('[stripe] Could not update profile after canceling downgrade:', e);
+    }
+    return { success: true, message: 'Scheduled downgrade cancelled successfully. Keeping Teacher plan.' };
+}
 export async function reactivateSubscription(authHeader) {
     const stripe = getStripe();
     if (!stripe) {
+        const user = await getAuthenticatedUser(authHeader);
+        if (user) {
+            const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+            await supabase.from('profiles').update({
+                cancel_at_period_end: false,
+                updated_at: new Date().toISOString(),
+            }).eq('id', user.id);
+        }
         return { mock: true, message: 'Simulated subscription reactivation.' };
     }
     const user = await getAuthenticatedUser(authHeader);
@@ -1146,5 +1206,16 @@ export async function reactivateSubscription(authHeader) {
     const reactivatedSubscription = await stripe.subscriptions.update(subscription.id, {
         cancel_at_period_end: false,
     });
+    try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+        await supabase.from('profiles').update({
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString(),
+        }).eq('id', user.id);
+        console.log(`[stripe] Updated profile user=${user.id} cancel_at_period_end=false`);
+    }
+    catch (e) {
+        console.warn('[stripe] Could not update profile after reactivation:', e);
+    }
     return { success: true, subscription: reactivatedSubscription };
 }

@@ -24,6 +24,8 @@ interface ManageSubscriptionModalProps {
   renewalDate?: string;
   onUpgrade: () => void;
   onDowngrade: () => void;
+  onCancelDowngrade?: () => void;
+  isCancelingDowngrade?: boolean;
   onCancelSubscription: () => void;
   onOpenCustomerPortal: () => void;
   isPortalLoading?: boolean;
@@ -42,6 +44,8 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
   renewalDate,
   onUpgrade,
   onDowngrade,
+  onCancelDowngrade,
+  isCancelingDowngrade = false,
   onCancelSubscription,
   onOpenCustomerPortal,
   isPortalLoading = false,
@@ -252,12 +256,16 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                         <h4 className="text-sm font-bold text-white">
                           {isStudent
                             ? t('billing.manage.upgradeToTeacherTitle')
-                            : t('billing.manage.downgradeToStudentTitle')}
+                            : pendingDowngrade
+                              ? t('billing.manage.pendingDowngradeTitle')
+                              : t('billing.manage.downgradeToStudentTitle')}
                         </h4>
                         <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
                           {isStudent
                             ? t('billing.manage.upgradeToTeacherDesc')
-                            : t('billing.manage.downgradeToStudentDesc')}
+                            : pendingDowngrade
+                              ? t('billing.manage.pendingDowngradeSectionDesc', { date: effectiveRenewalDate })
+                              : t('billing.manage.downgradeToStudentDesc')}
                         </p>
                       </div>
                     </div>
@@ -282,8 +290,29 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                       </button>
                     ) : (
                       pendingDowngrade ? (
-                        <div className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-[11px] font-medium text-center">
-                          {t('billing.manage.pendingDowngradeText')}
+                        <div className="space-y-3">
+                          <div className="w-full py-2 px-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-xs font-medium text-center">
+                            {t('billing.manage.pendingDowngradeText')}
+                          </div>
+                          {onCancelDowngrade && (
+                            <button
+                              disabled={isCancelingDowngrade}
+                              onClick={onCancelDowngrade}
+                              className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-500/20 disabled:opacity-60"
+                            >
+                              {isCancelingDowngrade ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span>{t('billing.manage.processingCancelDowngrade')}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkle className="w-4 h-4 fill-zinc-950" />
+                                  <span>{t('billing.manage.keepTeacherPlanBtn')}</span>
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <button

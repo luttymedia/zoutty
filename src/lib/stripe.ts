@@ -317,3 +317,31 @@ export async function reactivateStripeSubscription(): Promise<{ success: boolean
     return { success: false, error: error.message || 'Failed to reactivate subscription' };
   }
 }
+
+export async function cancelStripeDowngrade(): Promise<{ success: boolean; mock?: boolean; error?: string }> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return { success: false, error: 'User must be authenticated.' };
+
+    const response = await fetch('/api/stripe/cancel-downgrade', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Failed to cancel downgrade');
+    }
+
+    const result = await response.json();
+    return { success: true, mock: result.mock };
+  } catch (error: any) {
+    console.error('Error cancelling Stripe downgrade:', error);
+    return { success: false, error: error.message || 'Failed to cancel downgrade' };
+  }
+}
+

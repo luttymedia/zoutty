@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import { checkGatekeeper, recordUsageIncrement } from './server/gatekeeper.js';
-import { createCheckoutSession, createTopupCheckoutSession, createPortalSession, handleStripeWebhook, getAuthenticatedUser, confirmCheckoutSession, updateSubscription, cancelSubscription, getSubscriptionStatus, reactivateSubscription } from './server/stripe.js';
+import { createCheckoutSession, createTopupCheckoutSession, createPortalSession, handleStripeWebhook, getAuthenticatedUser, confirmCheckoutSession, updateSubscription, cancelSubscription, getSubscriptionStatus, reactivateSubscription, cancelDowngrade } from './server/stripe.js';
 import { redeemReferralCode, getReferralStats, backfillMissingReferralCodes } from './server/referrals.js';
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -612,6 +612,34 @@ app.post('/api/stripe/cancel-subscription', async (req, res) => {
     }
     catch (error) {
         console.error('[/api/stripe/cancel-subscription] Error:', error);
+        const status = error.statusCode || 500;
+        return res.status(status).json({ error: error.error || error.message });
+    }
+});
+// Stripe Cancel Downgrade Route (Keep Teacher Plan)
+app.post('/api/stripe/cancel-downgrade', async (req, res) => {
+    try {
+        console.log('[/api/stripe/cancel-downgrade] Request received');
+        const authHeader = req.headers.authorization;
+        const result = await cancelDowngrade(authHeader);
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/cancel-downgrade] Error:', error);
+        const status = error.statusCode || 500;
+        return res.status(status).json({ error: error.error || error.message });
+    }
+});
+// Stripe Reactivate Subscription Route
+app.post('/api/stripe/reactivate-subscription', async (req, res) => {
+    try {
+        console.log('[/api/stripe/reactivate-subscription] Request received');
+        const authHeader = req.headers.authorization;
+        const result = await reactivateSubscription(authHeader);
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/stripe/reactivate-subscription] Error:', error);
         const status = error.statusCode || 500;
         return res.status(status).json({ error: error.error || error.message });
     }

@@ -74,7 +74,7 @@ import { TopupConfirmModal } from './components/TopupConfirmModal';
 import { ManageSubscriptionModal, ModalView as ManageSubscriptionView } from './components/ManageSubscriptionModal';
 import { getMediaDuration } from './lib/audioDuration';
 import { formatSafeDate } from './lib/dateUtils';
-import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout, updateStripeSubscription, cancelStripeSubscription, reactivateStripeSubscription } from './lib/stripe';
+import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout, updateStripeSubscription, cancelStripeSubscription, reactivateStripeSubscription, cancelStripeDowngrade } from './lib/stripe';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
@@ -343,6 +343,7 @@ export default function App() {
   const [showManageSubscriptionModal, setShowManageSubscriptionModal] = useState(false);
   const [manageSubscriptionInitialView, setManageSubscriptionInitialView] = useState<ManageSubscriptionView>('overview');
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [isCancelingDowngrade, setIsCancelingDowngrade] = useState(false);
   const [paymentBannerDismissed, setPaymentBannerDismissed] = useState(false);
   const [showGlossaryModal, setShowGlossaryModal] = useState(false);
   const [editingGlossary, setEditingGlossary] = useState<DanceGlossary | null>(null);
@@ -3795,6 +3796,24 @@ export default function App() {
               showToast('Downgrade scheduled! You will keep Teacher benefits until the end of your billing cycle.');
             } else {
               showToast(result.error || 'Failed to downgrade plan.', true);
+            }
+          }}
+          isCancelingDowngrade={isCancelingDowngrade}
+          onCancelDowngrade={async () => {
+            setIsCancelingDowngrade(true);
+            const result = await cancelStripeDowngrade();
+            setIsCancelingDowngrade(false);
+            if (result.success) {
+              setShowManageSubscriptionModal(false);
+              const updated = saveDevState({
+                ...devState,
+                pending_downgrade: null,
+              });
+              setDevState(updated);
+              fetchCloudProfileAndUsage();
+              showToast(t('billing.manage.cancelDowngradeSuccess'));
+            } else {
+              showToast(result.error || t('billing.manage.cancelDowngradeError'), true);
             }
           }}
           onCancelSubscription={async () => {
