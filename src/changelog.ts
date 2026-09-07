@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.5.2',
+    date: '2026-09-07',
+    changes: [
+      'Compact Relative Date Indicator: Displayed a localized, compact relative time indicator next to session subtitles on homepage cards',
+      'Session Modification Tracking: Added explicit lastModified tracking on session updates, note edits, and report revisions to ensure accurate recency ordering'
+    ]
+  },
+  {
     version: '3.5.1',
     date: '2026-09-07',
     changes: [

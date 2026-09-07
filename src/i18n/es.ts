@@ -80,6 +80,10 @@ const es: Translations = {
     importBtnTitle: 'Importar sesión por código',
     moveToFolder: 'Mover a carpeta',
     deleteSession: 'Eliminar',
+    timeJustNow: 'ahora',
+    timeMinutesAgo: 'hace {count} min',
+    timeHoursAgo: 'hace {count} h',
+    timeDaysAgo: 'hace {count} d',
   },
 
   // ─── Zoutty Settings Drawer ─────────────────────────────────────────────────

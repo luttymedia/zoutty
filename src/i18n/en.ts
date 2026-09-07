@@ -78,6 +78,10 @@ const en = {
     importBtnTitle: 'Import Session via Code',
     moveToFolder: 'Move to folder',
     deleteSession: 'Delete',
+    timeJustNow: 'just now',
+    timeMinutesAgo: '{count}m ago',
+    timeHoursAgo: '{count}h ago',
+    timeDaysAgo: '{count}d ago',
   },
 
   // ─── Zoutty Settings Drawer ─────────────────────────────────────────────────

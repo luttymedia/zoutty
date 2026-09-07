@@ -899,8 +899,33 @@ export default function App() {
 
   const getSessionLastActivity = (session: Session) => {
     const sessionAudios = Object.values(audioEntries).filter(e => e.sessionId === session.id);
-    if (sessionAudios.length === 0) return session.date;
-    return Math.max(...sessionAudios.map(a => a.timestamp));
+    const audioMax = sessionAudios.length > 0 ? Math.max(...sessionAudios.map(a => a.timestamp)) : 0;
+    return Math.max(session.lastModified || 0, session.date, audioMax);
+  };
+
+  const formatCompactRelativeDate = (timestamp: number) => {
+    const diffSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+    if (diffSeconds < 60) {
+      return t('home.timeJustNow');
+    }
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) {
+      return t('home.timeMinutesAgo', { count: diffMinutes });
+    }
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+      return t('home.timeHoursAgo', { count: diffHours });
+    }
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) {
+      return t('home.timeDaysAgo', { count: diffDays });
+    }
+    const d = new Date(timestamp);
+    const day = String(d.getDate()).padStart(2, '0');
+    const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const month = uiLanguage === 'es' ? monthsEs[d.getMonth()] : monthsEn[d.getMonth()];
+    return `${day} ${month}`;
   };
 
   const getFolderLastActivity = (group: SessionGroup) => {
@@ -1377,7 +1402,11 @@ export default function App() {
   const updateSession = async (id: string, changes: Partial<Session>) => {
     const session = sessions.find(s => s.id === id);
     if (!session) return;
-    const updated = { ...session, ...changes };
+    const updated: Session = {
+      ...session,
+      ...changes,
+      lastModified: changes.lastModified ?? Date.now()
+    };
     try {
       await db.saveSession(updated);
       setSessions(prev => prev.map(s => s.id === id ? updated : s));
@@ -5037,7 +5066,11 @@ export default function App() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm font-semibold truncate text-white">{session.title}</h3>
-                          <p className="text-xs text-white/40 mt-1 truncate">{session.subtitle || t('home.sessionDefaultSubtitle')}</p>
+                          <p className="text-xs text-white/40 mt-1 truncate flex items-center gap-1.5">
+                            <span className="truncate">{session.subtitle || t('home.sessionDefaultSubtitle')}</span>
+                            <span className="opacity-40 shrink-0">•</span>
+                            <span className="shrink-0">{formatCompactRelativeDate(getSessionLastActivity(session))}</span>
+                          </p>
                         </div>
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <button
@@ -5753,6 +5786,7 @@ function SessionDetail({
           onUpdateOrder={(newOrder) => onUpdateSession({ cardOrder: newOrder })}
           sessionNotes={session.notes}
           onUpdateNotes={(newNotes) => onUpdateSession({ notes: newNotes })}
+          onTouchSession={() => onUpdateSession({ lastModified: Date.now() })}
           showToast={showToast}
         />
       </div>
@@ -6422,7 +6456,7 @@ function SortableCard({ id, children, isDraggable = true, isReordering = false }
 
 // ─── Session Structured Data ────────────────────────────────────────────────
 
-function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onToggleReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes, showToast }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onToggleReordering?: () => void; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void; showToast?: (msg: string, isError?: boolean) => void }) {
+function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onToggleReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes, onTouchSession, showToast }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onToggleReordering?: () => void; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void; onTouchSession?: () => void; showToast?: (msg: string, isError?: boolean) => void }) {
   const [report, setReport] = useState<any | null>(null);
 
   const { t, uiLanguage } = useTranslation();
@@ -6512,7 +6546,10 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     const newReportData = { ...report.report, [key]: newValue };
     const newDbReport = { ...report, report: newReportData };
     setReport(newDbReport);
-    try { await db.saveFinalReport(newDbReport); } catch (e) { console.error(e); }
+    try {
+      await db.saveFinalReport(newDbReport);
+      onTouchSession?.();
+    } catch (e) { console.error(e); }
   };
 
   const handleUpdateConsolidatedTranscripts = async (newText: string) => {
@@ -6520,7 +6557,10 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     const newReportData = { ...report.report, transcripts: [{ text: newText }] };
     const newDbReport = { ...report, report: newReportData };
     setReport(newDbReport);
-    try { await db.saveFinalReport(newDbReport); } catch (e) { console.error(e); }
+    try {
+      await db.saveFinalReport(newDbReport);
+      onTouchSession?.();
+    } catch (e) { console.error(e); }
   };
 
   const handleUpdateLegacyConsolidated = async (newObj: any) => {
@@ -6528,7 +6568,10 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     const newReportData = { ...report.report, ...newObj };
     const newDbReport = { ...report, report: newReportData };
     setReport(newDbReport);
-    try { await db.saveFinalReport(newDbReport); } catch (e) { console.error(e); }
+    try {
+      await db.saveFinalReport(newDbReport);
+      onTouchSession?.();
+    } catch (e) { console.error(e); }
   };
 
   // Determine items to render in sortable list

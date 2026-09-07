@@ -48,6 +48,7 @@ export interface Session {
     media: boolean;
   };
   isDemo?: boolean; // Indicates if this is a mock/demo session
+  lastModified?: number; // Timestamp of explicit modification or last activity
   pending_sync?: boolean;
   deleted?: boolean;
 }

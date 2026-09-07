@@ -27,6 +27,7 @@ create table sessions (
   "shareMethod" text,
   "sharedContent" jsonb,
   "isDemo" boolean default false,
+  "lastModified" bigint,
   "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null,
   "deleted" boolean default false not null,
   "equipment" text,
