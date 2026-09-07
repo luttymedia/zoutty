@@ -60,8 +60,8 @@ const cloudFallbackWrite = async (storeName: string, data: any): Promise<void> =
   // Strip binary fields — they cannot go into the DB row directly
   const { audioBlob, blob, fileHandle, pending_sync, ...dbData } = data;
 
-  // Upload audio blob to Storage if present
-  if (storeName === 'audios' && audioBlob) {
+  // Upload audio blob to Storage if present (skip if deleted)
+  if (!data.deleted && storeName === 'audios' && audioBlob) {
     const storagePath = `${userId}/${data.sessionId}/${data.id}.webm`;
     const { error } = await supabase.storage.from('audios').upload(storagePath, audioBlob, { upsert: true });
     if (error) {
@@ -71,8 +71,8 @@ const cloudFallbackWrite = async (storeName: string, data: any): Promise<void> =
     }
   }
 
-  // Upload media blob to Storage if present
-  if (storeName === 'sessionMedia' && (blob || fileHandle)) {
+  // Upload media blob to Storage if present (skip if deleted)
+  if (!data.deleted && storeName === 'sessionMedia' && (blob || fileHandle)) {
     let mediaBlob = blob;
     if (!mediaBlob && fileHandle) {
       try {
@@ -258,6 +258,9 @@ const deleteFromDb = async (storeName: string, id: string): Promise<void> => {
       if (record) {
         record.deleted = true;
         record.pending_sync = true;
+        delete record.blob;
+        delete record.fileHandle;
+        delete record.audioBlob;
         store.put(record);
       }
     };

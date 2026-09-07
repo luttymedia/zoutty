@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.5.0',
+    date: '2026-09-07',
+    changes: [
+      'Automated Supabase Storage Cleanup on Asset Deletion: Deleting audio clips or gallery media files immediately purges the raw assets from Supabase Storage buckets (sessionMedia and audios)',
+      'Session-Level Storage Purge: Deleting a session or folder permanently removes all associated audio recordings, media items, and leftover folder placeholders from cloud storage',
+      'Sync Engine Guard: Prevented syncEngine from re-uploading deleted media and audio blobs during synchronization cycles and ensured pending deletions clean up remote storage',
+      'Storage Health & Orphan Cleanup: Added cleanup utilities to audit and purge orphaned files, legacy placeholders, and assets from previously deleted sessions'
+    ]
+  },
+  {
     version: '3.4.0',
     date: '2026-09-07',
     changes: [

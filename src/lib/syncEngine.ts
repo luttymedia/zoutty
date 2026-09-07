@@ -79,8 +79,8 @@ export const syncEngine = {
           // Strip out binary blobs for Supabase DB
           const { audioBlob, blob, fileHandle, pending_sync, ...dbData } = item;
         
-        // Upload audio blob if present
-        if (localTableName === 'audios' && audioBlob) {
+        // Upload audio blob if present (skip if deleted)
+        if (!item.deleted && localTableName === 'audios' && audioBlob) {
           const storagePath = `${userId}/${item.sessionId}/${item.id}.webm`;
           const { error } = await supabase.storage.from('audios').upload(storagePath, audioBlob, { upsert: true });
           if (error) {
@@ -90,8 +90,8 @@ export const syncEngine = {
           }
         }
 
-        // Upload media blob if present
-        if (localTableName === 'sessionMedia' && (blob || fileHandle)) {
+        // Upload media blob if present (skip if deleted)
+        if (!item.deleted && localTableName === 'sessionMedia' && (blob || fileHandle)) {
           let mediaBlob = blob;
           if (!mediaBlob && fileHandle) {
              try {
@@ -114,6 +114,31 @@ export const syncEngine = {
                console.error(`[Sync] Failed to upload media blob for ${item.id}:`, error);
             } else {
                dbData.media_storage_path = storagePath;
+            }
+          }
+        }
+
+        // If item is deleted, ensure raw files are removed from storage
+        if (item.deleted) {
+          if (localTableName === 'sessionMedia') {
+            const extMatch = item.filename?.match(/\.([^.]+)$/);
+            const ext = extMatch ? `.${extMatch[1]}` : '';
+            const storagePath = item.media_storage_path || `${userId}/${item.sessionId}/${item.id}${ext}`;
+            try {
+              const { data, error } = await supabase.storage.from('sessionMedia').remove([storagePath]);
+              console.log('[Sync] Removed deleted sessionMedia from storage:', { storagePath, data, error });
+            } catch (e) {
+              console.error('[Sync] Error removing sessionMedia from storage:', e);
+            }
+          } else if (localTableName === 'audios') {
+            const storagePath = item.audio_storage_path || `${userId}/${item.sessionId}/${item.id}.webm`;
+            try {
+              await Promise.allSettled([
+                supabase.storage.from('sessionMedia').remove([storagePath]),
+                supabase.storage.from('audios').remove([storagePath])
+              ]);
+            } catch (e) {
+              console.error('[Sync] Error removing audio from storage:', e);
             }
           }
         }

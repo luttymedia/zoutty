@@ -1413,6 +1413,90 @@ export default function App() {
     showToast(t('toast.actionUndone'));
   };
 
+  const deleteAudioEntry = async (audioOrId: AudioEntry | string) => {
+    const audio = typeof audioOrId === 'string'
+      ? (audioEntries[audioOrId] || (await db.getAudioEntries(true)).find(a => a.id === audioOrId))
+      : audioOrId;
+    const id = typeof audioOrId === 'string' ? audioOrId : audioOrId.id;
+
+    await db.deleteAudioEntry(id);
+
+    try {
+      let path = audio?.audio_storage_path;
+      if (!path) {
+        const { data: { session: authSession } } = await supabase.auth.getSession();
+        if (authSession?.user?.id && audio?.sessionId && id) {
+          path = `${authSession.user.id}/${audio.sessionId}/${id}.webm`;
+        }
+      }
+      if (path) {
+        const results = await Promise.allSettled([
+          supabase.storage.from('sessionMedia').remove([path]),
+          supabase.storage.from('audios').remove([path])
+        ]);
+        console.log('[Storage] deleteAudioEntry remove results:', { path, results });
+      }
+    } catch (err) {
+      console.error('[Storage] Failed to remove audio file from storage:', err);
+    }
+  };
+
+  const deleteMediaItem = async (mediaOrId: SessionMedia | string) => {
+    const media = typeof mediaOrId === 'string'
+      ? (sessionMedia.find(m => m.id === mediaOrId) || (await db.getAllMedia(true)).find(m => m.id === mediaOrId))
+      : mediaOrId;
+    const id = typeof mediaOrId === 'string' ? mediaOrId : mediaOrId.id;
+
+    await db.deleteMediaItem(id);
+
+    try {
+      let path = media?.media_storage_path;
+      if (!path) {
+        const { data: { session: authSession } } = await supabase.auth.getSession();
+        if (authSession?.user?.id && media?.sessionId && id) {
+          const extMatch = media.filename?.match(/\.([^.]+)$/);
+          const ext = extMatch ? `.${extMatch[1]}` : '';
+          path = `${authSession.user.id}/${media.sessionId}/${id}${ext}`;
+        }
+      }
+      if (path) {
+        const { data, error } = await supabase.storage.from('sessionMedia').remove([path]);
+        console.log('[Storage] deleteMediaItem remove result:', { path, data, error });
+        if (error) {
+          console.error('[Storage] Supabase storage remove error:', error);
+        } else if (data && data.length === 0) {
+          console.warn('[Storage] Supabase storage returned 0 deleted files. Check RLS DELETE policy on storage.objects for bucket "sessionMedia".');
+        }
+      }
+    } catch (err) {
+      console.error('[Storage] Failed to remove media file from storage:', err);
+    }
+  };
+
+  const purgeSessionStorageFolder = async (sessionId: string) => {
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      if (!authSession?.user?.id) return;
+      const userId = authSession.user.id;
+      const folderPath = `${userId}/${sessionId}`;
+
+      for (const bucket of ['sessionMedia', 'audios'] as const) {
+        try {
+          const { data: files, error } = await supabase.storage.from(bucket).list(folderPath, { limit: 100 });
+          if (!error && files && files.length > 0) {
+            const filePaths = files.map(f => `${folderPath}/${f.name}`);
+            const { data: removedData, error: removeError } = await supabase.storage.from(bucket).remove(filePaths);
+            console.log(`[Storage] Purged leftover files in ${bucket} for session ${sessionId}:`, { filePaths, removedData, removeError });
+          }
+        } catch (e) {
+          console.error(`[Storage] Error purging session folder in ${bucket}:`, e);
+        }
+      }
+    } catch (err) {
+      console.error('[Storage] Failed to purge session storage folder:', err);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteModal) return;
     const { id, type, title } = deleteModal;
@@ -1438,8 +1522,9 @@ export default function App() {
       }
 
       const timeoutId = setTimeout(async () => {
-        for (const audio of sessionAudios) await db.deleteAudioEntry(audio.id);
-        for (const media of sessionMediaItems) await db.deleteMediaItem(media.id);
+        for (const audio of sessionAudios) await deleteAudioEntry(audio);
+        for (const media of sessionMediaItems) await deleteMediaItem(media);
+        await purgeSessionStorageFolder(id);
         await db.deleteSession(id);
       }, 5000);
 
@@ -1456,7 +1541,7 @@ export default function App() {
       });
 
       const timeoutId = setTimeout(async () => {
-        await db.deleteAudioEntry(id);
+        await deleteAudioEntry(audioToDelete);
       }, 5000);
 
       showToast(t('toast.audioDeleted'), false, t('toast.undo'), () => handleUndo(id, type, audioToDelete, null, timeoutId));
@@ -1516,8 +1601,13 @@ export default function App() {
           await db.deleteSession(session.id);
           const audios = await db.getSessionAudios(session.id);
           for (const a of audios) {
-            await db.deleteAudioEntry(a.id);
+            await deleteAudioEntry(a);
           }
+          const mediaItems = await db.getSessionMedia(session.id);
+          for (const m of mediaItems) {
+            await deleteMediaItem(m);
+          }
+          await purgeSessionStorageFolder(session.id);
           // Remove from local sessions state
           const idx = updatedSessions.findIndex(s => s.id === session.id);
           if (idx !== -1) updatedSessions.splice(idx, 1);
@@ -5263,6 +5353,32 @@ function SessionDetail({
     }
   };
 
+  const deleteMediaItem = async (mediaItem: SessionMedia) => {
+    await db.deleteMediaItem(mediaItem.id);
+    try {
+      let path = mediaItem.media_storage_path;
+      if (!path) {
+        const { data: { session: authSession } } = await supabase.auth.getSession();
+        if (authSession?.user?.id && mediaItem.sessionId && mediaItem.id) {
+          const extMatch = mediaItem.filename?.match(/\.([^.]+)$/);
+          const ext = extMatch ? `.${extMatch[1]}` : '';
+          path = `${authSession.user.id}/${mediaItem.sessionId}/${mediaItem.id}${ext}`;
+        }
+      }
+      if (path) {
+        const { data, error } = await supabase.storage.from('sessionMedia').remove([path]);
+        console.log('[Storage] SessionDetail deleteMediaItem remove result:', { path, data, error });
+        if (error) {
+          console.error('[Storage] Supabase storage remove error:', error);
+        } else if (data && data.length === 0) {
+          console.warn('[Storage] Supabase storage returned 0 deleted files. Check RLS DELETE policy on storage.objects for bucket "sessionMedia".');
+        }
+      }
+    } catch (err) {
+      console.error('[Storage] Failed to remove media file from storage:', err);
+    }
+  };
+
   const handleDeleteMediaItem = async (item: SessionMedia) => {
     // Revoke object URL if any
     if (mediaObjectUrls[item.id]) {
@@ -5270,7 +5386,7 @@ function SessionDetail({
       setMediaObjectUrls(prev => { const c = { ...prev }; delete c[item.id]; return c; });
     }
     setBrokenMediaIds(prev => { const n = new Set(prev); n.delete(item.id); return n; });
-    await db.deleteMediaItem(item.id);
+    await deleteMediaItem(item);
     onMediaChange(mediaItems.filter(m => m.id !== item.id));
   };
 
