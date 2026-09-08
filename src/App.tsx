@@ -87,6 +87,8 @@ import { CustomCheckbox } from './components/CustomCheckbox';
 import { CustomSwitch } from './components/CustomSwitch';
 import { AutoGrowingTextarea } from './components/AutoGrowingTextarea';
 import { WelcomeModal } from './components/WelcomeModal';
+import { NewSessionEntryModal, EntryOption } from './components/NewSessionEntryModal';
+import { HistoryView } from './components/HistoryView';
 import { InteractiveOnboardingOverlay, OnboardingStepConfig } from './components/InteractiveOnboardingOverlay';
 import { SearchModal } from './components/SearchModal';
 import { SearchFilters, performSearch } from './lib/search';
@@ -319,6 +321,16 @@ export default function App() {
   });
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [homeTab, setHomeTab] = useState<'history' | 'library'>(() => {
+    return (localStorage.getItem('zoutty_home_tab') as 'history' | 'library') || 'history';
+  });
+  const [showNewSessionModal, setShowNewSessionModal] = useState(false);
+  const [pendingSessionAction, setPendingSessionAction] = useState<'record' | 'upload_audio' | 'upload_video' | null>(null);
+
+  const handleTabChange = (tab: 'history' | 'library') => {
+    setHomeTab(tab);
+    localStorage.setItem('zoutty_home_tab', tab);
+  };
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [audioEntries, setAudioEntries] = useState<Record<string, AudioEntry>>({});
@@ -1376,7 +1388,46 @@ export default function App() {
     db.getSessionMedia(selectedSessionId).then(items => setSessionMedia(items)).catch(console.error);
   }, [selectedSessionId]);
 
-  // --- Actions ---
+  const handleOpenNewSession = () => {
+    if (onboardingTourStep === 1) {
+      handleTourNext();
+      return;
+    }
+    setShowNewSessionModal(true);
+  };
+
+  const handleSelectEntryOption = async (option: EntryOption) => {
+    setShowNewSessionModal(false);
+    const newSession: Session = {
+      id: crypto.randomUUID(),
+      title: getSessionDefaultTitle(Date.now(), uiLanguage),
+      subtitle: '',
+      date: Date.now(),
+      groupId: selectedGroupId || undefined,
+      glossaryId: 'auto'
+    };
+
+    try {
+      await db.saveSession(newSession);
+
+      setSessions(prev => [newSession, ...prev]);
+
+      if (option === 'record') {
+        setPendingSessionAction('record');
+      } else if (option === 'audio') {
+        setPendingSessionAction('upload_audio');
+      } else if (option === 'video') {
+        setPendingSessionAction('upload_video');
+      } else {
+        setPendingSessionAction(null);
+      }
+
+      navigateTo('detail', newSession.id, selectedGroupId);
+    } catch (err) {
+      console.error('Failed to save session:', err);
+      showToast(t('toast.failedSaveSession'), true);
+    }
+  };
 
   const createSession = async () => {
     const newSession: Session = {
@@ -2210,20 +2261,55 @@ export default function App() {
 
     for (const file of fileList) {
       if (isVideoFile(file)) {
-        showSpinner(t('toast.extractingAudio'));
+        showSpinner(t('toast.processingVideo'));
         try {
           const extracted = await extractAudioFromVideo(file);
-          hideSpinner();
           if (extracted.duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
             exceededFiles.push({ name: file.name, duration: extracted.duration });
             continue;
           }
           await addAudioEntry(selectedSession.id, extracted.blob, language, 'upload', extracted.filename);
+
+          // Save video to Gallery (sessionMedia) so the dancer can watch it later
+          const videoMediaItem: SessionMedia = {
+            id: crypto.randomUUID(),
+            sessionId: selectedSession.id,
+            timestamp: Date.now(),
+            filename: file.name,
+            mimeType: file.type || 'video/mp4',
+            size: file.size,
+            storageMode: 'blob',
+            blob: file
+          };
+          await db.saveMediaItem(videoMediaItem);
+          setSessionMedia(prev => [...prev, videoMediaItem]);
+          showToast(t('toast.videoSavedToGallery'));
         } catch (err: any) {
-          hideSpinner();
           console.error('[handleFileUpload] Failed to extract audio from video:', err);
           const isNoAudio = err?.message?.toLowerCase().includes('no audio');
-          showToast(isNoAudio ? t('toast.noAudioInVideo') : t('toast.failedExtractAudio'), true);
+          if (isNoAudio) {
+            try {
+              const videoMediaItem: SessionMedia = {
+                id: crypto.randomUUID(),
+                sessionId: selectedSession.id,
+                timestamp: Date.now(),
+                filename: file.name,
+                mimeType: file.type || 'video/mp4',
+                size: file.size,
+                storageMode: 'blob',
+                blob: file
+              };
+              await db.saveMediaItem(videoMediaItem);
+              setSessionMedia(prev => [...prev, videoMediaItem]);
+              showToast(t('toast.noAudioInVideo'), true);
+            } catch (mediaErr) {
+              console.error('[handleFileUpload] Failed to save video to gallery:', mediaErr);
+            }
+          } else {
+            showToast(t('toast.failedExtractAudio'), true);
+          }
+        } finally {
+          hideSpinner();
         }
       } else {
         const duration = await getMediaDuration(file);
@@ -3905,6 +3991,12 @@ export default function App() {
         }}
       />
 
+      <NewSessionEntryModal
+        isOpen={showNewSessionModal}
+        onClose={() => setShowNewSessionModal(false)}
+        onSelectOption={handleSelectEntryOption}
+      />
+
       <GlossaryModal
         isOpen={showGlossaryModal}
         onClose={() => setShowGlossaryModal(false)}
@@ -4915,13 +5007,54 @@ export default function App() {
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 pb-32">
         {view === 'list' ? (
-          <div className="space-y-8">
-            {selectedGroupId && (
-              <div className="flex items-center gap-2 text-sm font-bold text-white/40 uppercase tracking-widest">
-                <FolderOpen className="w-4 h-4 text-blue-400" />
-                <span>{t('home.folderBreadcrumb', { name: groups.find(g => g.id === selectedGroupId)?.name || '' })}</span>
+          <div className="space-y-6">
+            {/* Home Tab Bar: Lesson History vs Library */}
+            {!selectedGroupId && (
+              <div className="flex p-1 bg-white/5 border border-white/10 rounded-2xl mb-6 backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('history')}
+                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    homeTab === 'history'
+                      ? 'bg-brand/20 text-brand shadow-sm border border-brand/30'
+                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  {t('home.tabHistory')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('library')}
+                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    homeTab === 'library'
+                      ? 'bg-brand/20 text-brand shadow-sm border border-brand/30'
+                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Folder className="w-4 h-4" />
+                  {t('home.tabLibrary')}
+                </button>
               </div>
             )}
+
+            {homeTab === 'history' && !selectedGroupId ? (
+              <HistoryView
+                sessions={sessions}
+                onSelectSession={(sessionId, groupId) => navigateTo('detail', sessionId, groupId)}
+                onAddLesson={handleOpenNewSession}
+                activeSearch={activeSearch}
+                onClearSearch={() => setActiveSearch(null)}
+                onOpenSearch={() => setShowSearchModal(true)}
+              />
+            ) : (
+              <div className="space-y-8">
+                {selectedGroupId && (
+                  <div className="flex items-center gap-2 text-sm font-bold text-white/40 uppercase tracking-widest">
+                    <FolderOpen className="w-4 h-4 text-blue-400" />
+                    <span>{t('home.folderBreadcrumb', { name: groups.find(g => g.id === selectedGroupId)?.name || '' })}</span>
+                  </div>
+                )}
 
             {/* Action buttons - Compact same-line layout */}
             {activeSearch ? (
@@ -4950,7 +5083,7 @@ export default function App() {
               <div className="flex gap-4">
                 <button
                   id="onboarding-new-session-btn"
-                  onClick={createSession}
+                  onClick={handleOpenNewSession}
                   className={`py-3.5 glass bg-brand/10 border-brand/20 text-brand font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand flex-1 min-h-[52px] ${selectedGroupId ? 'py-4 text-base' : ''}`}
                 >
                   <Plus className="w-4 h-4" />
@@ -5162,9 +5295,13 @@ export default function App() {
               </div>
             )}
           </div>
-        ) : selectedSession && (
+        )}
+      </div>
+    ) : selectedSession && (
           <SessionDetail
             session={selectedSession}
+            initialAction={pendingSessionAction}
+            onClearInitialAction={() => setPendingSessionAction(null)}
             entries={Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp)}
             processingIds={processingIds}
             onRecording={(blob, lang, silent) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipRecord'), false) : addAudioEntry(selectedSession.id, blob, lang, 'recording', undefined, silent)}
@@ -5227,6 +5364,8 @@ export default function App() {
 
 function SessionDetail({
   session,
+  initialAction,
+  onClearInitialAction,
   entries,
   processingIds,
   onRecording,
@@ -5248,6 +5387,8 @@ function SessionDetail({
   onUpdateActiveGlossaryIds
 }: {
   session: Session;
+  initialAction?: 'record' | 'upload_audio' | 'upload_video' | null;
+  onClearInitialAction?: () => void;
   entries: AudioEntry[];
   processingIds: Set<string>;
   onRecording: (blob: Blob, lang: Language, silent?: boolean) => void;
@@ -5698,6 +5839,24 @@ function SessionDetail({
     setIsEditingTitle(false);
   };
 
+  // Auto-trigger entry action (record, upload audio, upload video)
+  useEffect(() => {
+    if (!initialAction) return;
+    const timer = setTimeout(() => {
+      if (initialAction === 'record') {
+        startRecording();
+      } else if (initialAction === 'upload_audio' || initialAction === 'upload_video') {
+        const uploadEl = document.getElementById('uploadBtn') as HTMLInputElement | null;
+        if (uploadEl) {
+          uploadEl.accept = initialAction === 'upload_video' ? 'video/*' : 'audio/*';
+          uploadEl.click();
+        }
+      }
+      onClearInitialAction?.();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [initialAction]);
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Print-only Logo */}
@@ -5905,6 +6064,9 @@ function SessionDetail({
             if (session.isDemo) {
               e.preventDefault();
               showToast(t('onboarding.demoTooltipUpload'), false);
+            } else {
+              const uploadEl = document.getElementById('uploadBtn') as HTMLInputElement | null;
+              if (uploadEl) uploadEl.accept = 'audio/*,video/*';
             }
           }}
           className="cursor-pointer flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-full transition-colors shadow-sm"

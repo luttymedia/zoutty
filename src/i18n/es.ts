@@ -84,6 +84,35 @@ const es: Translations = {
     timeMinutesAgo: 'hace {count} min',
     timeHoursAgo: 'hace {count} h',
     timeDaysAgo: 'hace {count} d',
+    tabHistory: 'Historial',
+    tabLibrary: 'Biblioteca',
+    addLesson: 'Añadir Clase',
+  },
+
+  history: {
+    emptyTitle: 'Tu viaje en el baile comienza aquí',
+    emptyDesc: 'Cada clase, privada o práctica que grabes formará parte de tu memoria de aprendizaje personal.',
+    addFirstLessonBtn: 'Añadir tu primera clase',
+    hasReportBadge: 'Informe IA',
+    noTags: 'Sin temas',
+    sessionCountSingular: '1 clase',
+    sessionCountPlural: '{count} clases',
+    collapseMonth: 'Plegar mes',
+    expandMonth: 'Desplegar mes',
+  },
+
+  entry: {
+    modalTitle: 'Añadir una Clase',
+    modalSubtitle: 'Captura tu práctica o clase',
+    uploadVideo: 'Subir Vídeo',
+    uploadVideoDesc: 'Guarda vídeo y extrae notas',
+    uploadAudio: 'Subir Audio',
+    uploadAudioDesc: 'Transcribe audio o nota de voz',
+    recordNow: 'Grabar Ahora',
+    recordNowDesc: 'Graba una nota de voz ahora',
+    startBlank: 'Comenzar en Blanco',
+    startBlankDesc: 'Crea una sesión vacía',
+    cancel: 'Cancelar',
   },
 
   // ─── Zoutty Settings Drawer ─────────────────────────────────────────────────
@@ -480,6 +509,8 @@ const es: Translations = {
     processed: '¡[{filename}] procesado!',
     processingFailed: '[{filename}] no se pudo procesar',
     processingCancelled: 'Procesamiento cancelado',
+    processingVideo: 'Procesando tu vídeo...',
+    videoSavedToGallery: '¡Vídeo guardado en la galería y audio extraído!',
     extractingAudio: 'Extrayendo audio del video...',
     noAudioInVideo: 'No se encontró pista de audio en este video.',
     failedExtractAudio: 'Error al extraer el audio del video.',
@@ -574,8 +605,8 @@ const es: Translations = {
     tourClickTargetPrompt: 'Toca para continuar',
     tourTapBadge: 'Toca',
 
-    step1Title: 'Crear una Nueva Sesión',
-    step1Desc: 'Haz clic en este botón para abrir una nueva sesión. Una sesión es básicamente una clase o práctica.',
+    step1Title: 'Añadir una Clase',
+    step1Desc: 'Haz clic en este botón para añadir una nueva clase o sesión de práctica mediante vídeo, audio, nota de voz o en blanco.',
     step1Tip: '¡También puedes organizar tus clases en carpetas personalizadas con "+ Nueva Carpeta"!',
 
     step2Title: 'Grabar Notas de Voz',

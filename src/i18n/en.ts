@@ -82,6 +82,35 @@ const en = {
     timeMinutesAgo: '{count}m ago',
     timeHoursAgo: '{count}h ago',
     timeDaysAgo: '{count}d ago',
+    tabHistory: 'Lesson History',
+    tabLibrary: 'Library',
+    addLesson: 'Add Lesson',
+  },
+
+  history: {
+    emptyTitle: 'Your Dance Journey Starts Here',
+    emptyDesc: 'Every lesson, private, or practice you record becomes part of your personal learning memory.',
+    addFirstLessonBtn: 'Add Your First Lesson',
+    hasReportBadge: 'AI Report',
+    noTags: 'No topics',
+    sessionCountSingular: '1 lesson',
+    sessionCountPlural: '{count} lessons',
+    collapseMonth: 'Collapse month',
+    expandMonth: 'Expand month',
+  },
+
+  entry: {
+    modalTitle: 'Add a Lesson',
+    modalSubtitle: 'Capture your practice or class',
+    uploadVideo: 'Upload Video',
+    uploadVideoDesc: 'Save video & extract notes',
+    uploadAudio: 'Upload Audio',
+    uploadAudioDesc: 'Transcribe audio or voice memo',
+    recordNow: 'Record Now',
+    recordNowDesc: 'Record a voice note right now',
+    startBlank: 'Start Blank',
+    startBlankDesc: 'Create an empty session',
+    cancel: 'Cancel',
   },
 
   // ─── Zoutty Settings Drawer ─────────────────────────────────────────────────
@@ -478,6 +507,8 @@ const en = {
     processed: '[{filename}] processed!',
     processingFailed: '[{filename}] failed to process',
     processingCancelled: 'Processing cancelled',
+    processingVideo: 'Processing your video...',
+    videoSavedToGallery: 'Video saved to gallery & audio extracted!',
     extractingAudio: 'Extracting audio from video...',
     noAudioInVideo: 'No audio track found in this video.',
     failedExtractAudio: 'Failed to extract audio from video.',
@@ -572,8 +603,8 @@ const en = {
     tourClickTargetPrompt: 'Tap to continue',
     tourTapBadge: 'Tap',
 
-    step1Title: 'Create a New Session',
-    step1Desc: 'Click this button to open a new session. A session is essentially one class or practice.',
+    step1Title: 'Add a Lesson',
+    step1Desc: 'Click this button to add a new lesson or practice session via video, audio, voice note, or blank canvas.',
     step1Tip: 'You can also organize your classes into custom folders using "+ New Folder"!',
 
     step2Title: 'Record Voice Notes',

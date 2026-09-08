@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.6.0',
+    date: '2026-09-08',
+    changes: [
+      'Student Evolution: Added chronological Lesson History home view with collapsible months and Library tab toggle',
+      'New Lesson Entry Point: Added multi-option creation modal (video, audio, instant recording, or blank session)',
+      'Video Dual-Save: Uploaded videos are now preserved in the gallery while audio is automatically extracted'
+    ]
+  },
+  {
     version: '3.5.3',
     date: '2026-09-08',
     changes: [
