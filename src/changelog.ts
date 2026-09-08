@@ -6,6 +6,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.10.2',
+    date: '2026-09-08',
+    changes: [
+      'Lesson History Quick Import: Added the compact icon-only session import button to the Lesson History tab header, matching the Library tab action bar'
+    ]
+  },
+  {
+    version: '3.10.1',
+    date: '2026-09-08',
+    changes: [
+      'Imported Session AI Report Indicator: Fixed imported consolidated sessions missing the AI Sparkles badge in Lesson History and Topics views',
+      'Retroactive Session Summary Sync: Automatically populates missing session summary references from existing final reports'
+    ]
+  },
+  {
     version: '3.10.0',
     date: '2026-09-08',
     changes: [

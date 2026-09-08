@@ -149,6 +149,12 @@ begin
     'date', v_session.date
   );
 
+  if (v_session."sharedContent"->>'topics') is null or (v_session."sharedContent"->>'topics')::boolean then
+    if v_session.tags is not null then
+      v_result := jsonb_set(v_result, '{tags}', to_jsonb(v_session.tags));
+    end if;
+  end if;
+
   if (v_session."sharedContent"->>'notes')::boolean then
     v_result := jsonb_set(v_result, '{notes}', to_jsonb(v_session.notes));
   end if;

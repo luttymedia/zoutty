@@ -45,6 +45,7 @@ export interface Session {
   sharedContent?: {
     report: boolean;
     notes: boolean;
+    topics?: boolean;
     transcripts: boolean;
     media: boolean;
   };

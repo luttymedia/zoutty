@@ -877,6 +877,109 @@ app.get('/api/referrals/stats', async (req, res) => {
     }
 });
 
+// Fetch shared session by share code (includes topic tags, report, clips, media)
+app.get('/api/sessions/shared/:shareCode', async (req, res) => {
+    try {
+        const shareCode = (req.params.shareCode || '').trim().toUpperCase();
+        if (!shareCode || shareCode.length !== 6) {
+            return res.status(400).json({ error: 'Invalid share code' });
+        }
+
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+        if (!supabaseUrl || !serviceKey) {
+            return res.status(500).json({ error: 'Supabase server configuration is missing.' });
+        }
+
+        const adminSupabase = createClient(supabaseUrl, serviceKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+        });
+
+        const { data: session, error: sessionErr } = await adminSupabase
+            .from('sessions')
+            .select('*')
+            .eq('shareId', shareCode)
+            .eq('deleted', false)
+            .maybeSingle();
+
+        if (sessionErr || !session) {
+            return res.status(404).json({ error: 'Shared session not found' });
+        }
+
+        const result: any = {
+            title: session.title,
+            subtitle: session.subtitle,
+            date: session.date,
+        };
+
+        const sharedContent = session.sharedContent || {};
+
+        if (sharedContent.topics === undefined || sharedContent.topics === true) {
+            if (Array.isArray(session.tags) && session.tags.length > 0) {
+                result.tags = session.tags;
+            }
+        }
+
+        if (sharedContent.notes) {
+            result.notes = session.notes;
+        }
+
+        if (sharedContent.report) {
+            const { data: report } = await adminSupabase
+                .from('finalreports')
+                .select('*')
+                .eq('sessionId', session.id)
+                .eq('deleted', false)
+                .maybeSingle();
+            if (report) {
+                result.report = report.report;
+                result.reportTimestamp = report.timestamp;
+            }
+        }
+
+        if (sharedContent.transcripts || sharedContent.media) {
+            const { data: audios } = await adminSupabase
+                .from('audios')
+                .select('*')
+                .eq('sessionId', session.id)
+                .eq('deleted', false);
+
+            if (audios && audios.length > 0) {
+                result.transcripts = audios.map((a: any) => ({
+                    filename: a.filename,
+                    timestamp: a.timestamp,
+                    transcript: sharedContent.transcripts ? a.transcript : null,
+                    strictSummary: sharedContent.transcripts ? a.strictSummary : null,
+                    expandedInsights: sharedContent.transcripts ? a.expandedInsights : null,
+                    audio_storage_path: sharedContent.media ? a.audio_storage_path : null
+                }));
+            }
+        }
+
+        if (sharedContent.media) {
+            const { data: media } = await adminSupabase
+                .from('sessionmedia')
+                .select('*')
+                .eq('sessionId', session.id)
+                .eq('deleted', false);
+
+            if (media && media.length > 0) {
+                result.mediaItems = media.map((m: any) => ({
+                    filename: m.filename,
+                    mimeType: m.mimeType,
+                    timestamp: m.timestamp,
+                    media_storage_path: m.media_storage_path
+                }));
+            }
+        }
+
+        return res.json(result);
+    } catch (err: any) {
+        console.error('[/api/sessions/shared/:shareCode] Error:', err);
+        return res.status(500).json({ error: err?.message || 'Failed to fetch shared session' });
+    }
+});
+
 // Delete User Account Route
 app.post('/api/user/delete-account', async (req, res) => {
     try {

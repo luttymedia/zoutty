@@ -8,7 +8,8 @@ import {
   Calendar,
   Tag,
   BookOpen,
-  Loader2
+  Loader2,
+  Download
 } from 'lucide-react';
 import { Session } from '../types';
 import { useTranslation } from '../i18n/TranslationContext';
@@ -17,6 +18,7 @@ interface HistoryViewProps {
   sessions: Session[];
   onSelectSession: (sessionId: string, groupId: string | null) => void;
   onAddLesson: () => void;
+  onImportSession?: () => void;
   activeSearch: {
     query: string;
     matchedSessionIds: Set<string>;
@@ -36,6 +38,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   sessions,
   onSelectSession,
   onAddLesson,
+  onImportSession,
   activeSearch,
   onClearSearch,
   onOpenSearch,
@@ -162,7 +165,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </button>
         </div>
       ) : (
-        <div className="flex justify-center items-center">
+        <div className="flex justify-center items-center gap-2.5 sm:gap-3">
           <button
             id="onboarding-new-session-btn"
             onClick={onAddLesson}
@@ -171,6 +174,15 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <Plus className="w-3.5 h-3.5" />
             <span>{t('home.newLesson')}</span>
           </button>
+          {onImportSession && (
+            <button
+              onClick={onImportSession}
+              className="h-[38px] px-3 bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center gap-1.5 hover:bg-purple-500/20 transition-all rounded-xl shadow-sm shrink-0 cursor-pointer text-xs"
+              title={t('home.importBtnTitle')}
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       )}
 

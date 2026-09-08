@@ -56,6 +56,7 @@ import {
   Tag,
   Eye,
   EyeOff,
+  Info,
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
@@ -861,6 +862,7 @@ export default function App() {
     sessionId: string;
     shareReport: boolean;
     shareNotes: boolean;
+    shareTopics: boolean;
     shareTranscripts: boolean;
     shareStrictSummary: boolean;
     shareDrills: boolean;
@@ -874,6 +876,7 @@ export default function App() {
     shareTimestamp?: number;
     availableReport: boolean;
     availableNotes: boolean;
+    availableTopics: boolean;
     availableTranscripts: boolean;
     availableStrictSummary: boolean;
     availableDrills: boolean;
@@ -883,7 +886,7 @@ export default function App() {
     availableMedia: boolean;
     viewState?: 'checklist' | 'active_code' | 'active_file';
     shareMethod?: 'code' | 'link' | 'file';
-    sharedContent?: { report: boolean; notes: boolean; transcripts: boolean; media: boolean; };
+    sharedContent?: { report: boolean; notes: boolean; topics?: boolean; transcripts: boolean; media: boolean; };
   } | null>(null);
   const [moveSessionModal, setMoveSessionModal] = useState<{ sessionId: string, currentGroupId?: string } | null>(null);
   const [sessionSortBy, setSessionSortBy] = useState<'date' | 'name' | 'created'>(
@@ -1419,6 +1422,41 @@ export default function App() {
 
     cleanOldAudioEntries();
   }, [Object.keys(audioEntries).length > 0]); // Trigger once entries load
+
+  // Migration 3: Retroactively populate session.summary for sessions that have a final report but missing summary
+  useEffect(() => {
+    const syncSessionSummaries = async () => {
+      const unsummarizedSessions = sessions.filter(s => !s.summary);
+      if (unsummarizedSessions.length === 0) return;
+
+      let changed = false;
+      const updatedSessions = [...sessions];
+
+      for (const s of unsummarizedSessions) {
+        const report = await db.getSessionFinalReport(s.id);
+        if (report && report.report) {
+          const reportSummary = typeof report.report === 'string'
+            ? report.report
+            : JSON.stringify(report.report);
+          const idx = updatedSessions.findIndex(item => item.id === s.id);
+          if (idx !== -1) {
+            updatedSessions[idx] = { ...updatedSessions[idx], summary: reportSummary };
+            await db.saveSession(updatedSessions[idx]);
+            changed = true;
+          }
+        }
+      }
+
+      if (changed) {
+        console.log('[Migration] Retroactively populated missing session summaries from final reports');
+        setSessions(updatedSessions);
+      }
+    };
+
+    if (sessions.length > 0) {
+      syncSessionSummaries();
+    }
+  }, [sessions.length > 0]);
 
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
@@ -1979,6 +2017,9 @@ export default function App() {
       if (shareModal.shareNotes) {
         payload.notes = selectedSession.notes;
       }
+      if (shareModal.shareTopics && selectedSession.tags && selectedSession.tags.length > 0) {
+        payload.tags = selectedSession.tags;
+      }
       const audios = await db.getSessionAudios(selectedSession.id);
       audios.sort((a, b) => b.timestamp - a.timestamp);
       const audiosWithNames = audios.map((a, index) => {
@@ -2069,6 +2110,7 @@ export default function App() {
         const updatedContent = {
           report: shareModal.shareReport,
           notes: shareModal.shareNotes,
+          topics: shareModal.shareTopics,
           transcripts: shareModal.shareTranscripts,
           media: shareModal.shareMedia
         };
@@ -2102,6 +2144,7 @@ export default function App() {
       const updatedContent = {
         report: shareModal.shareReport,
         notes: shareModal.shareNotes,
+        topics: shareModal.shareTopics,
         transcripts: shareModal.shareTranscripts,
         media: shareModal.shareMedia
       };
@@ -2197,9 +2240,15 @@ export default function App() {
         title: importPreview.title + t('toast.sessionImportedSuffix'),
         subtitle: importPreview.subtitle || '',
         date: importPreview.date || Date.now(),
+        tags: Array.isArray(importPreview.tags) ? importPreview.tags : [],
         notes: importPreview.notes || '',
         groupId: selectedGroupId || undefined,
-        glossaryId: 'auto'
+        glossaryId: 'auto',
+        summary: importPreview.report
+          ? (typeof importPreview.report === 'string'
+              ? importPreview.report
+              : JSON.stringify(importPreview.report))
+          : undefined
       };
 
       await db.saveSession(newSession);
@@ -4715,6 +4764,21 @@ export default function App() {
                     />
                   </div>
 
+                  {/* Topics Option */}
+                  <div className="py-3">
+                    <CustomSwitch
+                      disabled={!shareModal.availableTopics}
+                      checked={shareModal.shareTopics}
+                      onChange={(checked) => setShareModal({ ...shareModal, shareTopics: checked })}
+                      label={
+                        <span className={`text-sm ${!shareModal.availableTopics ? 'text-white/40' : 'text-white'}`}>
+                          {t('modals.shareTopics')} {!shareModal.availableTopics && t('modals.shareNoTopics')}
+                        </span>
+                      }
+                      className="px-1"
+                    />
+                  </div>
+
                   {/* Transcripts Option */}
                   <div className="py-3">
                     <CustomSwitch
@@ -4744,8 +4808,8 @@ export default function App() {
                       className="px-1"
                     />
                     {shareModal.shareMedia && shareModal.hasHeavyMedia && (
-                      <p className="px-1 mt-2 text-xs text-brand/90 flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <p className="px-1 mt-2 text-xs text-brand/80 flex items-center gap-1.5 leading-relaxed">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
                         <span>{t('modals.shareMediaWarning')}</span>
                       </p>
                     )}
@@ -4756,7 +4820,7 @@ export default function App() {
                 <div className="pt-4 mt-2 border-t border-white/10 space-y-3 shrink-0">
                   <button
                     onClick={() => handleGenerateShareLink(false)}
-                    disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts && !shareModal.shareMedia}
+                    disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTopics && !shareModal.shareTranscripts && !shareModal.shareMedia}
                     className="w-full py-3 rounded-xl bg-brand text-bg-dark font-medium hover:bg-brand/90 disabled:opacity-20 transition-all shadow-[0_0_15px_rgba(45,212,191,0.2)] min-h-[44px] cursor-pointer"
                   >
                     {selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink')}
@@ -4771,7 +4835,7 @@ export default function App() {
                   <div>
                     <button
                       onClick={() => handleGenerateShareLink(true)}
-                      disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts && !shareModal.shareMedia}
+                      disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTopics && !shareModal.shareTranscripts && !shareModal.shareMedia}
                       className="w-full py-2.5 rounded-xl border border-white/15 hover:bg-white/5 disabled:opacity-20 text-white/80 hover:text-white transition-colors min-h-[40px] text-sm cursor-pointer"
                     >
                       {t('modals.exportFileBtn')}
@@ -4796,6 +4860,11 @@ export default function App() {
                   {shareModal.sharedContent?.notes && (
                     <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
                       {t('modals.shareNotes')}
+                    </span>
+                  )}
+                  {shareModal.sharedContent?.topics && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareTopics')}
                     </span>
                   )}
                   {shareModal.sharedContent?.transcripts && (
@@ -4897,6 +4966,11 @@ export default function App() {
                       {t('modals.shareNotes')}
                     </span>
                   )}
+                  {shareModal.sharedContent?.topics && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareTopics')}
+                    </span>
+                  )}
                   {shareModal.sharedContent?.transcripts && (
                     <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
                       {t('modals.shareTranscripts')}
@@ -4982,9 +5056,21 @@ export default function App() {
                     setImportCodeValue('');
                     showSpinner(t('toast.retrievingSession'));
                     try {
-                      const { data, error } = await supabase.rpc('fetch_shared_session', { p_share_id: codeToFetch });
-                      if (error || !data) throw new Error('Shared session not found');
-                      setImportPreview(data);
+                      let sharedData: any = null;
+                      try {
+                        const resp = await fetch(`/api/sessions/shared/${codeToFetch}`);
+                        if (resp.ok) {
+                          sharedData = await resp.json();
+                        }
+                      } catch (_) {}
+
+                      if (!sharedData) {
+                        const { data, error } = await supabase.rpc('fetch_shared_session', { p_share_id: codeToFetch });
+                        if (error || !data) throw new Error('Shared session not found');
+                        sharedData = data;
+                      }
+
+                      setImportPreview(sharedData);
                     } catch (e: any) {
                       console.error(e);
                       showToast(t('toast.failedRetrieveShared'), true);
@@ -5033,6 +5119,18 @@ export default function App() {
                 <div>
                   <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedSubtitle')}</span>
                   <span className="text-sm text-white/80">{importPreview.subtitle}</span>
+                </div>
+              )}
+              {Array.isArray(importPreview.tags) && importPreview.tags.length > 0 && (
+                <div>
+                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedTopicsShared')}</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {importPreview.tags.map((tag: string, idx: number) => (
+                      <span key={idx} className="text-xs px-2.5 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-brand font-medium">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
               {importPreview.notes && (
@@ -5189,6 +5287,7 @@ export default function App() {
                     const hasHeavyMedia = totalMediaBytes >= HEAVY_MEDIA_THRESHOLD;
 
                     const hasOldShareCode = !!selectedSession.shareId && !selectedSession.shareMethod;
+                    const hasTopics = !!selectedSession.tags && selectedSession.tags.length > 0;
                     const defaultViewState = (selectedSession.shareMethod === 'code' || hasOldShareCode) ? 'active_code' 
                                            : selectedSession.shareMethod === 'file' ? 'active_file' 
                                            : 'checklist';
@@ -5197,6 +5296,7 @@ export default function App() {
                       sessionId: selectedSession.id,
                       shareReport: selectedSession.sharedContent ? selectedSession.sharedContent.report : hasReport,
                       shareNotes: selectedSession.sharedContent ? selectedSession.sharedContent.notes : hasNotes,
+                      shareTopics: selectedSession.sharedContent ? (selectedSession.sharedContent.topics ?? hasTopics) : hasTopics,
                       shareTranscripts: selectedSession.sharedContent ? selectedSession.sharedContent.transcripts : hasTranscripts,
                       shareStrictSummary: hasStrictSummary,
                       shareDrills: hasDrills,
@@ -5207,6 +5307,7 @@ export default function App() {
                       hasHeavyMedia,
                       availableReport: hasReport,
                       availableNotes: hasNotes,
+                      availableTopics: hasTopics,
                       availableTranscripts: hasTranscripts,
                       availableStrictSummary: hasStrictSummary,
                       availableDrills: hasDrills,
@@ -5320,6 +5421,7 @@ export default function App() {
                 sessions={sessions}
                 onSelectSession={(sessionId, groupId) => navigateTo('detail', sessionId, groupId)}
                 onAddLesson={handleOpenNewSession}
+                onImportSession={() => setShowImportCodeModal(true)}
                 activeSearch={activeSearch}
                 onClearSearch={() => setActiveSearch(null)}
                 onOpenSearch={() => setShowSearchModal(true)}
