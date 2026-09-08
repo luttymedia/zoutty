@@ -151,7 +151,8 @@ ${glossaryContext}`;
         model: 'gemini-2.5-flash',
         config: {
             temperature: 0.1,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 65536,
+            thinkingConfig: { thinkingBudget: 0 },
             responseMimeType: 'text/plain'
         },
         contents: [
