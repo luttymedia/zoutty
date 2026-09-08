@@ -86,6 +86,7 @@ const es: Translations = {
     timeDaysAgo: 'hace {count} d',
     tabHistory: 'Historial',
     tabLibrary: 'Biblioteca',
+    tabTopics: 'Temas',
   },
 
   history: {
@@ -112,6 +113,23 @@ const es: Translations = {
     startBlank: 'Comenzar en Blanco',
     startBlankDesc: 'Crea una sesión vacía',
     cancel: 'Cancelar',
+  },
+
+  topics: {
+    emptyTitle: 'Sin temas todavía',
+    emptyDesc: 'Procesa una clase con IA o añade temas a tus clases para ver tus patrones de aprendizaje a lo largo del tiempo.',
+    topicsCountSingular: '1 tema registrado',
+    topicsCountPlural: '{count} temas registrados',
+    sessionCountSingular: '1 clase',
+    sessionCountPlural: '{count} clases',
+    lastWorkedOn: 'Última: {relative}',
+    backToTopics: 'Todos los temas',
+    relativeToday: 'hoy',
+    relativeYesterday: 'ayer',
+    relativeDaysAgo: 'hace {count}d',
+    relativeWeeksAgo: 'hace {count}sem',
+    relativeMonthsAgo: 'hace {count}m',
+    noTagsOnSession: 'Sin temas',
   },
 
   // ─── Zoutty Settings Drawer ─────────────────────────────────────────────────

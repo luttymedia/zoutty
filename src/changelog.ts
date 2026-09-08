@@ -6,6 +6,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.10.0',
+    date: '2026-09-08',
+    changes: [
+      'Phase 4: Topic Intelligence — Added a dedicated "Topics" 3rd tab to the home navigation (History - Library - Topics)',
+      'Cross-Session Topic Aggregation: Automatically aggregates dance concept tags across all lessons, ranked by practice frequency and recency',
+      'Topic Practice Recency: Displays relative time indicators (e.g. "Last: 3d ago") to track when dance concepts were last practiced',
+      'Topic Drill-Down View: Tap any topic to view all matching lessons in chronological order with instant session navigation',
+      'Integrated Search & Filters: Full search and advanced filter support across the Topics tab, reflecting active search queries across topic lists and drill-down views'
+    ]
+  },
+  {
     version: '3.9.0',
     date: '2026-09-08',
     changes: [

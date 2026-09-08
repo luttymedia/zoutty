@@ -84,6 +84,7 @@ const en = {
     timeDaysAgo: '{count}d ago',
     tabHistory: 'Lesson History',
     tabLibrary: 'Library',
+    tabTopics: 'Topics',
   },
 
   history: {
@@ -110,6 +111,23 @@ const en = {
     startBlank: 'Start Blank',
     startBlankDesc: 'Create an empty session',
     cancel: 'Cancel',
+  },
+
+  topics: {
+    emptyTitle: 'No Topics Yet',
+    emptyDesc: 'Process a lesson with AI or add topics to your lessons to see your learning patterns over time.',
+    topicsCountSingular: '1 topic tracked',
+    topicsCountPlural: '{count} topics tracked',
+    sessionCountSingular: '1 lesson',
+    sessionCountPlural: '{count} lessons',
+    lastWorkedOn: 'Last: {relative}',
+    backToTopics: 'All Topics',
+    relativeToday: 'today',
+    relativeYesterday: 'yesterday',
+    relativeDaysAgo: '{count}d ago',
+    relativeWeeksAgo: '{count}w ago',
+    relativeMonthsAgo: '{count}mo ago',
+    noTagsOnSession: 'No topics',
   },
 
   // ─── Zoutty Settings Drawer ─────────────────────────────────────────────────

@@ -59,7 +59,7 @@ import {
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { format } from 'date-fns';
-import { db, readFromCloud } from './lib/db';
+import { db, readFromCloud, isDemoItem } from './lib/db';
 import { callZoukAudioProcessor } from './lib/mcp';
 import { Session, AudioEntry, Language, StrictSummary, ExpandedInsights, SessionGroup, DanceGlossary, SessionMedia, TIER_LIMITS, UserTier } from './types';
 import { SYSTEM_GLOSSARIES } from './lib/systemGlossaries';
@@ -93,6 +93,7 @@ import { AutoGrowingTextarea } from './components/AutoGrowingTextarea';
 import { WelcomeModal } from './components/WelcomeModal';
 import { NewSessionEntryModal, EntryOption } from './components/NewSessionEntryModal';
 import { HistoryView } from './components/HistoryView';
+import { TopicsView } from './components/TopicsView';
 import { InteractiveOnboardingOverlay, OnboardingStepConfig } from './components/InteractiveOnboardingOverlay';
 import { SearchModal } from './components/SearchModal';
 import { SearchFilters, performSearch, normalizeSearchText } from './lib/search';
@@ -304,7 +305,6 @@ const getSessionDefaultTitle = (date: Date | number, lang: string) => {
 };
 
 const migrateOldData = async () => {
-  if (localStorage.getItem('zoutty_migrated_to_supabase')) return;
   try {
     const idb = await dbStart();
     const tables = ['sessions', 'audios', 'finalReports', 'sessionGroups', 'glossaries', 'sessionMedia'];
@@ -315,7 +315,14 @@ const migrateOldData = async () => {
       req.onsuccess = () => {
         const items = req.result as any[];
         for (const item of items) {
-          if (item.pending_sync === undefined) {
+          if (isDemoItem(item)) {
+            if (item.deleted) {
+              store.delete(item.id);
+            } else if (item.pending_sync) {
+              item.pending_sync = false;
+              store.put(item);
+            }
+          } else if (item.pending_sync === undefined) {
             item.pending_sync = true;
             store.put(item);
           }
@@ -340,13 +347,13 @@ export default function App() {
   });
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [homeTab, setHomeTab] = useState<'history' | 'library'>(() => {
-    return (localStorage.getItem('zoutty_home_tab') as 'history' | 'library') || 'history';
+  const [homeTab, setHomeTab] = useState<'history' | 'library' | 'topics'>(() => {
+    return (localStorage.getItem('zoutty_home_tab') as 'history' | 'library' | 'topics') || 'history';
   });
   const [showNewSessionModal, setShowNewSessionModal] = useState(false);
   const [pendingSessionAction, setPendingSessionAction] = useState<'record' | 'upload_audio' | 'upload_video' | null>(null);
 
-  const handleTabChange = (tab: 'history' | 'library') => {
+  const handleTabChange = (tab: 'history' | 'library' | 'topics') => {
     setHomeTab(tab);
     localStorage.setItem('zoutty_home_tab', tab);
   };
@@ -5235,32 +5242,44 @@ export default function App() {
       <main className="max-w-2xl mx-auto px-4 sm:px-6 pb-32">
         {view === 'list' ? (
           <div className="space-y-6">
-            {/* Home Tab Bar: Lesson History vs Library */}
+            {/* Home Tab Bar: Lesson History vs Library vs Topics */}
             {!selectedGroupId && (
-              <div className="grid grid-cols-2 gap-4 border-b border-white/10 mb-6 px-1">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 border-b border-white/10 mb-6 px-1">
                 <button
                   type="button"
                   onClick={() => handleTabChange('history')}
-                  className={`flex items-center justify-center gap-2.5 text-sm sm:text-base pb-3 transition-colors cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 sm:gap-2.5 text-xs sm:text-base pb-3 transition-colors cursor-pointer ${
                     homeTab === 'history'
                       ? 'text-white border-b-2 border-brand -mb-[1px]'
                       : 'text-white/40 hover:text-white/70'
                   }`}
                 >
-                  <Clock className="w-5 h-5" />
-                  <span>{t('home.tabHistory')}</span>
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span className="truncate">{t('home.tabHistory')}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleTabChange('library')}
-                  className={`flex items-center justify-center gap-2.5 text-sm sm:text-base pb-3 transition-colors cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 sm:gap-2.5 text-xs sm:text-base pb-3 transition-colors cursor-pointer ${
                     homeTab === 'library'
                       ? 'text-white border-b-2 border-brand -mb-[1px]'
                       : 'text-white/40 hover:text-white/70'
                   }`}
                 >
-                  <Library className="w-5 h-5" />
-                  <span>{t('home.tabLibrary')}</span>
+                  <Library className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span className="truncate">{t('home.tabLibrary')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('topics')}
+                  className={`flex items-center justify-center gap-1.5 sm:gap-2.5 text-xs sm:text-base pb-3 transition-colors cursor-pointer ${
+                    homeTab === 'topics'
+                      ? 'text-white border-b-2 border-brand -mb-[1px]'
+                      : 'text-white/40 hover:text-white/70'
+                  }`}
+                >
+                  <Tag className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span className="truncate">{t('home.tabTopics')}</span>
                 </button>
               </div>
             )}
@@ -5270,6 +5289,14 @@ export default function App() {
                 sessions={sessions}
                 onSelectSession={(sessionId, groupId) => navigateTo('detail', sessionId, groupId)}
                 onAddLesson={handleOpenNewSession}
+                activeSearch={activeSearch}
+                onClearSearch={() => setActiveSearch(null)}
+                onOpenSearch={() => setShowSearchModal(true)}
+              />
+            ) : homeTab === 'topics' && !selectedGroupId ? (
+              <TopicsView
+                sessions={sessions}
+                onSelectSession={(sessionId, groupId) => navigateTo('detail', sessionId, groupId)}
                 activeSearch={activeSearch}
                 onClearSearch={() => setActiveSearch(null)}
                 onOpenSearch={() => setShowSearchModal(true)}

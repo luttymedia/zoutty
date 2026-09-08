@@ -31,6 +31,18 @@ const isQuotaError = (err: unknown): boolean => {
   );
 };
 
+// ─── Demo Item Detection ───────────────────────────────────────────────────
+export const isDemoItem = (item: any): boolean => {
+  if (!item) return false;
+  return Boolean(
+    item.isDemo ||
+    item.id === 'demo-session' ||
+    item.sessionId === 'demo-session' ||
+    item.id === 'demo-audio-1' ||
+    item.id === 'demo-report-1'
+  );
+};
+
 // ─── Store → Supabase table name map ────────────────────────────────────────
 const STORE_TO_TABLE: Record<string, string> = {
   sessions: 'sessions',
@@ -56,6 +68,10 @@ const cloudFallbackWrite = async (storeName: string, data: any): Promise<void> =
   const userId = session.user.id;
   const tableName = STORE_TO_TABLE[storeName];
   if (!tableName) throw new Error(`Unknown store: ${storeName}`);
+
+  // Don't sync system glossaries or demo items to the cloud
+  if (storeName === 'glossaries' && data.isSystem) return;
+  if (isDemoItem(data)) return;
 
   // Strip binary fields — they cannot go into the DB row directly
   const { audioBlob, blob, fileHandle, pending_sync, ...dbData } = data;
@@ -94,9 +110,6 @@ const cloudFallbackWrite = async (storeName: string, data: any): Promise<void> =
       }
     }
   }
-
-  // Don't sync system glossaries to the cloud
-  if (storeName === 'glossaries' && data.isSystem) return;
 
   const payload = { ...dbData, user_id: userId, updated_at: new Date().toISOString() };
   const { error } = await supabase.from(tableName).upsert(payload);
@@ -175,10 +188,12 @@ export const dbStart = (): Promise<IDBDatabase> => {
 const writeToDb = async <T extends { pending_sync?: boolean; deleted?: boolean }>(storeName: string, data: T): Promise<void> => {
   const db = await dbStart();
   
-  // Set sync flags automatically for every local write
+  const isDemo = isDemoItem(data);
+
+  // Set sync flags automatically for every local write (demo items never sync)
   const dataToSave = {
     ...data,
-    pending_sync: true,
+    pending_sync: isDemo ? false : true,
     deleted: data.deleted || false
   };
 
@@ -256,6 +271,11 @@ const deleteFromDb = async (storeName: string, id: string): Promise<void> => {
     getReq.onsuccess = () => {
       const record = getReq.result;
       if (record) {
+        if (isDemoItem(record) || id === 'demo-session' || id === 'demo-audio-1' || id === 'demo-report-1') {
+          // Demo items are local sandbox tutorials and should never be marked pending_sync or synced to Supabase
+          store.delete(id);
+          return;
+        }
         record.deleted = true;
         record.pending_sync = true;
         delete record.blob;

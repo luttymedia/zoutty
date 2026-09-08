@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { db, dbStart } from './db';
+import { db, dbStart, isDemoItem } from './db';
 import { Session, AudioEntry, SessionGroup, DanceGlossary, FinalReport, SessionMedia } from '../types';
 
 let syncTimeout: ReturnType<typeof setTimeout>;
@@ -37,7 +37,7 @@ export const syncEngine = {
   },
 
   async checkInitialSyncConflicts(userId: string): Promise<{ hasLocalPending: boolean, hasCloudData: boolean }> {
-    // 1. Check if there are any local pending changes
+    // 1. Check if there are any local pending changes (ignoring sandbox/demo items)
     let hasLocalPending = false;
     const sessions = await db.getSessions(true);
     const audios = await db.getAudioEntries(true);
@@ -46,11 +46,11 @@ export const syncEngine = {
     const media = await db.getAllMedia(true);
     
     if (
-      sessions.some(i => i.pending_sync) ||
-      audios.some(i => i.pending_sync) ||
-      reports.some(i => i.pending_sync) ||
-      groups.some(i => i.pending_sync) ||
-      media.some(i => i.pending_sync)
+      sessions.some(i => i.pending_sync && !isDemoItem(i)) ||
+      audios.some(i => i.pending_sync && !isDemoItem(i)) ||
+      reports.some(i => i.pending_sync && !isDemoItem(i)) ||
+      groups.some(i => i.pending_sync && !isDemoItem(i)) ||
+      media.some(i => i.pending_sync && !isDemoItem(i))
     ) {
       hasLocalPending = true;
     }
@@ -67,7 +67,28 @@ export const syncEngine = {
 
   async pushLocalChanges(userId: string) {
     const pushTable = async (localTableName: string, supabaseTableName: string, localItems: any[]) => {
-      const pendingItems = localItems.filter(item => item.pending_sync);
+      // 1. Clean up any leftover demo/sandbox items that might have pending_sync or deleted set in IndexedDB
+      const demoItems = localItems.filter(item => isDemoItem(item) && (item.pending_sync || item.deleted));
+      if (demoItems.length > 0) {
+        try {
+          const idb = await dbStart();
+          const tx = idb.transaction(localTableName, 'readwrite');
+          const store = tx.objectStore(localTableName);
+          for (const item of demoItems) {
+            if (item.deleted) {
+              store.delete(item.id);
+            } else {
+              item.pending_sync = false;
+              store.put(item);
+            }
+          }
+        } catch (e) {
+          console.warn(`[Sync] Could not clean demo items in ${localTableName}:`, e);
+        }
+      }
+
+      // 2. Filter for actual pending user items, strictly excluding demo/sandbox items
+      const pendingItems = localItems.filter(item => item.pending_sync && !isDemoItem(item));
       if (pendingItems.length === 0) return;
 
       console.log(`[Sync] Pushing ${pendingItems.length} changes for ${localTableName}...`);
@@ -180,24 +201,42 @@ export const syncEngine = {
           error = retry.error;
         }
 
-        if (error) {
-          console.error(`[Sync] Failed to push ${supabaseTableName}:`, error);
-          return;
-        }
-      }
+        const successfullyPushedIds = new Set<string>();
 
-      // Mark as synced locally
-      const idb = await dbStart();
-      const transaction = idb.transaction(localTableName, 'readwrite');
-      const store = transaction.objectStore(localTableName);
-      
-      for (const item of pendingItems) {
-        if (item.deleted) {
-          // If it was a pending delete and we successfully pushed it, we can safely hard-delete it locally
-          store.delete(item.id);
+        if (error) {
+          if (payload.length > 1) {
+            console.warn(`[Sync] Batch upsert failed for ${supabaseTableName}, retrying item by item...`, error);
+            for (const item of payload) {
+              const { error: itemErr } = await supabase.from(supabaseTableName).upsert([item]);
+              if (!itemErr) {
+                successfullyPushedIds.add(item.id);
+              } else {
+                console.error(`[Sync] Failed to push item ${item.id} to ${supabaseTableName}:`, itemErr);
+              }
+            }
+          } else {
+            console.error(`[Sync] Failed to push ${supabaseTableName}:`, error);
+          }
         } else {
-          item.pending_sync = false;
-          store.put(item);
+          payload.forEach(item => successfullyPushedIds.add(item.id));
+        }
+
+        if (successfullyPushedIds.size > 0) {
+          // Mark as synced locally
+          const idb = await dbStart();
+          const transaction = idb.transaction(localTableName, 'readwrite');
+          const store = transaction.objectStore(localTableName);
+          
+          for (const item of pendingItems) {
+            if (!successfullyPushedIds.has(item.id)) continue;
+            if (item.deleted) {
+              // If it was a pending delete and we successfully pushed it, we can safely hard-delete it locally
+              store.delete(item.id);
+            } else {
+              item.pending_sync = false;
+              store.put(item);
+            }
+          }
         }
       }
     };
@@ -247,6 +286,7 @@ export const syncEngine = {
           const localMap = new Map(localItems.map(i => [i.id, i]));
 
           for (const cloudItem of data) {
+            if (isDemoItem(cloudItem)) continue;
             const localItem = localMap.get(cloudItem.id);
             
             // If we have a local change pending sync, don't overwrite it with cloud data yet

@@ -267,8 +267,15 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                       {/* Main Title & Topics Column */}
                       <div className="flex-1 min-w-0 flex flex-col gap-1">
                         <h3 className="text-sm sm:text-base text-white/90 truncate group-hover:text-brand transition-colors">
-                          {session.isDemo ? session.title : (session.subtitle || session.title)}
+                          {session.title}
                         </h3>
+
+                        {/* Subtitle */}
+                        {session.subtitle && (
+                          <p className="text-xs text-white/40 truncate">
+                            {session.subtitle}
+                          </p>
+                        )}
 
                         {/* Topics Row */}
                         {sessionTags.length > 0 ? (
@@ -276,16 +283,12 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                             <Tag className="w-3.5 h-3.5 text-white/30 shrink-0" />
                             <span className="truncate">{sessionTags.join(', ')}</span>
                           </div>
-                        ) : session.isDemo && session.subtitle ? (
-                          <div className="flex items-center gap-1.5 text-xs text-white/40 truncate">
-                            <span className="truncate">{session.subtitle}</span>
-                          </div>
-                        ) : (
+                        ) : !session.subtitle ? (
                           <div className="flex items-center gap-1.5 text-xs text-white/20 italic truncate">
                             <Tag className="w-3.5 h-3.5 opacity-40 shrink-0" />
                             <span>{t('history.noTags')}</span>
                           </div>
-                        )}
+                        ) : null}
                       </div>
 
                       {/* Right AI Sparkles Indicator */}
