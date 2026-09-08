@@ -82,7 +82,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div className="glass p-6 max-w-md w-full rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between mb-4 shrink-0">
-          <h2 className="text-lg font-bold text-white">
+          <h2 className="text-lg text-white">
             {glossary ? t('common.edit') : t('glossary.addTitle')}
           </h2>
           <button
@@ -95,7 +95,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
 
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+            <label className="text-xs text-white/60 uppercase tracking-wider">
               {t('common.name') || 'Name'}
             </label>
             <input
@@ -109,7 +109,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+            <label className="text-xs text-white/60 uppercase tracking-wider">
               {t('common.terms') || 'Terms'}
             </label>
             <textarea
@@ -132,7 +132,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
             <button
               onClick={handleDelete}
               disabled={isDeleting || isSaving}
-              className="px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-sm transition-colors flex items-center justify-center disabled:opacity-50"
+              className="px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm transition-colors flex items-center justify-center disabled:opacity-50"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -140,7 +140,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
           
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-semibold transition-colors"
+            className="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm transition-colors"
           >
             {t('common.cancel')}
           </button>
@@ -149,7 +149,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
             <button
               onClick={handleSave}
               disabled={!name.trim() || !terms.trim() || isSaving}
-              className="flex-1 px-4 py-3 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark font-bold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-3 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />
               {t('common.save')}

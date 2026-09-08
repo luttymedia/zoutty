@@ -62,7 +62,7 @@ export const AudioDurationExceededModal: React.FC<AudioDurationExceededModalProp
         </div>
 
         {/* Title */}
-        <h3 className="text-xl font-bold text-white tracking-tight mb-2">
+        <h3 className="text-xl text-white tracking-tight mb-2">
           {isMultiple
             ? t('billing.limits.uploadTooLongTitleMultiple')
             : t('billing.limits.uploadTooLongTitle')}
@@ -79,7 +79,7 @@ export const AudioDurationExceededModal: React.FC<AudioDurationExceededModalProp
         <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-3 mb-6">
           <div className="flex items-center justify-between text-xs pb-2 border-b border-white/10">
             <span className="text-white/40">{t('billing.limits.allowedLimit')}:</span>
-            <span className="text-white/80 font-mono font-medium">
+            <span className="text-white/80 font-mono">
               {t('billing.limits.allowedLimitValue', {
                 duration: formatDuration(TIER_LIMITS.MAX_CLIP_DURATION_SECONDS),
               })}
@@ -91,14 +91,14 @@ export const AudioDurationExceededModal: React.FC<AudioDurationExceededModalProp
               {exceededList[0].name && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-white/40">{t('billing.limits.fileLabel')}:</span>
-                  <span className="text-white font-medium truncate max-w-[200px]" title={exceededList[0].name}>
+                  <span className="text-white truncate max-w-[200px]" title={exceededList[0].name}>
                     {exceededList[0].name}
                   </span>
                 </div>
               )}
               <div className="flex items-center justify-between text-xs">
                 <span className="text-white/40">{t('billing.limits.detectedDuration')}:</span>
-                <span className="text-amber-400 font-mono font-bold">
+                <span className="text-amber-400 font-mono">
                   {formatDuration(exceededList[0].duration)}
                 </span>
               </div>
@@ -110,10 +110,10 @@ export const AudioDurationExceededModal: React.FC<AudioDurationExceededModalProp
                   key={idx}
                   className="p-2.5 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-between gap-3 text-xs"
                 >
-                  <span className="text-white font-medium truncate flex-1" title={item.name}>
+                  <span className="text-white truncate flex-1" title={item.name}>
                     {item.name || `${t('billing.limits.fileLabel')} ${idx + 1}`}
                   </span>
-                  <span className="text-amber-400 font-mono font-bold shrink-0">
+                  <span className="text-amber-400 font-mono shrink-0">
                     {formatDuration(item.duration)}
                   </span>
                 </div>
@@ -125,7 +125,7 @@ export const AudioDurationExceededModal: React.FC<AudioDurationExceededModalProp
         {/* Action Button */}
         <button
           onClick={onClose}
-          className="w-full py-3.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           <Check className="w-4 h-4" />
           <span>{t('billing.limits.audioDurationUnderstood')}</span>

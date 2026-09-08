@@ -112,7 +112,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
               <FlaskConical className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <h3 className="text-base text-white flex items-center gap-2">
                 {t('billing.dev.panelTitle')}
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand/20 text-brand border border-brand/30 uppercase tracking-widest font-mono">
                   Sandbox
@@ -141,7 +141,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                   className={`w-5 h-5 ${devState.mockGemini ? 'text-brand animate-pulse' : 'text-zinc-400'}`}
                 />
                 <div>
-                  <div className="text-sm font-bold text-white">
+                  <div className="text-sm text-white">
                     {t('billing.dev.geminiMockToggle')}
                   </div>
                   <div className="text-[11px] text-white/60">
@@ -171,11 +171,11 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
             <div className="flex items-center gap-2 pt-1 border-t border-white/5 text-[11px]">
               <span className="text-white/40">Status:</span>
               {devState.mockGemini ? (
-                <span className="text-emerald-400 font-medium flex items-center gap-1">
+                <span className="text-emerald-400 flex items-center gap-1">
                   ● {t('billing.dev.mockActiveBadge')}
                 </span>
               ) : (
-                <span className="text-amber-400/80 font-medium flex items-center gap-1">
+                <span className="text-amber-400/80 flex items-center gap-1">
                   ○ {t('billing.dev.mockInactiveBadge')}
                 </span>
               )}
@@ -187,7 +187,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
             <div className="space-y-6">
               {/* 2. Quick Presets */}
               <div className="space-y-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+            <h4 className="text-xs uppercase tracking-wider text-white/40 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-brand" />
               {t('billing.dev.presetsHeading')}
             </h4>
@@ -211,7 +211,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     referral_credits_balance: 0,
                   })
                 }
-                className="p-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-left transition-all text-xs font-semibold text-white/90 hover:border-brand/40"
+                className="p-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-left transition-all text-xs text-white/90 hover:border-brand/40"
               >
                 {t('billing.dev.presetCleanFree')}
               </button>
@@ -227,7 +227,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     period_clips: 0,
                   })
                 }
-                className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-left transition-all text-xs font-semibold text-amber-300"
+                className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-left transition-all text-xs text-amber-300"
               >
                 {t('billing.dev.presetNearLimit')}
               </button>
@@ -243,7 +243,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     period_clips: 0,
                   })
                 }
-                className="p-2.5 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 text-left transition-all text-xs font-semibold text-red-300"
+                className="p-2.5 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 text-left transition-all text-xs text-red-300"
               >
                 {t('billing.dev.presetLimitHit')}
               </button>
@@ -259,7 +259,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     period_clips: 30,
                   })
                 }
-                className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-left transition-all text-xs font-semibold text-amber-300"
+                className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-left transition-all text-xs text-amber-300"
               >
                 {t('billing.dev.presetStudent')}
               </button>
@@ -275,7 +275,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     period_clips: 80,
                   })
                 }
-                className="p-2.5 rounded-xl border border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/15 text-left transition-all text-xs font-semibold text-sky-300"
+                className="p-2.5 rounded-xl border border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/15 text-left transition-all text-xs text-sky-300"
               >
                 {t('billing.dev.presetTeacher')}
               </button>
@@ -291,14 +291,14 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     period_clips: 25,
                   })
                 }
-                className="p-2.5 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 text-left transition-all text-xs font-semibold text-red-400"
+                className="p-2.5 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 text-left transition-all text-xs text-red-400"
               >
                 {t('billing.dev.presetPastDue')}
               </button>
               <button
                 type="button"
                 onClick={handleReset}
-                className="p-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-left transition-all text-xs font-semibold text-white/50 hover:text-white"
+                className="p-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-left transition-all text-xs text-white/50 hover:text-white"
               >
                 {t('billing.dev.resetAll')}
               </button>
@@ -308,7 +308,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
           {/* 3. Tier & Subscription Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+              <label className="text-xs uppercase tracking-wider text-white/40 flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5 text-brand" />
                 {t('billing.dev.tierSelect')}
               </label>
@@ -335,7 +335,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+              <label className="text-xs uppercase tracking-wider text-white/40 flex items-center gap-1.5">
                 <Sliders className="w-3.5 h-3.5 text-brand" />
                 {t('billing.dev.simSubscriptionStatus')}
               </label>
@@ -361,7 +361,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
 
           {/* 4. Usage Counters Manipulation */}
           <div className="space-y-3 p-4 rounded-xl bg-white/5 border border-white/10">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 flex items-center justify-between">
+            <h4 className="text-xs uppercase tracking-wider text-white/40 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5 text-brand" />
                 {t('billing.dev.setCounters')}
@@ -379,7 +379,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                     topup_extra_clips: 0,
                   }))
                 }
-                className="text-[11px] text-brand hover:underline font-medium"
+                className="text-[11px] text-brand hover:underline"
               >
                 {t('billing.dev.resetCounters')}
               </button>
@@ -388,7 +388,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {/* Lifetime Sessions */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-white/70 block font-medium truncate">
+                <label className="text-[11px] text-white/70 block truncate">
                   {t('billing.dev.lifetimeSessions')}
                 </label>
                 <input
@@ -408,7 +408,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
 
               {/* Lifetime Clips */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-white/70 block font-medium truncate">
+                <label className="text-[11px] text-white/70 block truncate">
                   {t('billing.dev.lifetimeClips')}
                 </label>
                 <input
@@ -428,7 +428,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
 
               {/* Period Sessions */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-white/70 block font-medium truncate">
+                <label className="text-[11px] text-white/70 block truncate">
                   {t('billing.dev.periodSessions')}
                 </label>
                 <input
@@ -448,7 +448,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
 
               {/* Period Clips */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-white/70 block font-medium truncate">
+                <label className="text-[11px] text-white/70 block truncate">
                   {t('billing.dev.periodClips')}
                 </label>
                 <input
@@ -470,7 +470,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
 
           {/* 5. Referral Boost & Referral Credits */}
           <div className="space-y-3 p-4 rounded-xl bg-white/5 border border-white/10">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+            <h4 className="text-xs uppercase tracking-wider text-white/40 flex items-center gap-1.5">
               <Gift className="w-3.5 h-3.5 text-brand" />
               Referral Boost & Discount Credits
             </h4>
@@ -478,7 +478,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* 10-Day Boost Injector */}
               <div className="space-y-2">
-                <div className="text-[11px] text-white/70 font-medium">
+                <div className="text-[11px] text-white/70">
                   Free User 10-Day Boost
                 </div>
                 <div className="flex gap-2">
@@ -488,7 +488,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                       const updated = inject10DayBoost();
                       setDevState(updated);
                     }}
-                    className="flex-1 px-3 py-2 rounded-lg bg-brand/10 border border-brand/30 hover:bg-brand/20 text-brand text-xs font-bold transition-all"
+                    className="flex-1 px-3 py-2 rounded-lg bg-brand/10 border border-brand/30 hover:bg-brand/20 text-brand text-xs transition-all"
                   >
                     {t('billing.dev.injectBoost')}
                   </button>
@@ -498,7 +498,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                       const updated = expireBoostNow();
                       setDevState(updated);
                     }}
-                    className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 hover:text-white text-xs font-bold transition-all"
+                    className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 hover:text-white text-xs transition-all"
                   >
                     {t('billing.dev.expireBoost')}
                   </button>
@@ -566,7 +566,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
 
               {/* Referral Credit Units (€) */}
               <div className="space-y-2">
-                <div className="text-[11px] text-white/70 font-medium">
+                <div className="text-[11px] text-white/70">
                   {t('billing.dev.creditsLabel')} (€)
                 </div>
                 <div className="flex items-center gap-2">
@@ -581,11 +581,11 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                         ),
                       }))
                     }
-                    className="w-9 h-9 rounded-lg bg-zinc-900 border border-white/10 text-white font-bold hover:bg-white/10"
+                    className="w-9 h-9 rounded-lg bg-zinc-900 border border-white/10 text-white hover:bg-white/10"
                   >
                     -
                   </button>
-                  <div className="flex-1 text-center font-mono font-bold text-base text-brand">
+                  <div className="flex-1 text-center font-mono text-base text-brand">
                     €{devState.referral_credits_balance}
                   </div>
                   <button
@@ -597,7 +597,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                           prev.referral_credits_balance + 1,
                       }))
                     }
-                    className="w-9 h-9 rounded-lg bg-zinc-900 border border-white/10 text-white font-bold hover:bg-white/10"
+                    className="w-9 h-9 rounded-lg bg-zinc-900 border border-white/10 text-white hover:bg-white/10"
                   >
                     +
                   </button>
@@ -606,7 +606,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
 
               {/* Top-Up Banked Quota */}
               <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                <div className="text-[11px] text-white/70 font-medium">
+                <div className="text-[11px] text-white/70">
                   {t('billing.dev.topupSessionsLabel')}
                 </div>
                 <div className="flex items-center gap-2">
@@ -621,7 +621,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                         ),
                       }))
                     }
-                    className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/10 text-white text-xs font-bold hover:bg-white/10"
+                    className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/10 text-white text-xs hover:bg-white/10"
                     title="-1"
                   >
                     -1
@@ -638,7 +638,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                         topup_extra_clips: val * 10,
                       }));
                     }}
-                    className="flex-1 bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-center font-mono font-bold text-base text-emerald-400"
+                    className="flex-1 bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-center font-mono text-base text-emerald-400"
                   />
                   <button
                     type="button"
@@ -651,7 +651,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                           (prev.topup_extra_clips || 0) + 100,
                       }))
                     }
-                    className="px-2.5 h-8 rounded-lg bg-zinc-900 border border-white/10 text-emerald-400 text-xs font-bold hover:bg-white/10"
+                    className="px-2.5 h-8 rounded-lg bg-zinc-900 border border-white/10 text-emerald-400 text-xs hover:bg-white/10"
                   >
                     +10
                   </button>
@@ -668,14 +668,14 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold transition-all cursor-pointer"
+            className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs transition-all cursor-pointer"
           >
             {t('billing.dev.close')}
           </button>
 
           <div className="flex flex-col items-end gap-1.5">
             {savedSuccess && (
-              <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold animate-in fade-in duration-200">
+              <div className="flex items-center gap-1.5 text-emerald-400 text-xs animate-in fade-in duration-200">
                 <Check className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
                 <span>{t('billing.dev.overridesApplied')}</span>
               </div>
@@ -683,7 +683,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               {t('billing.dev.applyOverrides')}

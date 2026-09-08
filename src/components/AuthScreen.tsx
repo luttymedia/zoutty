@@ -117,13 +117,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           <div className="w-20 h-20 bg-brand/20 text-brand rounded-full flex items-center justify-center mb-6">
             <CheckCircle2 className="w-10 h-10" />
           </div>
-          <h2 className="text-3xl font-bold tracking-tight mb-3">{t('auth.successTitle')}</h2>
+          <h2 className="text-3xl tracking-tight mb-3">{t('auth.successTitle')}</h2>
           <p className="text-zinc-400 mb-8">
             {t('auth.successMsg')}
           </p>
           <button
             onClick={onSuccess}
-            className="w-full bg-brand hover:bg-brand/90 text-bg-dark font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
+            className="w-full bg-brand hover:bg-brand/90 text-bg-dark py-4 rounded-xl transition-all flex items-center justify-center gap-2"
           >
             {t('auth.getStartedBtn')}
             <ArrowRight className="w-5 h-5" />
@@ -142,7 +142,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           <button
             key={code}
             onClick={() => setUILanguage(code as any)}
-            className={`px-[14px] py-[6px] text-[12px] font-bold rounded-full tracking-[0.05em] transition-all duration-300 ${
+            className={`px-[14px] py-[6px] text-[12px] rounded-full tracking-[0.05em] transition-all duration-300 ${
               uiLanguage === code 
                 ? 'bg-brand text-bg-dark shadow-[0_2px_8px_rgba(45,212,191,0.3)]' 
                 : 'text-white/50 hover:text-white/80 hover:bg-white/5'
@@ -158,19 +158,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           <div className="mb-4">
             <ZouttyIcon className="w-20 h-20" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('auth.title')}</h1>
+          <h1 className="text-3xl font-bold font-logo tracking-tight">{t('auth.title')}</h1>
           <p className="text-zinc-400 mt-2 text-center text-sm">
             {isLogin ? t('auth.loginSubtitle') : t('auth.signupSubtitle')}
           </p>
         </div>
 
         {referralSignupCode && (
-          <div className="mb-5 px-3.5 py-2.5 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-200 text-xs font-medium flex items-center gap-3 shadow-lg shadow-purple-950/30 animate-in fade-in slide-in-from-top-1 duration-300">
+          <div className="mb-5 px-3.5 py-2.5 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-200 text-xs flex items-center gap-3 shadow-lg shadow-purple-950/30 animate-in fade-in slide-in-from-top-1 duration-300">
             <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
               <Gift className="w-4 h-4 text-purple-400" />
             </div>
             <div className="text-left flex-1 min-w-0">
-              <span className="font-bold text-white block truncate">
+              <span className="text-white block truncate">
                 {t('billing.referrals.invitedByFriendBadge', { code: referralSignupCode })}
               </span>
               <span className="text-[11px] text-purple-300/80 block mt-0.5">
@@ -183,7 +183,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
         <form onSubmit={handleAuth} noValidate className="space-y-4">
           {!isLogin && (
             <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">{t('auth.displayNameLabel', { fallback: 'Display Name' })}</label>
+              <label className="text-xs text-zinc-400 uppercase tracking-wider ml-1">{t('auth.displayNameLabel', { fallback: 'Display Name' })}</label>
               <div className="relative">
                 <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
@@ -198,7 +198,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">{t('auth.emailLabel')}</label>
+            <label className="text-xs text-zinc-400 uppercase tracking-wider ml-1">{t('auth.emailLabel')}</label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
               <input
@@ -212,7 +212,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">{t('auth.passwordLabel')}</label>
+            <label className="text-xs text-zinc-400 uppercase tracking-wider ml-1">{t('auth.passwordLabel')}</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
               <input
@@ -234,7 +234,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
 
           {!isLogin && (
             <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">{t('auth.confirmPasswordLabel')}</label>
+              <label className="text-xs text-zinc-400 uppercase tracking-wider ml-1">{t('auth.confirmPasswordLabel')}</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
@@ -257,7 +257,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
 
           {!isLogin && (
             <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">{t('auth.inviteCodeLabel', { fallback: 'Have an invite code?' })}</label>
+              <label className="text-xs text-zinc-400 uppercase tracking-wider ml-1">{t('auth.inviteCodeLabel', { fallback: 'Have an invite code?' })}</label>
               <div className="relative">
                 <input
                   type="text"
@@ -271,7 +271,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           )}
 
           {error && (
-            <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-xl text-red-300 text-xs font-medium text-center animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-xl text-red-300 text-xs text-center animate-in fade-in slide-in-from-top-1 duration-200">
               {error}
             </div>
           )}
@@ -279,7 +279,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand hover:bg-brand/90 text-bg-dark font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70 cursor-pointer"
+            className="w-full bg-brand hover:bg-brand/90 text-bg-dark py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70 cursor-pointer"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
               <>
@@ -292,14 +292,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
 
         <div className="mt-8 flex items-center gap-4">
           <div className="h-px bg-zinc-800 flex-1"></div>
-          <span className="text-zinc-500 text-sm font-medium">{t('auth.or')}</span>
+          <span className="text-zinc-500 text-sm">{t('auth.or')}</span>
           <div className="h-px bg-zinc-800 flex-1"></div>
         </div>
 
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          className="w-full mt-8 bg-white hover:bg-zinc-200 text-black font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
+          className="w-full mt-8 bg-white hover:bg-zinc-200 text-black py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -317,7 +317,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
             setPassword('');
             setConfirmPassword('');
           }}
-          className="w-full mt-6 text-zinc-400 hover:text-white text-sm font-medium transition-colors cursor-pointer"
+          className="w-full mt-6 text-zinc-400 hover:text-white text-sm transition-colors cursor-pointer"
         >
           {isLogin ? t('auth.toggleToSignup') : t('auth.toggleToLogin')}
         </button>
@@ -325,7 +325,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
         <button
           type="button"
           onClick={() => setShowGuestConfirm(true)}
-          className="w-full mt-4 text-zinc-500 hover:text-zinc-300 text-xs font-medium transition-colors uppercase tracking-wider"
+          className="w-full mt-4 text-zinc-500 hover:text-zinc-300 text-xs transition-colors uppercase tracking-wider"
         >
           {t('auth.continueGuest')}
         </button>
@@ -337,7 +337,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
             <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mb-4 border border-amber-500/20">
               <AlertTriangle className="w-6 h-6 text-amber-500" />
             </div>
-            <h3 className="text-xl font-bold mb-3">{t('auth.guestConfirmTitle')}</h3>
+            <h3 className="text-xl mb-3">{t('auth.guestConfirmTitle')}</h3>
             <p className="text-zinc-400 text-sm leading-relaxed mb-4">
               {t('auth.guestConfirmMsg')}
             </p>
@@ -358,7 +358,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowGuestConfirm(false)}
-                className="px-5 py-3 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-white text-sm"
+                className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white text-sm"
               >
                 {t('auth.guestConfirmCancel')}
               </button>
@@ -367,7 +367,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
                   localStorage.setItem('zoutty_guest_mode', 'true');
                   onSuccess();
                 }}
-                className="px-5 py-3 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors text-bg-dark text-sm shadow-lg shadow-brand/20"
+                className="px-5 py-3 rounded-xl bg-brand hover:bg-brand/90 transition-colors text-bg-dark text-sm shadow-lg shadow-brand/20"
               >
                 {t('auth.guestConfirmProceed')}
               </button>

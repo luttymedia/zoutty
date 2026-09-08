@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.9.0',
+    date: '2026-09-08',
+    changes: [
+      'Design Cleanup: Streamlined layout across sessions, share modal, and settings drawer to eliminate nested container boxes and reduce visual clutter with flat dividers and collapsible sections'
+    ]
+  },
+  {
     version: '3.8.0',
     date: '2026-09-08',
     changes: [

@@ -56,7 +56,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, opt
                 setIsOpen(false);
               }}
               className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-white/5 cursor-pointer ${
-                option.value === value ? 'text-brand font-bold bg-white/5' : 'text-white/80'
+                option.value === value ? 'text-brand bg-white/5' : 'text-white/80'
               }`}
             >
               {option.label}

@@ -92,7 +92,7 @@ export const NewSessionEntryModal: React.FC<NewSessionEntryModalProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-white tracking-tight">
+            <h2 className="text-lg sm:text-xl text-white tracking-tight">
               {t('entry.modalTitle')}
             </h2>
             <p className="text-xs sm:text-sm text-white/40 mt-0.5 font-normal">
@@ -159,7 +159,7 @@ export const NewSessionEntryModal: React.FC<NewSessionEntryModalProps> = ({
                 {option.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm sm:text-base font-medium text-white/90 group-hover:text-white transition-colors">
+                <div className="text-sm sm:text-base text-white/90 group-hover:text-white transition-colors">
                   {option.title}
                 </div>
                 <div className="text-[11px] sm:text-xs text-white/45 mt-0.5 leading-snug font-normal">

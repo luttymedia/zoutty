@@ -19,7 +19,7 @@ export const CustomSwitch: React.FC<CustomSwitchProps> = ({
 }) => {
   return (
     <label className={`flex items-center justify-between w-full select-none ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${className}`}>
-      {label && <span className="text-sm font-semibold text-white">{label}</span>}
+      {label && <span className="text-sm text-white">{label}</span>}
       <div className="relative flex items-center">
         <input
           type="checkbox"

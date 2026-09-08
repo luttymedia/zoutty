@@ -76,7 +76,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 
         {/* Modal Header */}
         <div className="text-center mb-6 space-y-1">
-          <h3 className="text-2xl font-extrabold text-white tracking-tight">
+          <h3 className="text-2xl text-white tracking-tight">
             {t('billing.plans.choosePlanTitle')}
           </h3>
           <p className="text-xs sm:text-sm text-white/60 max-w-md mx-auto">
@@ -109,16 +109,16 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                     <GraduationCap className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-base font-bold text-white">
+                    <h4 className="text-base text-white">
                       {t('billing.plans.studentName')}
                     </h4>
-                    <span className="text-[11px] font-bold text-amber-300 font-mono">
+                    <span className="text-[11px] text-amber-300 font-mono">
                       {t('billing.plans.studentPrice')}
                     </span>
                   </div>
                 </div>
                 {isStudent && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-200 uppercase font-mono font-bold">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-200 uppercase font-mono">
                     {t('billing.plans.currentPlanBadge')}
                   </span>
                 )}
@@ -145,7 +145,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             <button
               disabled={isStudent || isRedirecting !== null}
               onClick={() => handleSelectPlan('student')}
-              className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 mt-2 cursor-pointer ${
+              className={`w-full py-3 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 mt-2 cursor-pointer ${
                 isStudent
                   ? 'bg-amber-500/20 text-amber-300 cursor-default opacity-80'
                   : isRedirecting === 'student'
@@ -184,16 +184,16 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                     <Sparkle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-base font-bold text-white">
+                    <h4 className="text-base text-white">
                       {t('billing.plans.teacherName')}
                     </h4>
-                    <span className="text-[11px] font-bold text-sky-300 font-mono">
+                    <span className="text-[11px] text-sky-300 font-mono">
                       {t('billing.plans.teacherPrice')}
                     </span>
                   </div>
                 </div>
                 {isTeacher && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/30 text-sky-200 uppercase font-mono font-bold">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/30 text-sky-200 uppercase font-mono">
                     {t('billing.plans.currentPlanBadge')}
                   </span>
                 )}
@@ -220,7 +220,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             <button
               disabled={isTeacher || isRedirecting !== null}
               onClick={() => handleSelectPlan('teacher')}
-              className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 mt-2 cursor-pointer ${
+              className={`w-full py-3 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 mt-2 cursor-pointer ${
                 isTeacher
                   ? 'bg-sky-500/20 text-sky-300 cursor-default opacity-80'
                   : isRedirecting === 'teacher'
@@ -250,7 +250,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
           <div className="flex items-center gap-2.5">
             <Gift className="w-5 h-5 text-purple-400 shrink-0" />
             <div className="text-xs">
-              <span className="font-bold text-white">{t('billing.referrals.title')}</span>
+              <span className="text-white">{t('billing.referrals.title')}</span>
               <p className="text-white/60 text-[11px]">
                 {t('billing.referrals.subtitle')}
               </p>
@@ -261,7 +261,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
               onClose();
               onOpenReferrals();
             }}
-            className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs font-bold transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
           >
             <span>{t('billing.referrals.shareAction')}</span>
             <ArrowRight className="w-3.5 h-3.5" />

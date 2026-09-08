@@ -54,10 +54,10 @@ export function WelcomeModal({
               </div>
               
               <div className="space-y-3">
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-black font-logo text-white tracking-tight">
                   {t('onboarding.welcomeTitle')}
                 </h1>
-                <p className="text-white/60 font-medium leading-relaxed max-w-[280px] mx-auto">
+                <p className="text-white/60 leading-relaxed max-w-[280px] mx-auto">
                   {t('onboarding.welcomeSubtitle')}
                 </p>
               </div>
@@ -65,7 +65,7 @@ export function WelcomeModal({
 
             <div className="space-y-6">
               <div className="space-y-3">
-                <label className="text-xs font-bold uppercase tracking-wider text-white/50 px-1">
+                <label className="text-xs uppercase tracking-wider text-white/50 px-1">
                   {t('onboarding.interfaceLanguage')}
                 </label>
                 <CustomSelect
@@ -76,7 +76,7 @@ export function WelcomeModal({
               </div>
 
               <div className="space-y-3">
-                <label className="text-xs font-bold uppercase tracking-wider text-white/50 px-1">
+                <label className="text-xs uppercase tracking-wider text-white/50 px-1">
                   {t('onboarding.primaryStyles')}
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -84,7 +84,7 @@ export function WelcomeModal({
                     <button
                       key={style.id}
                       onClick={() => toggleStyle(style.id)}
-                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 border ${
+                      className={`px-4 py-2 rounded-xl text-sm transition-all duration-300 border ${
                         selectedStyles.includes(style.id)
                           ? 'bg-brand/20 border-brand/50 text-brand'
                           : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white/90'
@@ -99,7 +99,7 @@ export function WelcomeModal({
 
             <button
               onClick={handleNext}
-              className="w-full mt-4 bg-brand text-black font-bold text-base py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-brand/90 transition-colors active:scale-[0.98] shadow-lg shadow-brand/20"
+              className="w-full mt-4 bg-brand text-black text-base py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-brand/90 transition-colors active:scale-[0.98] shadow-lg shadow-brand/20"
             >
               {t('onboarding.continueBtn')}
               <ChevronRight className="w-5 h-5" />
@@ -109,10 +109,10 @@ export function WelcomeModal({
           <>
             <div className="flex flex-col gap-4 mt-2">
               <div className="space-y-1 text-center">
-                <h2 className="text-2xl font-black text-white tracking-tight">
+                <h2 className="text-2xl text-white tracking-tight">
                   {t('onboarding.beforeWeStart')}
                 </h2>
-                <p className="text-white/60 text-sm font-medium leading-snug max-w-[280px] mx-auto">
+                <p className="text-white/60 text-sm leading-snug max-w-[280px] mx-auto">
                   {t('onboarding.permissionsDesc')}
                 </p>
               </div>
@@ -123,7 +123,7 @@ export function WelcomeModal({
                     <Mic className="w-5 h-5 text-brand" />
                   </div>
                   <div>
-                    <h3 className="text-white text-sm font-bold mb-0.5">{t('onboarding.micAccess')}</h3>
+                    <h3 className="text-white text-sm mb-0.5">{t('onboarding.micAccess')}</h3>
                     <p className="text-white/50 text-xs leading-snug">
                       {t('onboarding.micDesc')}
                     </p>
@@ -135,7 +135,7 @@ export function WelcomeModal({
                     <HardDrive className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="text-white text-sm font-bold mb-0.5">{t('onboarding.localStorage')}</h3>
+                    <h3 className="text-white text-sm mb-0.5">{t('onboarding.localStorage')}</h3>
                     <p className="text-white/50 text-xs leading-snug">
                       {t('onboarding.storageDesc')}
                     </p>
@@ -147,7 +147,7 @@ export function WelcomeModal({
                     <Cloud className="w-5 h-5 text-green-400" />
                   </div>
                   <div>
-                    <h3 className="text-white text-sm font-bold mb-0.5">{t('onboarding.cloudBackup')}</h3>
+                    <h3 className="text-white text-sm mb-0.5">{t('onboarding.cloudBackup')}</h3>
                     <p className="text-white/50 text-xs leading-snug">
                       {t('onboarding.cloudBackupDesc')}
                     </p>
@@ -158,7 +158,7 @@ export function WelcomeModal({
 
             <button
               onClick={onComplete}
-              className="w-full mt-4 bg-brand text-black font-bold text-base py-3.5 rounded-xl flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-[0.98] shadow-lg shadow-brand/20"
+              className="w-full mt-4 bg-brand text-black text-base py-3.5 rounded-xl flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-[0.98] shadow-lg shadow-brand/20"
             >
               {t('onboarding.startExploring')}
               <ChevronRight className="w-5 h-5" />

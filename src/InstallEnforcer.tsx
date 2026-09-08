@@ -101,7 +101,7 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
 
   let btnText = t('installEnforcer.btnInstallText');
   let hintText = '';
-  let btnClasses = "w-full max-w-xs mx-auto py-4 px-6 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all relative overflow-hidden ";
+  let btnClasses = "w-full max-w-xs mx-auto py-4 px-6 rounded-2xl text-lg flex items-center justify-center gap-3 transition-all relative overflow-hidden ";
   let isDisabled = false;
 
   if (installState === 'installed') {
@@ -158,13 +158,13 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
       {/* Language Switcher Pill */}
       <div className="absolute top-6 right-6 flex gap-1 bg-white/5 border border-white/10 p-1 rounded-full z-20">
         <button 
-          className={`px-3 py-1 text-xs font-bold rounded-full transition-all ${uiLanguage === 'en' ? 'bg-[#2DD4BF] text-black shadow-[0_2px_8px_rgba(45,212,191,0.3)]' : 'text-white/50 hover:text-white/80'}`}
+          className={`px-3 py-1 text-xs rounded-full transition-all ${uiLanguage === 'en' ? 'bg-[#2DD4BF] text-black shadow-[0_2px_8px_rgba(45,212,191,0.3)]' : 'text-white/50 hover:text-white/80'}`}
           onClick={() => setUILanguage('en')}
         >
           EN
         </button>
         <button 
-          className={`px-3 py-1 text-xs font-bold rounded-full transition-all ${uiLanguage === 'es' ? 'bg-[#2DD4BF] text-black shadow-[0_2px_8px_rgba(45,212,191,0.3)]' : 'text-white/50 hover:text-white/80'}`}
+          className={`px-3 py-1 text-xs rounded-full transition-all ${uiLanguage === 'es' ? 'bg-[#2DD4BF] text-black shadow-[0_2px_8px_rgba(45,212,191,0.3)]' : 'text-white/50 hover:text-white/80'}`}
           onClick={() => setUILanguage('es')}
         >
           ES
@@ -184,10 +184,10 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
           </g>
         </svg>
         <div className="flex flex-col justify-center relative z-10 mb-8 mt-2 text-center">
-          <h1 className="text-3xl tracking-[0.2em] text-[#2DD4BF] font-black leading-none">ZOUTTY</h1>
+          <h1 className="text-3xl tracking-[0.2em] text-[#2DD4BF] font-black font-logo leading-none">ZOUTTY</h1>
         </div>
         
-        <h2 className="text-3xl font-black tracking-tight mb-4">{t('installEnforcer.title')}</h2>
+        <h2 className="text-3xl tracking-tight mb-4">{t('installEnforcer.title')}</h2>
         <p className="text-white/60 text-base leading-relaxed mb-6" dangerouslySetInnerHTML={{ __html: t('installEnforcer.subtitle') }}></p>
 
         <button 
@@ -216,26 +216,26 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end justify-center pb-8 px-4" onClick={() => setShowIosGuide(false)}>
           <div className="bg-[#111] border border-white/10 rounded-3xl w-full max-w-md p-6 relative animate-in slide-in-from-bottom-8 duration-300" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <span className="font-bold text-lg">{t('installEnforcer.iosTitle')}</span>
+              <span className="text-lg">{t('installEnforcer.iosTitle')}</span>
               <button onClick={() => setShowIosGuide(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors">✕</button>
             </div>
             
             <div className="space-y-4 mb-8">
               <div className="flex gap-4 items-start">
-                <div className="w-6 h-6 rounded-full bg-[#2DD4BF]/20 text-[#2DD4BF] flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">1</div>
+                <div className="w-6 h-6 rounded-full bg-[#2DD4BF]/20 text-[#2DD4BF] flex items-center justify-center text-sm shrink-0 mt-0.5">1</div>
                 <div className="text-white/80 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: t('installEnforcer.iosStep1') }}></div>
               </div>
               <div className="flex gap-4 items-start">
-                <div className="w-6 h-6 rounded-full bg-[#2DD4BF]/20 text-[#2DD4BF] flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">2</div>
+                <div className="w-6 h-6 rounded-full bg-[#2DD4BF]/20 text-[#2DD4BF] flex items-center justify-center text-sm shrink-0 mt-0.5">2</div>
                 <div className="text-white/80 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: t('installEnforcer.iosStep2') }}></div>
               </div>
               <div className="flex gap-4 items-start">
-                <div className="w-6 h-6 rounded-full bg-[#2DD4BF]/20 text-[#2DD4BF] flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">3</div>
+                <div className="w-6 h-6 rounded-full bg-[#2DD4BF]/20 text-[#2DD4BF] flex items-center justify-center text-sm shrink-0 mt-0.5">3</div>
                 <div className="text-white/80 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: t('installEnforcer.iosStep3') }}></div>
               </div>
             </div>
             
-            <button className="w-full bg-white/10 hover:bg-white/15 text-white py-3.5 rounded-xl font-bold transition-colors" onClick={() => setShowIosGuide(false)}>
+            <button className="w-full bg-white/10 hover:bg-white/15 text-white py-3.5 rounded-xl transition-colors" onClick={() => setShowIosGuide(false)}>
               {t('installEnforcer.iosGotIt')}
             </button>
           </div>

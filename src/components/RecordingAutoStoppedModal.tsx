@@ -36,7 +36,7 @@ export const RecordingAutoStoppedModal: React.FC<RecordingAutoStoppedModalProps>
         </div>
 
         {/* Title */}
-        <h3 className="text-xl font-bold text-white tracking-tight mb-2">
+        <h3 className="text-xl text-white tracking-tight mb-2">
           {t('billing.limits.recordingAutoStoppedTitle')}
         </h3>
 
@@ -46,7 +46,7 @@ export const RecordingAutoStoppedModal: React.FC<RecordingAutoStoppedModalProps>
         </p>
 
         {/* Clip Saved Badge */}
-        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold mb-6 flex items-center justify-center gap-2">
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs mb-6 flex items-center justify-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>Audio clip saved successfully ({TIER_LIMITS.MAX_CLIP_DURATION_SECONDS / 60} min max)</span>
         </div>
@@ -54,7 +54,7 @@ export const RecordingAutoStoppedModal: React.FC<RecordingAutoStoppedModalProps>
         {/* Action Button */}
         <button
           onClick={onClose}
-          className="w-full py-3.5 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-sm font-bold shadow-lg shadow-brand/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3.5 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-sm shadow-lg shadow-brand/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           <span>{t('billing.limits.audioDurationUnderstood')}</span>
         </button>

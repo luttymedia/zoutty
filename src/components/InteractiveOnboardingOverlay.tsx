@@ -191,12 +191,12 @@ export function InteractiveOnboardingOverlay({
             <div className="w-6 h-6 rounded-lg bg-brand/20 border border-brand/40 flex items-center justify-center text-brand">
               <Compass className="w-3.5 h-3.5" />
             </div>
-            <span className="text-[11px] font-black uppercase tracking-widest text-brand">
+            <span className="text-[11px] font-black font-logo uppercase tracking-widest text-brand">
               {t('appName')} • {t('onboarding.tourTitleSuffix')}
             </span>
           </div>
         ) : (
-          <span className="px-2.5 py-0.5 rounded-lg bg-brand/15 border border-brand/30 text-brand text-[11px] font-black tracking-wide flex items-center gap-1.5">
+          <span className="px-2.5 py-0.5 rounded-lg bg-brand/15 border border-brand/30 text-brand text-[11px] tracking-wide flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
             {t('onboarding.tourStepIndicator', { current: currentStep, total: totalSteps })}
           </span>
@@ -206,7 +206,7 @@ export function InteractiveOnboardingOverlay({
         {!isLastStep && (
           <button
             onClick={onSkip}
-            className="text-xs font-semibold text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1 cursor-pointer"
+            className="text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1 cursor-pointer"
             title={t('onboarding.tourSkipBtn')}
           >
             <span>{t('onboarding.tourSkipBtn')}</span>
@@ -227,7 +227,7 @@ export function InteractiveOnboardingOverlay({
 
       {/* Main Title and Description */}
       <div className="space-y-1">
-        <h3 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2">
+        <h3 className="text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
           {t(stepConfig.titleKey)}
         </h3>
         <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
@@ -238,7 +238,7 @@ export function InteractiveOnboardingOverlay({
       {/* Step 0 Language Selector */}
       {isFirstStep && (
         <div className="p-2.5 bg-white/5 border border-white/10 rounded-2xl space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-white/50 flex items-center gap-1.5">
+          <label className="text-[10px] uppercase tracking-wider text-white/50 flex items-center gap-1.5">
             <Globe className="w-3 h-3 text-brand" />
             {t('onboarding.interfaceLanguage')}
           </label>
@@ -254,7 +254,7 @@ export function InteractiveOnboardingOverlay({
       {stepConfig.sandboxNoticeKey && (
         <div className="p-2.5 sm:p-3 bg-brand/10 border border-brand/30 rounded-2xl flex items-start gap-2">
           <CheckCircle2 className="w-4 h-4 text-brand shrink-0 mt-0.5" />
-          <p className="text-[11px] sm:text-xs text-brand-light font-medium leading-snug">
+          <p className="text-[11px] sm:text-xs text-brand-light leading-snug">
             {t(stepConfig.sandboxNoticeKey)}
           </p>
         </div>
@@ -267,7 +267,7 @@ export function InteractiveOnboardingOverlay({
             <Lightbulb className="w-3 h-3" />
           </div>
           <div className="min-w-0">
-            <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 block mb-0.5">
+            <span className="text-[9px] uppercase tracking-wider text-amber-400 block mb-0.5">
               {t('onboarding.tourProTip')}
             </span>
             <p className="text-[11px] sm:text-xs text-zinc-300 leading-snug">
@@ -283,7 +283,7 @@ export function InteractiveOnboardingOverlay({
         {!isFirstStep ? (
           <button
             onClick={onPrev}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 min-h-[38px]"
+            className="px-3.5 py-2 rounded-xl text-xs text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 min-h-[38px]"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             {t('onboarding.tourBackBtn')}
@@ -296,7 +296,7 @@ export function InteractiveOnboardingOverlay({
         {isLastStep ? (
           <button
             onClick={onFinish}
-            className="px-5 py-2 rounded-xl text-xs font-black text-black bg-brand hover:brightness-110 shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 min-h-[38px]"
+            className="px-5 py-2 rounded-xl text-xs text-black bg-brand hover:brightness-110 shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 min-h-[38px]"
           >
             {t('onboarding.tourFinishBtn')}
             <CheckCircle2 className="w-4 h-4" />
@@ -304,7 +304,7 @@ export function InteractiveOnboardingOverlay({
         ) : (
           <button
             onClick={onNext}
-            className="px-4 py-2 rounded-xl text-xs font-black text-black bg-brand hover:brightness-110 shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 ml-auto min-h-[38px]"
+            className="px-4 py-2 rounded-xl text-xs text-black bg-brand hover:brightness-110 shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 ml-auto min-h-[38px]"
           >
             {isFirstStep
               ? t('onboarding.tourStartBtn')
@@ -406,7 +406,7 @@ export function InteractiveOnboardingOverlay({
           <div
             className={`absolute ${
               targetRect.top < 38 ? '-bottom-3 -right-2' : '-top-3 -right-2'
-            } bg-brand text-black font-black text-[9px] px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 animate-bounce pointer-events-none uppercase tracking-wider`}
+            } bg-brand text-black text-[9px] px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 animate-bounce pointer-events-none uppercase tracking-wider`}
           >
             <Sparkles className="w-3 h-3" />
             {t('onboarding.tourTapBadge') || t('common.tap') || 'Tap'}

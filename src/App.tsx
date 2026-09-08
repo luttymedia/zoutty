@@ -26,6 +26,7 @@ import {
   Folder,
   FolderPlus,
   FolderOpen,
+  Library,
   Share2,
   Copy,
   SlidersHorizontal,
@@ -209,7 +210,7 @@ function Toast({
         opacity: 1 - Math.abs(offset) / 200,
         transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.2s ease-out',
       }}
-      className={`fixed bottom-6 left-1/2 w-[90%] md:w-auto max-w-md md:max-w-lg px-5 py-3.5 rounded-2xl text-white font-medium text-sm z-[60] shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 ${bgStyle}`}
+      className={`fixed bottom-6 left-1/2 w-[90%] md:w-auto max-w-md md:max-w-lg px-5 py-3.5 rounded-2xl text-white text-sm z-[60] shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 ${bgStyle}`}
     >
       <span className="flex-1">{message}</span>
       {actionText && onAction && (
@@ -218,7 +219,7 @@ function Toast({
             onAction();
             onClose();
           }}
-          className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shrink-0"
+          className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs uppercase tracking-wider transition-colors shrink-0"
         >
           {actionText}
         </button>
@@ -238,7 +239,7 @@ function Spinner({ text, onCancel }: { text: string; onCancel?: () => void }) {
           <button
             type="button"
             onClick={onCancel}
-            className="mt-2 px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 border border-white/20 text-sm font-medium text-white/90 transition-all duration-200 shadow-sm flex items-center gap-2 backdrop-blur-md cursor-pointer"
+            className="mt-2 px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 border border-white/20 text-sm text-white/90 transition-all duration-200 shadow-sm flex items-center gap-2 backdrop-blur-md cursor-pointer"
           >
             <X className="w-4 h-4 text-white/70" />
             <span>{t('common.cancel')}</span>
@@ -249,23 +250,38 @@ function Spinner({ text, onCancel }: { text: string; onCancel?: () => void }) {
   );
 }
 
-function AppSettingsCollapsible({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+function AppSettingsCollapsible({
+  label,
+  icon,
+  children,
+  defaultOpen = false,
+  badge
+}: {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  badge?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-white/10 rounded-2xl overflow-hidden">
+    <div className="py-1">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+        className="w-full flex items-center justify-between py-2.5 text-left group cursor-pointer transition-colors"
       >
-        <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-white/40">
+        <span className="flex items-center gap-2 text-xs uppercase tracking-wider text-white/50 group-hover:text-white/80 transition-colors">
           {icon}
-          {label}
+          <span>{label}</span>
         </span>
-        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <div className="flex items-center gap-2">
+          {badge}
+          <ChevronDown className={`w-4 h-4 text-white/30 group-hover:text-white/60 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </div>
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-2 space-y-4 border-t border-white/5 animate-in fade-in duration-150">
+        <div className="pt-1.5 pb-2 animate-in fade-in duration-150">
           {children}
         </div>
       )}
@@ -2923,7 +2939,7 @@ export default function App() {
     return (
       <div className="fixed inset-0 bg-zinc-950 flex flex-col items-center justify-center p-6 z-[200] text-zinc-100 font-sans">
         <div className="bg-zinc-900 border border-zinc-800 p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 rounded-2xl shadow-2xl">
-          <h3 className="text-xl font-bold flex items-center gap-2 text-white">
+          <h3 className="text-xl flex items-center gap-2 text-white">
             <CloudUpload className="w-6 h-6 text-orange-500" />
             {t('modals.syncConflictTitle')}
           </h3>
@@ -2931,7 +2947,7 @@ export default function App() {
             {t('modals.syncConflictMsg')}
           </p>
           <div className="flex flex-col gap-3 mt-6">
-            <button onClick={() => finishInitialSync()} className="w-full px-5 py-3.5 rounded-xl font-bold bg-orange-500 hover:bg-orange-400 transition-colors text-zinc-950 text-sm">{t('modals.syncMergeBtn')}</button>
+            <button onClick={() => finishInitialSync()} className="w-full px-5 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-400 transition-colors text-zinc-950 text-sm">{t('modals.syncMergeBtn')}</button>
             <button onClick={async () => {
               showSpinner('Replacing cloud data...');
               if (session?.user) {
@@ -2953,13 +2969,13 @@ export default function App() {
               }
               hideSpinner();
               finishInitialSync();
-            }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-zinc-700 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncReplaceCloudBtn')}</button>
+            }} className="w-full px-5 py-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncReplaceCloudBtn')}</button>
             <button onClick={async () => {
               showSpinner('Clearing local data...');
               await db.clearDatabase();
               hideSpinner();
               finishInitialSync();
-            }} className="w-full px-5 py-3.5 rounded-xl font-bold bg-zinc-800 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncUseCloudBtn')}</button>
+            }} className="w-full px-5 py-3.5 rounded-xl bg-zinc-800 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncUseCloudBtn')}</button>
           </div>
         </div>
       </div>
@@ -2984,7 +3000,7 @@ export default function App() {
                 <AlertTriangle className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-red-100 text-sm font-bold leading-snug">
+                <p className="text-red-100 text-sm leading-snug">
                   {t('billing.banner.paymentFailedTitle')}
                 </p>
                 <p className="text-red-200/80 text-xs mt-0.5 leading-snug">
@@ -2996,7 +3012,7 @@ export default function App() {
               <button
                 onClick={handleOpenBillingPortal}
                 disabled={isPortalLoading}
-                className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 min-h-[36px] flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs transition-all shadow-md active:scale-95 disabled:opacity-50 min-h-[36px] flex items-center gap-1.5 cursor-pointer"
               >
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>{t('billing.banner.updateBillingBtn')}</span>
@@ -3018,12 +3034,12 @@ export default function App() {
           <div className="flex items-start gap-3 px-4 py-3 bg-zinc-800/90 border-b border-zinc-600/50 backdrop-blur-md animate-in slide-in-from-top duration-300">
             <span className="text-zinc-300 text-lg leading-none mt-0.5">📡</span>
             <div className="flex-1 min-w-0">
-              <p className="text-zinc-100 text-sm font-semibold leading-snug">{t('offline.bannerTitle')}</p>
+              <p className="text-zinc-100 text-sm leading-snug">{t('offline.bannerTitle')}</p>
               <p className="text-zinc-300/80 text-xs mt-0.5 leading-snug">{t('offline.bannerDesc')}</p>
             </div>
             <button
               onClick={() => setOfflineBannerDismissed(true)}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-zinc-700/50 hover:bg-zinc-600/50 text-zinc-300 text-xs font-bold transition-colors min-h-[36px]"
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-zinc-700/50 hover:bg-zinc-600/50 text-zinc-300 text-xs transition-colors min-h-[36px]"
             >
               {t('offline.dismiss')}
             </button>
@@ -3035,12 +3051,12 @@ export default function App() {
           <div className="flex items-start gap-3 px-4 py-3 bg-amber-500/20 border-b border-amber-400/30 backdrop-blur-md animate-in slide-in-from-top duration-300">
             <span className="text-amber-300 text-lg leading-none mt-0.5">☁️</span>
             <div className="flex-1 min-w-0">
-              <p className="text-amber-200 text-sm font-semibold leading-snug">{t('storageFull.bannerTitle')}</p>
+              <p className="text-amber-200 text-sm leading-snug">{t('storageFull.bannerTitle')}</p>
               <p className="text-amber-200/70 text-xs mt-0.5 leading-snug">{t('storageFull.bannerDesc')}</p>
             </div>
             <button
               onClick={() => setStorageBannerDismissed(true)}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 text-xs font-bold transition-colors min-h-[36px]"
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 text-xs transition-colors min-h-[36px]"
             >
               {t('storageFull.dismiss')}
             </button>
@@ -3053,11 +3069,11 @@ export default function App() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[70] p-6">
           <div className="glass p-8 max-w-sm w-full space-y-5 animate-in zoom-in-95">
             <div className="text-4xl text-center">😬</div>
-            <h3 className="text-xl font-bold text-center">{t('storageFull.bothFailedTitle')}</h3>
+            <h3 className="text-xl text-center">{t('storageFull.bothFailedTitle')}</h3>
             <p className="text-white/70 text-sm text-center leading-relaxed">{t('storageFull.bothFailed')}</p>
             <button
               onClick={() => setShowBothFailed(false)}
-              className="w-full py-3 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors text-white"
+              className="w-full py-3 rounded-xl bg-brand hover:bg-brand/90 transition-colors text-white"
             >
               {t('storageFull.bothFailedBtn')}
             </button>
@@ -3070,13 +3086,13 @@ export default function App() {
       {deleteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
-            <h3 className="text-xl font-bold">{t('modals.confirmDeletion')}</h3>
+            <h3 className="text-xl">{t('modals.confirmDeletion')}</h3>
             <p className="text-white/70">
               {deleteModal.type === 'session' ? t('modals.deleteSessionMsg', { title: deleteModal.title }) : t('modals.deleteAudioMsg', { title: deleteModal.title })}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setDeleteModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
-              <button onClick={confirmDelete} className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]">{t('modals.deleteBtn')}</button>
+              <button onClick={() => setDeleteModal(null)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
+              <button onClick={confirmDelete} className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]">{t('modals.deleteBtn')}</button>
             </div>
           </div>
         </div>
@@ -3096,7 +3112,7 @@ export default function App() {
       {showGuestLockModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-[110] animate-in fade-in duration-200">
           <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-300">
-            <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+            <h3 className="text-xl mb-3 flex items-center gap-2">
               <Lock className="w-6 h-6 text-brand" />
               {t('appSettings.guestModalTitle')}
             </h3>
@@ -3106,7 +3122,7 @@ export default function App() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowGuestLockModal(false)}
-                className="px-5 py-3 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-white text-sm cursor-pointer"
+                className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white text-sm cursor-pointer"
               >
                 {t('auth.guestConfirmCancel')}
               </button>
@@ -3115,7 +3131,7 @@ export default function App() {
                   localStorage.removeItem('zoutty_guest_mode');
                   window.location.reload();
                 }}
-                className="px-5 py-3 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors text-bg-dark text-sm shadow-lg shadow-brand/20 flex items-center justify-center gap-2 cursor-pointer"
+                className="px-5 py-3 rounded-xl bg-brand hover:bg-brand/90 transition-colors text-bg-dark text-sm shadow-lg shadow-brand/20 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <LogOut className="w-4 h-4 rotate-180" />
                 {t('appSettings.signInSignUpBtn')}
@@ -3129,7 +3145,7 @@ export default function App() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[70]">
           <div className="glass p-6 rounded-2xl flex flex-col items-center gap-4">
             <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-brand font-semibold text-lg animate-pulse">Searching...</span>
+            <span className="text-brand text-lg animate-pulse">Searching...</span>
           </div>
         </div>
       )}
@@ -3138,7 +3154,7 @@ export default function App() {
       {showExportConfirm && selectedSession && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6" onClick={() => setShowExportConfirm(false)}>
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold flex items-center gap-2">
+            <h3 className="text-xl flex items-center gap-2">
               <Download className="w-5 h-5 text-brand" />
               {t('modals.confirmExport')}
             </h3>
@@ -3147,7 +3163,7 @@ export default function App() {
             </p>
 
             <div className="space-y-3">
-              <label className="text-xs font-bold text-white/40 uppercase tracking-wider">{t('modals.exportIncludeTranscriptsLabel')}</label>
+              <label className="text-xs text-white/40 uppercase tracking-wider">{t('modals.exportIncludeTranscriptsLabel')}</label>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -3158,7 +3174,7 @@ export default function App() {
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${exportIncludeAudioTranscripts ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
-                <span className="text-sm text-white/80 font-medium">
+                <span className="text-sm text-white/80">
                   {t('modals.exportIncludeTranscripts')}
                 </span>
               </div>
@@ -3174,7 +3190,7 @@ export default function App() {
             <div className="flex gap-3 justify-end items-center mt-6">
               <button
                 onClick={() => setShowExportConfirm(false)}
-                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer text-xs"
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer text-xs"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -3206,7 +3222,7 @@ export default function App() {
                     setTimeout(() => { document.title = originalTitle; }, 10000);
                   }, 100);
                 }}
-                className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs"
+                className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs"
               >
                 {t('modals.exportBtn')}
               </button>
@@ -3219,7 +3235,7 @@ export default function App() {
       {reprocessModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
-            <h3 className="text-xl font-bold flex items-center gap-2">
+            <h3 className="text-xl flex items-center gap-2">
               <Zap className="w-6 h-6 text-brand" />
               {t('modals.confirmReprocess')}
             </h3>
@@ -3227,8 +3243,8 @@ export default function App() {
               {t('modals.reprocessMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setReprocessModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
-              <button onClick={confirmReprocess} className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px]">{t('modals.reprocessBtn')}</button>
+              <button onClick={() => setReprocessModal(null)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
+              <button onClick={confirmReprocess} className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px]">{t('modals.reprocessBtn')}</button>
             </div>
           </div>
         </div>
@@ -3248,7 +3264,7 @@ export default function App() {
           >
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-white/5 pb-3 pr-6">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <h3 className="text-lg text-white flex items-center gap-2">
                 <Settings className="w-5 h-5 text-brand" />
                 {t('appSettings.drawerTitle')}
               </h3>
@@ -3260,600 +3276,631 @@ export default function App() {
               </button>
             </div>
 
-            {/* Drawer Content */}
-            <div className="flex-1 overflow-y-auto space-y-8 pr-6">
+            {/* Drawer Content - Container-reduced layout with collapsible sections */}
+            <div className="flex-1 overflow-y-auto divide-y divide-white/5 pr-6">
 
-              {/* Language Section */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Globe className="w-4 h-4 text-brand" />
-                  {t('appSettings.languageSection')}
-                </h4>
-                <p className="text-xs text-white/60 leading-relaxed">
-                  {t('appSettings.languageSectionDesc')}
-                </p>
-                <div className="flex gap-1 bg-white/5 border border-white/10 p-[3px] rounded-full w-fit">
-                  {Object.entries(UI_LANGUAGE_NAMES).map(([code, name]) => (
-                    <button
-                      key={code}
-                      onClick={() => setUILanguage(code as any)}
-                      className={`px-4 py-1.5 text-xs font-bold rounded-full tracking-wider transition-all duration-300 flex items-center gap-1.5 ${
-                        uiLanguage === code
-                          ? 'bg-brand text-bg-dark shadow-[0_2px_8px_rgba(45,212,191,0.3)]'
-                          : 'text-white/50 hover:text-white/80 hover:bg-white/5'
-                      }`}
-                    >
-                      <span className="uppercase">{code}</span>
-                      <span className={`text-[11px] font-medium ${uiLanguage === code ? 'text-bg-dark/80' : 'text-white/40'}`}>
-                        ({name})
-                      </span>
-                    </button>
-                  ))}
-                </div>
+              {/* 1. Language Section */}
+              <div className="py-2 first:pt-0">
+                <AppSettingsCollapsible
+                  label={t('appSettings.languageSection')}
+                  icon={<Globe className="w-4 h-4 text-brand" />}
+                  defaultOpen={true}
+                  badge={
+                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/20">
+                      {uiLanguage}
+                    </span>
+                  }
+                >
+                  <div className="space-y-3 pt-1">
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      {t('appSettings.languageSectionDesc')}
+                    </p>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {Object.entries(UI_LANGUAGE_NAMES).map(([code, name]) => (
+                        <button
+                          key={code}
+                          onClick={() => setUILanguage(code as any)}
+                          className={`px-3.5 py-1.5 text-xs rounded-xl transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                            uiLanguage === code
+                              ? 'bg-brand text-bg-dark font-medium shadow-[0_2px_8px_rgba(45,212,191,0.3)]'
+                              : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10 border border-white/5'
+                          }`}
+                        >
+                          <span className="uppercase font-mono">{code}</span>
+                          <span className={`text-[11px] ${uiLanguage === code ? 'text-bg-dark/80' : 'text-white/40'}`}>
+                            ({name})
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </AppSettingsCollapsible>
               </div>
 
-              {/* Account / Logout Section */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <LogOut className="w-4 h-4 text-orange-400" />
-                  {t('appSettings.accountSection')}
-                </h4>
-                {!isGuestMode && (
-                  <p className="text-xs text-white/60 leading-relaxed text-orange-300/80">
-                    {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
-                  </p>
-                )}
-                {(() => {
-                  const resolvedDisplayName = devState.display_name || session?.user?.user_metadata?.display_name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '';
-                  return (
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold uppercase">
-                        {resolvedDisplayName ? resolvedDisplayName[0].toUpperCase() : (session?.user?.email ? session.user.email[0].toUpperCase() : 'G')}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-white truncate">
-                          {resolvedDisplayName || (session?.user?.email ? session.user.email : t('appSettings.guestUser'))}
-                        </div>
-                        <div className="text-xs text-white/40 truncate">
-                          {session?.user?.email ? (resolvedDisplayName ? session.user.email : t('appSettings.authenticatedAccount')) : t('appSettings.localSandboxMode')}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
+              {/* 2. Account / Profile Section */}
+              <div className="py-2">
+                <AppSettingsCollapsible
+                  label={t('appSettings.accountSection')}
+                  icon={<LogOut className="w-4 h-4 text-orange-400" />}
+                  defaultOpen={true}
+                  badge={
+                    isGuestMode ? (
+                      <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                        {t('guestModeBadge')}
+                      </span>
+                    ) : null
+                  }
+                >
+                  <div className="space-y-3 pt-1">
+                    {!isGuestMode && (
+                      <p className="text-xs text-white/60 leading-relaxed text-orange-300/80">
+                        {t('appSettings.logoutDesc')} <strong>{t('appSettings.logoutWarning')}</strong>
+                      </p>
+                    )}
 
-                {!isGuestMode && session?.user && (
-                  <AppSettingsCollapsible
-                    label={t('appSettings.editAccountSection')}
-                    icon={<Edit2 className="w-4 h-4 text-brand" />}
-                  >
-                    <div className="space-y-5 pt-1">
-                      {/* Edit Display Name */}
-                      <form onSubmit={handleSaveDisplayName} className="space-y-2.5">
-                        <label className="text-xs font-semibold text-white/70 block">
-                          {t('appSettings.editDisplayNameLabel')}
-                        </label>
-                        <input
-                          type="text"
-                          value={editDisplayName}
-                          onChange={(e) => setEditDisplayName(e.target.value)}
-                          placeholder={t('appSettings.editDisplayNamePlaceholder')}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
-                        />
-                        <button
-                          type="submit"
-                          disabled={
-                            isSavingDisplayName ||
-                            !editDisplayName.trim() ||
-                            editDisplayName.trim() === (devState.display_name || session?.user?.user_metadata?.display_name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '')
-                          }
-                          className="w-full py-2 bg-brand text-bg-dark text-xs font-bold rounded-xl hover:bg-brand/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer shadow-sm"
-                        >
-                          {isSavingDisplayName ? (
-                            <LoaderIcon className="w-4 h-4" />
-                          ) : (
-                            t('appSettings.saveDisplayNameBtn')
-                          )}
-                        </button>
-                      </form>
-
-                      {/* Edit Password */}
-                      <form onSubmit={handleUpdatePassword} className="space-y-2.5 border-t border-white/5 pt-4">
-                        <label className="text-xs font-semibold text-white/70 block">
-                          {userHasPassword ? t('appSettings.changePasswordTitle') : t('appSettings.setPasswordTitle')}
-                        </label>
-                        {!userHasPassword && (
-                          <p className="text-[11px] text-white/40 leading-relaxed">
-                            {t('appSettings.setPasswordDesc')}
-                          </p>
-                        )}
-
-                        {/* Current Password - Only shown if user already has a password */}
-                        {userHasPassword && (
-                          <div className="relative">
-                            <input
-                              type={showCurrentPassword ? 'text' : 'password'}
-                              value={currentPassword}
-                              onChange={(e) => setCurrentPassword(e.target.value)}
-                              placeholder={t('appSettings.currentPasswordPlaceholder')}
-                              className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
-                            >
-                              {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
+                    {/* Clean User Profile Row */}
+                    {(() => {
+                      const resolvedDisplayName = devState.display_name || session?.user?.user_metadata?.display_name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '';
+                      return (
+                        <div className="py-1 flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 uppercase font-medium">
+                            {resolvedDisplayName ? resolvedDisplayName[0].toUpperCase() : (session?.user?.email ? session.user.email[0].toUpperCase() : 'G')}
                           </div>
-                        )}
-
-                        {/* New Password */}
-                        <div className="relative">
-                          <input
-                            type={showNewPassword ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            placeholder={t('appSettings.newPasswordPlaceholder')}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
-                          >
-                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-white truncate">
+                              {resolvedDisplayName || (session?.user?.email ? session.user.email : t('appSettings.guestUser'))}
+                            </div>
+                            <div className="text-xs text-white/40 truncate font-mono">
+                              {session?.user?.email ? (resolvedDisplayName ? session.user.email : t('appSettings.authenticatedAccount')) : t('appSettings.localSandboxMode')}
+                            </div>
+                          </div>
                         </div>
+                      );
+                    })()}
 
-                        {/* Confirm New Password */}
-                        <div className="relative">
-                          <input
-                            type={showConfirmNewPassword ? 'text' : 'password'}
-                            value={confirmNewPassword}
-                            onChange={(e) => setConfirmNewPassword(e.target.value)}
-                            placeholder={t('appSettings.confirmNewPasswordPlaceholder')}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
-                          >
-                            {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={isUpdatingPassword || !newPassword || !confirmNewPassword}
-                          className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
+                    {/* Sub-collapsible: Edit Account (clean left accent line) */}
+                    {!isGuestMode && session?.user && (
+                      <div className="mt-2 pl-3 border-l-2 border-brand/30">
+                        <AppSettingsCollapsible
+                          label={t('appSettings.editAccountSection')}
+                          icon={<Edit2 className="w-3.5 h-3.5 text-brand" />}
+                          defaultOpen={false}
                         >
-                          <Lock className="w-3.5 h-3.5 text-white/70" />
-                          {isUpdatingPassword ? t('common.processing') : (userHasPassword ? t('appSettings.updatePasswordBtn') : t('appSettings.setPasswordBtn'))}
-                        </button>
-                      </form>
+                          <div className="space-y-4 pt-1">
+                            {/* Edit Display Name */}
+                            <form onSubmit={handleSaveDisplayName} className="space-y-2">
+                              <label className="text-xs text-white/70 block">
+                                {t('appSettings.editDisplayNameLabel')}
+                              </label>
+                              <input
+                                type="text"
+                                value={editDisplayName}
+                                onChange={(e) => setEditDisplayName(e.target.value)}
+                                placeholder={t('appSettings.editDisplayNamePlaceholder')}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-brand/50 transition-all"
+                              />
+                              <button
+                                type="submit"
+                                disabled={
+                                  isSavingDisplayName ||
+                                  !editDisplayName.trim() ||
+                                  editDisplayName.trim() === (devState.display_name || session?.user?.user_metadata?.display_name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '')
+                                }
+                                className="w-full py-2 bg-brand text-bg-dark font-medium text-xs rounded-xl hover:bg-brand/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer shadow-sm"
+                              >
+                                {isSavingDisplayName ? (
+                                  <LoaderIcon className="w-4 h-4" />
+                                ) : (
+                                  t('appSettings.saveDisplayNameBtn')
+                                )}
+                              </button>
+                            </form>
 
-                      {/* Delete Account */}
-                      <div className="border-t border-white/5 pt-4 space-y-2">
-                        <label className="text-xs font-semibold text-red-400 block">
-                          {t('appSettings.deleteAccountTitle')}
-                        </label>
-                        <p className="text-[11px] text-white/40 leading-relaxed">
-                          {t('appSettings.deleteAccountDesc')}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDeleteAccountConfirmInput('');
-                            setShowDeleteAccountModal(true);
-                          }}
-                          className="w-full flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all text-xs font-bold cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          {t('appSettings.deleteAccountBtn')}
-                        </button>
+                            {/* Edit Password */}
+                            <form onSubmit={handleUpdatePassword} className="space-y-2 border-t border-white/5 pt-3">
+                              <label className="text-xs text-white/70 block">
+                                {userHasPassword ? t('appSettings.changePasswordTitle') : t('appSettings.setPasswordTitle')}
+                              </label>
+                              {!userHasPassword && (
+                                <p className="text-[11px] text-white/40 leading-relaxed">
+                                  {t('appSettings.setPasswordDesc')}
+                                </p>
+                              )}
+
+                              {userHasPassword && (
+                                <div className="relative">
+                                  <input
+                                    type={showCurrentPassword ? 'text' : 'password'}
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    placeholder={t('appSettings.currentPasswordPlaceholder')}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-brand/50 transition-all"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                                  >
+                                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                  </button>
+                                </div>
+                              )}
+
+                              <div className="relative">
+                                <input
+                                  type={showNewPassword ? 'text' : 'password'}
+                                  value={newPassword}
+                                  onChange={(e) => setNewPassword(e.target.value)}
+                                  placeholder={t('appSettings.newPasswordPlaceholder')}
+                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-brand/50 transition-all"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowNewPassword(!showNewPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                                >
+                                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                              </div>
+
+                              <div className="relative">
+                                <input
+                                  type={showConfirmNewPassword ? 'text' : 'password'}
+                                  value={confirmNewPassword}
+                                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                  placeholder={t('appSettings.confirmNewPasswordPlaceholder')}
+                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-brand/50 transition-all"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                                >
+                                  {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                              </div>
+
+                              <button
+                                type="submit"
+                                disabled={isUpdatingPassword || !newPassword || !confirmNewPassword}
+                                className="w-full py-2 bg-white/10 hover:bg-white/15 text-white text-xs rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <Lock className="w-3.5 h-3.5 text-white/70" />
+                                {isUpdatingPassword ? t('common.processing') : (userHasPassword ? t('appSettings.updatePasswordBtn') : t('appSettings.setPasswordBtn'))}
+                              </button>
+                            </form>
+
+                            {/* Delete Account */}
+                            <div className="border-t border-white/5 pt-3 space-y-2">
+                              <label className="text-xs text-red-400 block">
+                                {t('appSettings.deleteAccountTitle')}
+                              </label>
+                              <p className="text-[11px] text-white/40 leading-relaxed">
+                                {t('appSettings.deleteAccountDesc')}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeleteAccountConfirmInput('');
+                                  setShowDeleteAccountModal(true);
+                                }}
+                                className="w-full flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all text-xs cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                {t('appSettings.deleteAccountBtn')}
+                              </button>
+                            </div>
+                          </div>
+                        </AppSettingsCollapsible>
                       </div>
+                    )}
+
+                    {isGuestMode ? (
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem('zoutty_guest_mode');
+                          setIsGuestMode(false);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs cursor-pointer"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                        {t('appSettings.signInBtn')}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setShowLogoutConfirm(true);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs cursor-pointer"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        {t('modals.logoutBtn')}
+                      </button>
+                    )}
+                  </div>
+                </AppSettingsCollapsible>
+              </div>
+
+              {/* 3. Plan & AI Quota Section */}
+              <div className="py-2">
+                {isGuestMode ? (
+                  <AppSettingsCollapsible
+                    label={t('appSettings.cloudAndAiSection')}
+                    icon={<Cloud className="w-4 h-4 text-brand" />}
+                    defaultOpen={true}
+                  >
+                    <div className="space-y-3 pt-1">
+                      <p className="text-xs text-white/60 leading-relaxed">
+                        {t('appSettings.guestCloudDesc')}
+                      </p>
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem('zoutty_guest_mode');
+                          window.location.reload();
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-medium transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                      >
+                        <LogOut className="w-3.5 h-3.5 rotate-180" />
+                        <span>{t('appSettings.signInSignUpBtn')}</span>
+                      </button>
                     </div>
                   </AppSettingsCollapsible>
-                )}
+                ) : (() => {
+                  const currentTier: UserTier = (devState.tier === 'student' || devState.tier === 'teacher') ? devState.tier : 'free';
+                  const isFree = currentTier === 'free';
+                  const isStudent = currentTier === 'student';
+                  const isTeacher = currentTier === 'teacher';
 
-                {isGuestMode ? (
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('zoutty_guest_mode');
-                      setIsGuestMode(false);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                    {t('appSettings.signInBtn')}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setShowLogoutConfirm(true);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs font-bold shadow-sm"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    {t('modals.logoutBtn')}
-                  </button>
-                )}
-              </div>
+                  const isBoost = Boolean(
+                    isFree &&
+                    devState.referral_boost_active &&
+                    devState.referral_boost_expires_at &&
+                    new Date(devState.referral_boost_expires_at).getTime() > Date.now()
+                  );
+                  const topupSessions = !isFree ? (devState.topup_extra_sessions || 0) : 0;
+                  const topupClips = !isFree ? (devState.topup_extra_clips || 0) : 0;
 
-              {/* Plan & AI Quota Section */}
-              {isGuestMode ? (
-                <div className="space-y-3 border-t border-white/5 pt-6">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                      <Cloud className="w-4 h-4 text-brand" />
-                      {t('appSettings.cloudAndAiSection')}
-                    </h4>
-                  </div>
-                  <p className="text-xs text-white/60 leading-relaxed">
-                    {t('appSettings.guestCloudDesc')}
-                  </p>
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('zoutty_guest_mode');
-                      window.location.reload();
-                    }}
-                    className="w-full py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm mt-2"
-                  >
-                    <LogOut className="w-3.5 h-3.5 rotate-180" />
-                    <span>{t('appSettings.signInSignUpBtn')}</span>
-                  </button>
-                </div>
-              ) : (() => {
-                const currentTier: UserTier = (devState.tier === 'student' || devState.tier === 'teacher') ? devState.tier : 'free';
-                const isFree = currentTier === 'free';
-                const isStudent = currentTier === 'student';
-                const isTeacher = currentTier === 'teacher';
+                  const boostSessions = isBoost ? (devState.referral_boost_extra_sessions || TIER_LIMITS.referral_boost.extra_sessions) : 0;
+                  const boostClips = isBoost ? (devState.referral_boost_extra_clips || TIER_LIMITS.referral_boost.extra_clips) : 0;
 
-                const isBoost = Boolean(
-                  isFree &&
-                  devState.referral_boost_active &&
-                  devState.referral_boost_expires_at &&
-                  new Date(devState.referral_boost_expires_at).getTime() > Date.now()
-                );
-                const topupSessions = !isFree ? (devState.topup_extra_sessions || 0) : 0;
-                const topupClips = !isFree ? (devState.topup_extra_clips || 0) : 0;
+                  const maxSessions = isFree
+                    ? (TIER_LIMITS.free.lifetime_sessions + boostSessions)
+                    : isStudent
+                    ? TIER_LIMITS.student.monthly_sessions + topupSessions
+                    : TIER_LIMITS.teacher.monthly_sessions + topupSessions;
+                  const currentSessions = isFree ? (devState.lifetime_sessions || 0) : (devState.period_sessions || 0);
 
-                const boostSessions = isBoost ? (devState.referral_boost_extra_sessions || TIER_LIMITS.referral_boost.extra_sessions) : 0;
-                const boostClips = isBoost ? (devState.referral_boost_extra_clips || TIER_LIMITS.referral_boost.extra_clips) : 0;
+                  const maxClips = isFree
+                    ? (TIER_LIMITS.free.lifetime_clips + boostClips)
+                    : isStudent
+                    ? TIER_LIMITS.student.monthly_clips + topupClips
+                    : Infinity;
+                  const currentClips = isFree ? (devState.lifetime_clips || 0) : (devState.period_clips || 0);
+                  const nextResetDate = formatSafeDate(devState.current_period_end, uiLanguage);
 
-                const maxSessions = isFree
-                  ? (TIER_LIMITS.free.lifetime_sessions + boostSessions)
-                  : isStudent
-                  ? TIER_LIMITS.student.monthly_sessions + topupSessions
-                  : TIER_LIMITS.teacher.monthly_sessions + topupSessions;
-                const currentSessions = isFree ? (devState.lifetime_sessions || 0) : (devState.period_sessions || 0);
+                  const planBadge = (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono uppercase ${
+                      isStudent
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : isTeacher
+                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                        : 'bg-white/10 text-white/70 border border-white/10'
+                    }`}>
+                      {isStudent ? t('billing.plans.studentName') : isTeacher ? t('billing.plans.teacherName') : t('billing.plans.freeName')}
+                    </span>
+                  );
 
-                const maxClips = isFree
-                  ? (TIER_LIMITS.free.lifetime_clips + boostClips)
-                  : isStudent
-                  ? TIER_LIMITS.student.monthly_clips + topupClips
-                  : Infinity;
-                const currentClips = isFree ? (devState.lifetime_clips || 0) : (devState.period_clips || 0);
-                const nextResetDate = formatSafeDate(devState.current_period_end, uiLanguage);
+                  return (
+                    <AppSettingsCollapsible
+                      label={t('billing.usage.sectionTitle')}
+                      icon={<Sparkles className="w-4 h-4 text-brand" />}
+                      defaultOpen={true}
+                      badge={planBadge}
+                    >
+                      <div className="space-y-4 pt-1">
+                        <p className="text-xs text-white/60 leading-relaxed">
+                          {t('billing.usage.sectionDesc')}
+                        </p>
 
-                return (
-                  <div className="space-y-3 border-t border-white/5 pt-6">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                        <Sparkles className="w-4 h-4 text-brand" />
-                        {t('billing.usage.sectionTitle')}
-                      </h4>
-                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold uppercase ${
-                        isStudent
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : isTeacher
-                          ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                          : 'bg-white/10 text-white/70 border border-white/10'
-                      }`}>
-                        {isStudent ? t('billing.plans.studentName') : isTeacher ? t('billing.plans.teacherName') : t('billing.plans.freeName')}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-white/60 leading-relaxed">
-                      {t('billing.usage.sectionDesc')}
-                    </p>
-
-                    {/* Quota Progress Cards */}
-                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                      {/* Sessions Usage */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-white/70 flex items-center gap-1.5">
-                            <Zap className="w-3.5 h-3.5 text-brand" />
-                            <span>{isFree ? t('billing.usage.lifetimeSessionsUsed', { used: currentSessions, total: maxSessions === Infinity ? t('billing.usage.infinite') : maxSessions }) : t('billing.usage.monthlySessionsUsed', { used: currentSessions, total: maxSessions === Infinity ? t('billing.usage.infinite') : maxSessions })}</span>
-                          </span>
-                          <span className="font-mono font-semibold text-white/90">
-                            {maxSessions === Infinity ? `${currentSessions} / ∞` : `${Math.min(currentSessions, maxSessions)} / ${maxSessions}`}
-                          </span>
-                        </div>
-                        {maxSessions !== Infinity && (
-                          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                currentSessions >= maxSessions ? 'bg-red-500' : 'bg-brand'
-                              }`}
-                              style={{ width: `${Math.min(100, Math.round((currentSessions / maxSessions) * 100))}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Audio Clips Usage */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-white/70 flex items-center gap-1.5">
-                            <AudioLines className="w-3.5 h-3.5 text-brand" />
-                            <span>
-                              {isTeacher || maxClips === Infinity
-                                ? t('billing.usage.unlimitedClips')
-                                : isFree
-                                ? t('billing.usage.lifetimeClipsUsed', { used: currentClips, total: maxClips })
-                                : t('billing.usage.monthlyClipsUsed', { used: currentClips, total: maxClips })}
-                            </span>
-                          </span>
-                          <span className="font-mono font-semibold text-white/90">
-                            {maxClips === Infinity ? `${currentClips} / ∞` : `${Math.min(currentClips, maxClips)} / ${maxClips}`}
-                          </span>
-                        </div>
-                        {maxClips !== Infinity && (
-                          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                currentClips >= maxClips ? 'bg-red-500' : 'bg-brand'
-                              }`}
-                              style={{ width: `${Math.min(100, Math.round((currentClips / maxClips) * 100))}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Next Reset Date (Paid Users) */}
-                      {!isFree && (
-                        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-white/50">
-                          <span className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-sky-400" />
-                            {devState.cancel_at_period_end ? (
-                              <span>{t('billing.usage.cancelsOn', { date: nextResetDate })}</span>
-                            ) : devState.pending_downgrade ? (
-                              <span>{t('billing.usage.downgradesOn', { date: nextResetDate })}</span>
-                            ) : (
-                              <span>{t('billing.usage.resetDate', { date: nextResetDate })}</span>
+                        {/* Inline Quota Progress - Container-reduced */}
+                        <div className="space-y-3.5 py-2 border-y border-white/5">
+                          {/* Sessions Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-white/70 flex items-center gap-1.5">
+                                <Zap className="w-3.5 h-3.5 text-brand" />
+                                <span>{isFree ? t('billing.usage.lifetimeSessionsUsed', { used: currentSessions, total: maxSessions === Infinity ? t('billing.usage.infinite') : maxSessions }) : t('billing.usage.monthlySessionsUsed', { used: currentSessions, total: maxSessions === Infinity ? t('billing.usage.infinite') : maxSessions })}</span>
+                              </span>
+                              <span className="font-mono text-white/90">
+                                {maxSessions === Infinity ? `${currentSessions} / ∞` : `${Math.min(currentSessions, maxSessions)} / ${maxSessions}`}
+                              </span>
+                            </div>
+                            {maxSessions !== Infinity && (
+                              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    currentSessions >= maxSessions ? 'bg-red-500' : 'bg-brand'
+                                  }`}
+                                  style={{ width: `${Math.min(100, Math.round((currentSessions / maxSessions) * 100))}%` }}
+                                />
+                              </div>
                             )}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Active Referral Boost (Free Users) */}
-                      {isFree && isBoost && (
-                        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-medium flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <Gift className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                            <span>{t('billing.usage.referralBoostActive', { sessions: devState.referral_boost_extra_sessions || 2, clips: devState.referral_boost_extra_clips || 10 })}</span>
                           </div>
-                          {devState.referral_boost_expires_at && (
-                            <span className="text-[10px] text-purple-300/80 font-normal">
-                              {t('billing.usage.boostExpiresOn', {
-                                date: new Date(devState.referral_boost_expires_at).toLocaleDateString(),
-                                days: Math.max(1, Math.ceil((new Date(devState.referral_boost_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
-                              })}
-                            </span>
+
+                          {/* Audio Clips Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-white/70 flex items-center gap-1.5">
+                                <AudioLines className="w-3.5 h-3.5 text-brand" />
+                                <span>
+                                  {isTeacher || maxClips === Infinity
+                                    ? t('billing.usage.unlimitedClips')
+                                    : isFree
+                                    ? t('billing.usage.lifetimeClipsUsed', { used: currentClips, total: maxClips })
+                                    : t('billing.usage.monthlyClipsUsed', { used: currentClips, total: maxClips })}
+                                </span>
+                              </span>
+                              <span className="font-mono text-white/90">
+                                {maxClips === Infinity ? `${currentClips} / ∞` : `${Math.min(currentClips, maxClips)} / ${maxClips}`}
+                              </span>
+                            </div>
+                            {maxClips !== Infinity && (
+                              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    currentClips >= maxClips ? 'bg-red-500' : 'bg-brand'
+                                  }`}
+                                  style={{ width: `${Math.min(100, Math.round((currentClips / maxClips) * 100))}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Next Reset Date (Paid Users) */}
+                          {!isFree && (
+                            <div className="flex items-center justify-between text-[11px] text-white/50 pt-1">
+                              <span className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-sky-400" />
+                                {devState.cancel_at_period_end ? (
+                                  <span>{t('billing.usage.cancelsOn', { date: nextResetDate })}</span>
+                                ) : devState.pending_downgrade ? (
+                                  <span>{t('billing.usage.downgradesOn', { date: nextResetDate })}</span>
+                                ) : (
+                                  <span>{t('billing.usage.resetDate', { date: nextResetDate })}</span>
+                                )}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Active Referral Boost (Free Users) */}
+                          {isFree && isBoost && (
+                            <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <Gift className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                                <span>{t('billing.usage.referralBoostActive', { sessions: devState.referral_boost_extra_sessions || 2, clips: devState.referral_boost_extra_clips || 10 })}</span>
+                              </div>
+                              {devState.referral_boost_expires_at && (
+                                <span className="text-[10px] text-purple-300/80 font-normal">
+                                  {t('billing.usage.boostExpiresOn', {
+                                    date: new Date(devState.referral_boost_expires_at).toLocaleDateString(),
+                                    days: Math.max(1, Math.ceil((new Date(devState.referral_boost_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
+                                  })}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Banked Top-Up Allowance */}
+                          {topupSessions > 0 && (
+                            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                <span>{t('billing.topup.badge', { count: topupSessions })}</span>
+                              </div>
+                              <span className="text-[10px] text-emerald-400/80">
+                                {t('billing.topup.noExpireNote')}
+                              </span>
+                            </div>
                           )}
                         </div>
-                      )}
 
-                      {/* Banked Top-Up Allowance */}
-                      {topupSessions > 0 && (
-                        <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-medium flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                            <span>{t('billing.topup.badge', { count: topupSessions })}</span>
+                        {/* Action Trigger Buttons */}
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                if (devState.tier === 'free') {
+                                  setShowPricingModal(true);
+                                } else {
+                                  setManageSubscriptionInitialView('overview');
+                                  setShowManageSubscriptionModal(true);
+                                }
+                              }}
+                              className="flex-1 py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 font-medium text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                            >
+                              <Zap className="w-3.5 h-3.5 fill-zinc-950" />
+                              <span>{devState.tier === 'free' ? t('billing.limits.upgradeAction') : t('billing.plans.manageSubscription')}</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowReferralModal(true);
+                              }}
+                              className="py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                              title={t('billing.referrals.title')}
+                            >
+                              <Gift className="w-3.5 h-3.5 text-purple-400" />
+                              <span className="hidden sm:inline">{devState.tier === 'free' ? t('billing.limits.referralAction') : t('billing.referrals.title')}</span>
+                            </button>
                           </div>
-                          <span className="text-[10px] text-emerald-400/80 font-medium">
-                            {t('billing.topup.noExpireNote')}
-                          </span>
+
+                          {/* Boost Button for Free Tier */}
+                          {isFree && currentSessions >= maxSessions && (
+                            <button
+                              onClick={() => {
+                                setShowReferralModal(true);
+                              }}
+                              className="w-full py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                            >
+                              <Gift className="w-4 h-4 text-purple-400" />
+                              <span>{t('billing.limits.referralAction')}</span>
+                            </button>
+                          )}
+
+                          {/* Top-Up Pack Button for paying users */}
+                          {!isFree && (
+                            <button
+                              onClick={() => {
+                                setShowTopupConfirmModal(true);
+                              }}
+                              className="w-full py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                            >
+                              <Zap className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
+                              <span>{t('billing.topup.buttonSettings')}</span>
+                            </button>
+                          )}
                         </div>
-                      )}
-                    </div>
-
-                    {/* Action Trigger Buttons */}
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            if (devState.tier === 'free') {
-                              setShowPricingModal(true);
-                            } else {
-                              setManageSubscriptionInitialView('overview');
-                              setShowManageSubscriptionModal(true);
-                            }
-                          }}
-                          className="flex-1 py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                        >
-                          <Zap className="w-3.5 h-3.5 fill-zinc-950" />
-                          <span>{devState.tier === 'free' ? t('billing.limits.upgradeAction') : t('billing.plans.manageSubscription')}</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowReferralModal(true);
-                          }}
-                          className="py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                          title={t('billing.referrals.title')}
-                        >
-                          <Gift className="w-3.5 h-3.5 text-purple-400" />
-                          <span className="hidden sm:inline">{devState.tier === 'free' ? t('billing.limits.referralAction') : t('billing.referrals.title')}</span>
-                        </button>
                       </div>
-
-                      {/* Prominent Boost Button for Free Tier when limits are reached */}
-                      {isFree && currentSessions >= maxSessions && (
-                        <button
-                          onClick={() => {
-                            setShowReferralModal(true);
-                          }}
-                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600/20 to-purple-500/10 hover:from-purple-600/30 hover:to-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                        >
-                          <Gift className="w-4 h-4 text-purple-400" />
-                          <span>{t('billing.limits.referralAction')}</span>
-                        </button>
-                      )}
-
-                      {/* Top-Up Pack Button for paying users */}
-                      {!isFree && (
-                        <button
-                          onClick={() => {
-                            setShowTopupConfirmModal(true);
-                          }}
-                          className="w-full py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                        >
-                          <Zap className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
-                          <span>{t('billing.topup.buttonSettings')}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* My Dance Styles Section */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <BookOpen className="w-4 h-4 text-brand" />
-                  {t('glossary.myDanceStyles')}
-                </h4>
-                <p className="text-xs text-white/60 leading-relaxed">
-                  {t('glossary.myDanceStylesDesc')}
-                </p>
-                <MultiSelectCombobox
-                  selectedValues={activeGlossaryIds}
-                  onChange={updateActiveGlossaryIds}
-                  options={SYSTEM_GLOSSARIES.map(g => ({ value: g.id, label: (t(`danceStyles.${g.id}`) as string) || g.name }))}
-                  placeholder={t('glossary.searchPlaceholder')}
-                />
+                    </AppSettingsCollapsible>
+                  );
+                })()}
               </div>
 
-              {/* Offline Usage Guidance */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Globe className="w-4 h-4 text-brand" />
-                  {t('appSettings.offlineGuideSection')}
-                </h4>
-                <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs text-white/70 leading-relaxed">
-                  <p>• {t('appSettings.offlineGuide1')}</p>
-                  <p>• {t('appSettings.offlineGuide2')}</p>
-                  <p>• {t('appSettings.offlineGuide3')}</p>
-                </div>
-              </div>
-
-              {/* Other Section */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <SlidersHorizontal className="w-4 h-4 text-brand" />
-                  {t('appSettings.devSection')}
-                </h4>
-
-                {/* Replay Onboarding Guide Button */}
-                <button
-                  onClick={handleStartOnboardingTour}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 hover:text-white transition-all text-xs font-bold shadow-xs cursor-pointer"
-                >
-                  <Compass className="w-4 h-4 text-brand" />
-                  {t('onboarding.replayOnboardingBtn')}
-                </button>
-
-                {/* Referral Program Button */}
-                <button
-                  onClick={() => {
-                    setShowAppSettings(false);
-                    setShowReferralModal(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all text-xs font-bold shadow-sm cursor-pointer"
-                >
-                  <Gift className="w-4 h-4 text-purple-400" />
-                  {t('billing.referrals.title')}
-                </button>
-              </div>
-
-              {/* Backup & Restore (local) — SECONDARY */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <Database className="w-4 h-4 text-brand" />
-                  {t('appSettings.backupRestoreSection')}
-                </h4>
-
-                {/* Backup Section Collapsible */}
+              {/* 4. My Dance Styles Section */}
+              <div className="py-2">
                 <AppSettingsCollapsible
-                  label={t('appSettings.backupSection')}
-                  icon={<Download className="w-4 h-4 text-brand" />}
+                  label={t('glossary.myDanceStyles')}
+                  icon={<BookOpen className="w-4 h-4 text-brand" />}
+                  defaultOpen={true}
+                  badge={
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/70">
+                      {activeGlossaryIds.length}
+                    </span>
+                  }
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-3 pt-1">
                     <p className="text-xs text-white/60 leading-relaxed">
-                      {t('appSettings.backupDesc')}
+                      {t('glossary.myDanceStylesDesc')}
                     </p>
+                    <MultiSelectCombobox
+                      selectedValues={activeGlossaryIds}
+                      onChange={updateActiveGlossaryIds}
+                      options={SYSTEM_GLOSSARIES.map(g => {
+                        const tr = t(`danceStyles.${g.id}`);
+                        return { value: g.id, label: (tr && !tr.startsWith('danceStyles.')) ? tr : g.name };
+                      })}
+                      placeholder={t('glossary.searchPlaceholder')}
+                    />
+                  </div>
+                </AppSettingsCollapsible>
+              </div>
+
+              {/* 5. Offline Usage Guidance */}
+              <div className="py-2">
+                <AppSettingsCollapsible
+                  label={t('appSettings.offlineGuideSection')}
+                  icon={<Globe className="w-4 h-4 text-brand" />}
+                  defaultOpen={false}
+                >
+                  <div className="space-y-2 pt-1 text-xs text-white/70 leading-relaxed pl-2 border-l-2 border-brand/30">
+                    <p>• {t('appSettings.offlineGuide1')}</p>
+                    <p>• {t('appSettings.offlineGuide2')}</p>
+                    <p>• {t('appSettings.offlineGuide3')}</p>
+                  </div>
+                </AppSettingsCollapsible>
+              </div>
+
+              {/* 6. Developer & Onboarding Section */}
+              <div className="py-2">
+                <AppSettingsCollapsible
+                  label={t('appSettings.devSection')}
+                  icon={<SlidersHorizontal className="w-4 h-4 text-brand" />}
+                  defaultOpen={false}
+                >
+                  <div className="space-y-2.5 pt-1">
                     <button
-                      onClick={handleExportBackup}
-                      className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-brand/40 transition-all text-xs font-bold shadow-sm"
+                      onClick={handleStartOnboardingTour}
+                      className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-brand/20 bg-brand/5 text-brand hover:bg-brand/10 transition-all text-xs cursor-pointer"
                     >
-                      <Download className="w-4 h-4 text-brand" />
-                      {t('appSettings.exportBackupBtn')}
+                      <Compass className="w-4 h-4 text-brand" />
+                      {t('onboarding.replayOnboardingBtn')}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowAppSettings(false);
+                        setShowReferralModal(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-purple-500/20 bg-purple-500/5 text-purple-300 hover:bg-purple-500/10 transition-all text-xs cursor-pointer"
+                    >
+                      <Gift className="w-4 h-4 text-purple-400" />
+                      {t('billing.referrals.title')}
                     </button>
                   </div>
                 </AppSettingsCollapsible>
+              </div>
 
-                {/* Restore Section Collapsible */}
+              {/* 7. Backup & Restore */}
+              <div className="py-2">
                 <AppSettingsCollapsible
-                  label={t('appSettings.restoreSection')}
-                  icon={<Upload className="w-4 h-4 text-brand" />}
+                  label={t('appSettings.backupRestoreSection')}
+                  icon={<Database className="w-4 h-4 text-brand" />}
+                  defaultOpen={false}
                 >
-                  <div className="space-y-3">
-                    <p className="text-xs text-white/60 leading-relaxed">
-                      {t('appSettings.restoreDesc')}
-                    </p>
-                    <label className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-brand/40 transition-all text-xs font-bold shadow-sm cursor-pointer">
-                      <Upload className="w-4 h-4 text-brand" />
-                      <span>{t('appSettings.restoreBackupBtn')}</span>
-                      <input
-                        type="file"
-                        accept=".json"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setRestoreBackupFile(file);
-                          }
-                          e.target.value = '';
-                        }}
-                      />
-                    </label>
+                  <div className="space-y-3 pt-1">
+                    {/* Backup */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-white/60 leading-relaxed">
+                        {t('appSettings.backupDesc')}
+                      </p>
+                      <button
+                        onClick={handleExportBackup}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-xs cursor-pointer"
+                      >
+                        <Download className="w-4 h-4 text-brand" />
+                        {t('appSettings.exportBackupBtn')}
+                      </button>
+                    </div>
+
+                    {/* Restore */}
+                    <div className="space-y-2 border-t border-white/5 pt-3">
+                      <p className="text-xs text-white/60 leading-relaxed">
+                        {t('appSettings.restoreDesc')}
+                      </p>
+                      <label className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-xs cursor-pointer">
+                        <Upload className="w-4 h-4 text-brand" />
+                        <span>{t('appSettings.restoreBackupBtn')}</span>
+                        <input
+                          type="file"
+                          accept=".json"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setRestoreBackupFile(file);
+                            }
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </AppSettingsCollapsible>
               </div>
 
-              {/* Data & Privacy — SECONDARY */}
-              <div className="space-y-3 border-t border-white/5 pt-6">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider text-xs text-white/40">
-                  <ShieldCheck className="w-4 h-4 text-brand" />
-                  {t('appSettings.dataPrivacySection')}
-                </h4>
-
-                {/* Reset App Data Collapsible */}
+              {/* 8. Data & Privacy */}
+              <div className="py-2 last:pb-0">
                 <AppSettingsCollapsible
-                  label={t('appSettings.resetSection')}
-                  icon={<AlertTriangle className="w-4 h-4 text-red-400" />}
+                  label={t('appSettings.dataPrivacySection')}
+                  icon={<ShieldCheck className="w-4 h-4 text-brand" />}
+                  defaultOpen={false}
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-3 pt-1">
                     <p className="text-xs text-white/60 leading-relaxed">
                       {t('appSettings.resetDesc')}
                     </p>
                     <button
                       onClick={() => setShowResetConfirm(true)}
-                      className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 transition-all text-xs font-bold shadow-sm"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 transition-all text-xs cursor-pointer"
                     >
                       <AlertTriangle className="w-4 h-4" />
                       {t('appSettings.resetAppBtn')}
@@ -4157,20 +4204,20 @@ export default function App() {
           <div className="glass p-8 max-w-md w-full animate-in zoom-in-95 relative max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="text-center shrink-0">
               <ZouttyIcon className="w-16 h-16 text-brand mx-auto" />
-              <h3 className="text-xs uppercase tracking-[0.2em] text-brand font-bold mt-2">ZOUTTY</h3>
-              <p className="inline-block mt-2 px-4 py-1 bg-white/10 text-white/70 font-mono font-medium rounded-full border border-white/20 text-sm tracking-widest">
+              <h3 className="text-xs uppercase tracking-[0.2em] text-brand font-bold font-logo mt-2">ZOUTTY</h3>
+              <p className="inline-block mt-2 px-4 py-1 bg-white/10 text-white/70 font-mono rounded-full border border-white/20 text-sm tracking-widest">
                 v{version}
               </p>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 space-y-6 mt-8 custom-scrollbar">
-              <h4 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-4 border-b border-white/10 pb-2">
+              <h4 className="text-sm text-white/50 uppercase tracking-wider mb-4 border-b border-white/10 pb-2">
                 Changelog
               </h4>
               {changelog.map((entry, idx) => (
                 <div key={idx} className="space-y-2">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-brand font-mono font-bold text-sm">v{entry.version}</span>
+                    <span className="text-brand font-mono text-sm">v{entry.version}</span>
                     <span className="text-white/40 text-xs">{entry.date}</span>
                   </div>
                   <ul className="list-disc list-inside text-white/70 text-sm space-y-1">
@@ -4185,7 +4232,7 @@ export default function App() {
             <div className="flex justify-center mt-8 shrink-0 pt-6 border-t border-white/10">
               <button
                 onClick={() => setShowVersionModal(false)}
-                className="px-8 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+                className="px-8 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
               >
                 {t('modals.closeBtn')}
               </button>
@@ -4198,7 +4245,7 @@ export default function App() {
       {restoreBackupFile && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
           <div className="glass p-6 sm:p-8 max-w-md w-full space-y-6 animate-in zoom-in-95">
-            <h3 className="text-xl font-bold flex items-center gap-2 text-white">
+            <h3 className="text-xl flex items-center gap-2 text-white">
               <Upload className="w-6 h-6 text-brand" />
               {t('modals.restoreDbTitle')}
             </h3>
@@ -4206,9 +4253,9 @@ export default function App() {
               {t('modals.restoreDbMsg')}
             </p>
             <div className="flex flex-wrap gap-3 justify-center items-center mt-6">
-              <button onClick={() => setRestoreBackupFile(null)} className="px-4 sm:px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
-              <button onClick={() => executeImportBackup(restoreBackupFile, true)} className="px-4 sm:px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors shadow-lg text-white min-h-[44px] text-sm">{t('modals.restoreMergeBtn')}</button>
-              <button onClick={() => executeImportBackup(restoreBackupFile, false)} className="px-4 sm:px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">{t('modals.restoreReplaceBtn')}</button>
+              <button onClick={() => setRestoreBackupFile(null)} className="px-4 sm:px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile, true)} className="px-4 sm:px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors shadow-lg text-white min-h-[44px] text-sm">{t('modals.restoreMergeBtn')}</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile, false)} className="px-4 sm:px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">{t('modals.restoreReplaceBtn')}</button>
             </div>
           </div>
         </div>
@@ -4218,7 +4265,7 @@ export default function App() {
       {showResetConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
-            <h3 className="text-xl font-bold flex items-center gap-2 text-red-400">
+            <h3 className="text-xl flex items-center gap-2 text-red-400">
               <Trash2 className="w-6 h-6 text-red-500" />
               {t('modals.confirmReset')}
             </h3>
@@ -4228,8 +4275,8 @@ export default function App() {
               {t('modals.resetWarningMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setShowResetConfirm(false)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
-              <button onClick={handleResetApp} className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm">{t('modals.resetEverythingBtn')}</button>
+              <button onClick={() => setShowResetConfirm(false)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
+              <button onClick={handleResetApp} className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm">{t('modals.resetEverythingBtn')}</button>
             </div>
           </div>
         </div>
@@ -4238,7 +4285,7 @@ export default function App() {
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
-            <h3 className="text-xl font-bold flex items-center gap-2 text-orange-400">
+            <h3 className="text-xl flex items-center gap-2 text-orange-400">
               <LogOut className="w-6 h-6 text-orange-500" />
               {t('modals.confirmLogout')}
             </h3>
@@ -4248,7 +4295,7 @@ export default function App() {
               {t('modals.logoutWarningMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setShowLogoutConfirm(false)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
+              <button onClick={() => setShowLogoutConfirm(false)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
               <button 
                 onClick={async () => {
                   try {
@@ -4265,7 +4312,7 @@ export default function App() {
                     console.error('Logout error', e);
                   }
                 }} 
-                className="px-5 py-2.5 rounded-xl font-bold bg-orange-600 hover:bg-orange-700 transition-colors shadow-lg shadow-orange-600/30 text-white min-h-[44px] text-sm"
+                className="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 transition-colors shadow-lg shadow-orange-600/30 text-white min-h-[44px] text-sm"
               >
                 {t('modals.logoutBtn')}
               </button>
@@ -4278,7 +4325,7 @@ export default function App() {
       {showDeleteAccountModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95 border border-red-500/30">
-            <h3 className="text-xl font-bold flex items-center gap-2 text-red-400">
+            <h3 className="text-xl flex items-center gap-2 text-red-400">
               <Trash2 className="w-6 h-6 text-red-500" />
               {t('appSettings.deleteAccountModalTitle')}
             </h3>
@@ -4287,7 +4334,7 @@ export default function App() {
             </p>
 
             <div className="space-y-2">
-              <label className="text-xs text-white/60 font-semibold block">
+              <label className="text-xs text-white/60 block">
                 {t('appSettings.deleteAccountConfirmPrompt')}
               </label>
               <input
@@ -4304,7 +4351,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowDeleteAccountModal(false)}
-                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm text-white"
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm text-white"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -4316,7 +4363,7 @@ export default function App() {
                    deleteAccountConfirmInput.trim().toUpperCase() !== 'BORRAR')
                 }
                 onClick={handleDeleteAccount}
-                className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {t('appSettings.deleteAccountConfirmBtn')}
               </button>
@@ -4329,12 +4376,12 @@ export default function App() {
       {folderModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
           <form onSubmit={handleCreateOrRenameFolder} className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
-            <h3 className="text-xl font-bold flex items-center gap-2">
+            <h3 className="text-xl flex items-center gap-2">
               <Folder className="w-6 h-6 text-brand" />
               {folderModal.type === 'create' ? t('modals.createFolder') : t('modals.renameFolder')}
             </h3>
             <div className="space-y-2">
-              <label className="text-xs text-white/50 font-bold uppercase tracking-wider">{t('modals.folderNameLabel')}</label>
+              <label className="text-xs text-white/50 uppercase tracking-wider">{t('modals.folderNameLabel')}</label>
               <input
                 autoFocus
                 type="text"
@@ -4346,8 +4393,8 @@ export default function App() {
               />
             </div>
             <div className="flex gap-3 justify-end items-center">
-              <button type="button" onClick={() => setFolderModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
-              <button type="submit" className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]">{t('modals.saveBtn')}</button>
+              <button type="button" onClick={() => setFolderModal(null)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
+              <button type="submit" className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]">{t('modals.saveBtn')}</button>
             </div>
           </form>
         </div>
@@ -4357,7 +4404,7 @@ export default function App() {
       {deleteFolderModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
           <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95">
-            <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
+            <h3 className="text-xl text-red-400 flex items-center gap-2">
               <Trash2 className="w-6 h-6 shrink-0" />
               {t('modals.deleteFolder')}
             </h3>
@@ -4372,7 +4419,7 @@ export default function App() {
                 checked={deleteFolderAlsoSessions}
                 onChange={setDeleteFolderAlsoSessions}
                 label={
-                  <div className="text-sm text-red-300 font-semibold cursor-pointer select-none">
+                  <div className="text-sm text-red-300 cursor-pointer select-none">
                     {t('modals.deleteFolderAlsoSessions')}
                     <span className="block text-xs font-normal text-white/50 mt-1 font-sans">
                       {t('modals.deleteFolderSessionsNote')}
@@ -4388,7 +4435,7 @@ export default function App() {
                   setDeleteFolderModal(null);
                   setDeleteFolderAlsoSessions(false);
                 }}
-                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -4397,7 +4444,7 @@ export default function App() {
                   confirmDeleteFolder(deleteFolderAlsoSessions);
                   setDeleteFolderAlsoSessions(false);
                 }}
-                className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]"
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]"
               >
                 {t('modals.deleteFolderBtn')}
               </button>
@@ -4411,7 +4458,7 @@ export default function App() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
           <div className="glass p-6 max-w-sm w-full space-y-6 animate-in zoom-in-95">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold flex items-center gap-2">
+              <h3 className="text-lg flex items-center gap-2">
                 <FolderOpen className="w-5 h-5 text-brand" />
                 {t('modals.moveSessionTitle')}
               </h3>
@@ -4436,7 +4483,7 @@ export default function App() {
                   setMoveSessionModal(null);
                 }}
                 className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${!moveSessionModal.currentGroupId
-                  ? 'bg-brand/20 border-brand text-brand font-semibold'
+                  ? 'bg-brand/20 border-brand text-brand'
                   : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
                   }`}
               >
@@ -4455,7 +4502,7 @@ export default function App() {
                     setMoveSessionModal(null);
                   }}
                   className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${moveSessionModal.currentGroupId === group.id
-                    ? 'bg-blue-500/20 border-blue-500 text-blue-400 font-semibold'
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
                     : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
                     }`}
                 >
@@ -4469,7 +4516,7 @@ export default function App() {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setMoveSessionModal(null)}
-                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-sm min-h-[38px]"
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-sm min-h-[38px]"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -4480,20 +4527,45 @@ export default function App() {
 
       {/* Share Session Modal */}
       {shareModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
-          <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold flex items-center gap-2">
-              <Share2 className="w-6 h-6 text-brand" />
-              {t('modals.shareSession')}
-            </h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4 sm:p-6 overflow-y-auto">
+          <div
+            className="glass border border-white/10 p-6 max-w-md w-full rounded-2xl shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh] my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/30 flex items-center justify-center text-brand shrink-0 shadow-inner">
+                  <Share2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg text-white">
+                    {t('modals.shareSession')}
+                  </h3>
+                  <p className="text-xs text-white/50">
+                    {selectedSession.title}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShareModal(null)}
+                className="p-2 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors cursor-pointer"
+                title={t('modals.closeBtn')}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             {shareModal.viewState === 'checklist' ? (
-              <>
-                <p className="text-white/70 text-sm">
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <p className="text-white/60 text-xs mb-3 shrink-0">
                   {t('modals.shareSelectInfo')}
                 </p>
-                <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5 max-h-[45vh] overflow-y-auto pr-1">
-                  <div className="space-y-2">
+
+                {/* Content Checklist - Clean flattened list with dividers */}
+                <div className="overflow-y-auto custom-scrollbar pr-1 divide-y divide-white/5 flex-1">
+                  {/* Consolidated Report Option */}
+                  <div className="py-3 first:pt-0">
                     <CustomSwitch
                       disabled={!shareModal.availableReport}
                       checked={shareModal.shareReport}
@@ -4509,17 +4581,17 @@ export default function App() {
                         });
                       }}
                       label={
-                        <span className={`text-sm font-semibold ${!shareModal.availableReport ? 'text-white/40' : 'text-white'}`}>
+                        <span className={`text-sm ${!shareModal.availableReport ? 'text-white/40' : 'text-white'}`}>
                           {t('modals.shareConsolidatedReport')} {!shareModal.availableReport && t('modals.shareReportLocked')}
                         </span>
                       }
-                      className="px-2 py-1.5"
+                      className="px-1"
                     />
-                    {/* Hierarchical sub-options */}
-                    <div className={`space-y-2.5 mt-2.5 transition-all ${(!shareModal.availableReport || !shareModal.shareReport) ? 'opacity-40' : ''}`}>
-                      {/* Select all / Deselect all toggle */}
-                      {shareModal.availableReport && shareModal.shareReport && (
-                        <div className="flex gap-2 mb-1.5 animate-in fade-in duration-200">
+
+                    {/* Sub-sections with clean left accent line */}
+                    {shareModal.availableReport && shareModal.shareReport && (
+                      <div className="mt-2.5 ml-1 pl-3.5 border-l-2 border-brand/30 space-y-2 animate-in fade-in duration-200">
+                        <div className="flex items-center gap-3 pt-0.5 pb-1">
                           <button
                             type="button"
                             onClick={() => setShareModal({
@@ -4530,10 +4602,11 @@ export default function App() {
                               shareTechnical: shareModal.availableTechnical,
                               shareEmotional: shareModal.availableEmotional
                             })}
-                            className="text-[10px] bg-white/5 hover:bg-white/10 text-white/60 px-2 py-1 rounded transition-colors font-bold uppercase"
+                            className="text-[10px] text-brand hover:text-brand-light transition-colors uppercase tracking-wider cursor-pointer"
                           >
                             {t('modals.shareSelectAll')}
                           </button>
+                          <span className="text-white/20 text-xs">•</span>
                           <button
                             type="button"
                             onClick={() => setShareModal({
@@ -4544,242 +4617,283 @@ export default function App() {
                               shareTechnical: false,
                               shareEmotional: false
                             })}
-                            className="text-[10px] bg-white/5 hover:bg-white/10 text-white/60 px-2 py-1 rounded transition-colors font-bold uppercase"
+                            className="text-[10px] text-white/40 hover:text-white/70 transition-colors uppercase tracking-wider cursor-pointer"
                           >
                             {t('modals.shareDeselectAll')}
                           </button>
                         </div>
-                      )}
 
-                      <CustomCheckbox
-                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableStrictSummary}
-                        checked={shareModal.shareStrictSummary}
-                        onChange={(checked) => setShareModal({ ...shareModal, shareStrictSummary: checked })}
-                        label={t('modals.shareStrictSummary') + (!shareModal.availableStrictSummary && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
-                        className="py-0.5"
-                      />
-                      <CustomCheckbox
-                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableDrills}
-                        checked={shareModal.shareDrills}
-                        onChange={(checked) => setShareModal({ ...shareModal, shareDrills: checked })}
-                        label={t('modals.shareDrills') + (!shareModal.availableDrills && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
-                        className="py-0.5"
-                      />
-                      <CustomCheckbox
-                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableHomework}
-                        checked={shareModal.shareHomework}
-                        onChange={(checked) => setShareModal({ ...shareModal, shareHomework: checked })}
-                        label={t('modals.shareHomework') + (!shareModal.availableHomework && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
-                        className="py-0.5"
-                      />
-                      <CustomCheckbox
-                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableTechnical}
-                        checked={shareModal.shareTechnical}
-                        onChange={(checked) => setShareModal({ ...shareModal, shareTechnical: checked })}
-                        label={t('modals.shareTechnical') + (!shareModal.availableTechnical && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
-                        className="py-0.5"
-                      />
-                      <CustomCheckbox
-                        disabled={!shareModal.availableReport || !shareModal.shareReport || !shareModal.availableEmotional}
-                        checked={shareModal.shareEmotional}
-                        onChange={(checked) => setShareModal({ ...shareModal, shareEmotional: checked })}
-                        label={t('modals.shareEmotional') + (!shareModal.availableEmotional && shareModal.availableReport ? ' ' + t('modals.shareNotAvailable') : '')}
-                        className="py-0.5"
-                      />
-                    </div>
+                        <CustomCheckbox
+                          disabled={!shareModal.availableStrictSummary}
+                          checked={shareModal.shareStrictSummary}
+                          onChange={(checked) => setShareModal({ ...shareModal, shareStrictSummary: checked })}
+                          label={t('modals.shareStrictSummary') + (!shareModal.availableStrictSummary ? ' ' + t('modals.shareNotAvailable') : '')}
+                          className="py-0.5"
+                        />
+                        <CustomCheckbox
+                          disabled={!shareModal.availableDrills}
+                          checked={shareModal.shareDrills}
+                          onChange={(checked) => setShareModal({ ...shareModal, shareDrills: checked })}
+                          label={t('modals.shareDrills') + (!shareModal.availableDrills ? ' ' + t('modals.shareNotAvailable') : '')}
+                          className="py-0.5"
+                        />
+                        <CustomCheckbox
+                          disabled={!shareModal.availableHomework}
+                          checked={shareModal.shareHomework}
+                          onChange={(checked) => setShareModal({ ...shareModal, shareHomework: checked })}
+                          label={t('modals.shareHomework') + (!shareModal.availableHomework ? ' ' + t('modals.shareNotAvailable') : '')}
+                          className="py-0.5"
+                        />
+                        <CustomCheckbox
+                          disabled={!shareModal.availableTechnical}
+                          checked={shareModal.shareTechnical}
+                          onChange={(checked) => setShareModal({ ...shareModal, shareTechnical: checked })}
+                          label={t('modals.shareTechnical') + (!shareModal.availableTechnical ? ' ' + t('modals.shareNotAvailable') : '')}
+                          className="py-0.5"
+                        />
+                        <CustomCheckbox
+                          disabled={!shareModal.availableEmotional}
+                          checked={shareModal.shareEmotional}
+                          onChange={(checked) => setShareModal({ ...shareModal, shareEmotional: checked })}
+                          label={t('modals.shareEmotional') + (!shareModal.availableEmotional ? ' ' + t('modals.shareNotAvailable') : '')}
+                          className="py-0.5"
+                        />
+                      </div>
+                    )}
                   </div>
 
-                  <div className="pt-2 border-t border-white/5">
+                  {/* Notes Option */}
+                  <div className="py-3">
                     <CustomSwitch
                       disabled={!shareModal.availableNotes}
                       checked={shareModal.shareNotes}
                       onChange={(checked) => setShareModal({ ...shareModal, shareNotes: checked })}
                       label={
-                        <span className={`text-sm font-semibold ${!shareModal.availableNotes ? 'text-white/40' : 'text-white'}`}>
+                        <span className={`text-sm ${!shareModal.availableNotes ? 'text-white/40' : 'text-white'}`}>
                           {t('modals.shareNotes')} {!shareModal.availableNotes && t('modals.shareNoNotes')}
                         </span>
                       }
-                      className="px-2 py-1.5"
+                      className="px-1"
                     />
                   </div>
 
-                  <div className="pt-2 border-t border-white/5">
+                  {/* Transcripts Option */}
+                  <div className="py-3">
                     <CustomSwitch
                       disabled={!shareModal.availableTranscripts}
                       checked={shareModal.shareTranscripts}
                       onChange={(checked) => setShareModal({ ...shareModal, shareTranscripts: checked })}
                       label={
-                        <span className={`text-sm font-semibold ${!shareModal.availableTranscripts ? 'text-white/40' : 'text-white'}`}>
+                        <span className={`text-sm ${!shareModal.availableTranscripts ? 'text-white/40' : 'text-white'}`}>
                           {t('modals.shareTranscripts')} {!shareModal.availableTranscripts && t('modals.shareNoTranscripts')}
                         </span>
                       }
-                      className="px-2 py-1.5"
+                      className="px-1"
                     />
                   </div>
-                  <div className="pt-2 border-t border-white/5">
+
+                  {/* Media Option */}
+                  <div className="py-3 last:pb-0">
                     <CustomSwitch
                       disabled={!shareModal.availableMedia}
                       checked={shareModal.shareMedia}
                       onChange={(checked) => setShareModal({ ...shareModal, shareMedia: checked })}
                       label={
-                        <span className={`text-sm font-semibold ${!shareModal.availableMedia ? 'text-white/40' : 'text-white'}`}>
+                        <span className={`text-sm ${!shareModal.availableMedia ? 'text-white/40' : 'text-white'}`}>
                           {t('modals.shareMedia')} {!shareModal.availableMedia && <span className="font-normal text-xs opacity-70">({t('modals.shareNoMedia')})</span>}
                         </span>
                       }
-                      className="px-2 py-1.5"
+                      className="px-1"
                     />
                     {shareModal.shareMedia && shareModal.hasHeavyMedia && (
-                      <p className="px-2 mt-1 text-xs text-brand font-medium flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        {t('modals.shareMediaWarning')}
+                      <p className="px-1 mt-2 text-xs text-brand/90 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{t('modals.shareMediaWarning')}</span>
                       </p>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-3 justify-end items-center">
-                  <button onClick={() => setShareModal(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
+
+                {/* Actions */}
+                <div className="pt-4 mt-2 border-t border-white/10 space-y-3 shrink-0">
                   <button
                     onClick={() => handleGenerateShareLink(false)}
                     disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts && !shareModal.shareMedia}
-                    className="px-5 py-2.5 flex-1 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]"
+                    className="w-full py-3 rounded-xl bg-brand text-bg-dark font-medium hover:bg-brand/90 disabled:opacity-20 transition-all shadow-[0_0_15px_rgba(45,212,191,0.2)] min-h-[44px] cursor-pointer"
                   >
                     {selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink')}
                   </button>
-                </div>
 
-                <div className="flex items-center gap-4 my-4">
-                  <div className="h-px bg-white/10 flex-1"></div>
-                  <span className="text-white/40 text-xs font-bold uppercase tracking-widest">{t('modals.or')}</span>
-                  <div className="h-px bg-white/10 flex-1"></div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => handleGenerateShareLink(true)}
-                    disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts && !shareModal.shareMedia}
-                    className="w-full py-3 rounded-xl font-bold border border-white/20 hover:bg-white/10 disabled:opacity-20 transition-colors min-h-[44px]"
-                  >
-                    {t('modals.exportFileBtn')}
-                  </button>
-                  <p className="text-center text-xs text-white/50">{t('modals.exportFileTooltip')}</p>
-                </div>
-              </>
-            ) : shareModal.viewState === 'active_code' ? (
-              <>
-                <div className="space-y-4 font-sans">
-                  <div className="text-white/70 text-sm leading-relaxed bg-black/20 p-4 rounded-xl border border-white/5">
-                    <p className="mb-3">
-                      {t('modals.previouslySharedCodeText', { date: shareModal.shareTimestamp ? new Date(shareModal.shareTimestamp).toLocaleDateString() : '' })}
-                    </p>
-                    
-                    <ul className="list-disc pl-5 space-y-1.5 text-xs text-white/90 font-medium mb-5">
-                      {shareModal.sharedContent?.report && <li>{t('modals.shareConsolidatedReport')}</li>}
-                      {shareModal.sharedContent?.notes && <li>{t('modals.shareNotes')}</li>}
-                      {shareModal.sharedContent?.transcripts && <li>{t('modals.shareTranscripts')}</li>}
-                      {shareModal.sharedContent?.media && <li>{t('modals.shareMedia')}</li>}
-                      {(!shareModal.sharedContent?.report && !shareModal.sharedContent?.notes && !shareModal.sharedContent?.transcripts && !shareModal.sharedContent?.media) && (
-                        <li className="text-white/40 italic">No specific items recorded.</li>
-                      )}
-                    </ul>
-
-                    <div className="flex flex-col items-center justify-center bg-black/40 border border-white/10 rounded-2xl p-4 space-y-2 relative">
-                      <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">{t('modals.shareCodeLabel')}</span>
-                      <div className="flex items-center gap-4">
-                        <span className="text-brand text-3xl font-mono font-black tracking-widest select-all">{shareModal.shareCode}</span>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(shareModal.shareCode || '');
-                            showToast(t('toast.codeCopied'));
-                          }}
-                          className="p-2.5 bg-white/5 hover:bg-white/10 active:scale-95 rounded-xl text-white/60 transition-all shadow-sm"
-                          title="Copy code"
-                        >
-                          <Copy className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-px bg-white/10 flex-1" />
+                    <span className="text-white/30 text-[10px] uppercase tracking-widest">{t('modals.or')}</span>
+                    <div className="h-px bg-white/10 flex-1" />
                   </div>
 
-                  <p className="text-white/40 text-[10px] italic">
-                    {shareModal.shareTimestamp
-                      ? t('modals.shareLinkExpiryCountdown', { days: Math.max(1, 30 - Math.floor((Date.now() - shareModal.shareTimestamp) / (1000 * 60 * 60 * 24))) })
-                      : t('modals.shareLinkExpiry')}
-                  </p>
+                  <div>
+                    <button
+                      onClick={() => handleGenerateShareLink(true)}
+                      disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTranscripts && !shareModal.shareMedia}
+                      className="w-full py-2.5 rounded-xl border border-white/15 hover:bg-white/5 disabled:opacity-20 text-white/80 hover:text-white transition-colors min-h-[40px] text-sm cursor-pointer"
+                    >
+                      {t('modals.exportFileBtn')}
+                    </button>
+                    <p className="text-center text-[11px] text-white/40 mt-1.5">{t('modals.exportFileTooltip')}</p>
+                  </div>
+                </div>
+              </div>
+            ) : shareModal.viewState === 'active_code' ? (
+              <div className="flex flex-col flex-1 space-y-4">
+                <p className="text-white/70 text-xs leading-relaxed">
+                  {t('modals.previouslySharedCodeText', { date: shareModal.shareTimestamp ? new Date(shareModal.shareTimestamp).toLocaleDateString() : '' })}
+                </p>
 
-                  <button
-                    onClick={async () => {
-                      const shareCode = shareModal.shareCode || '';
-                      const shareMessage = t('modals.shareMessageTemplate', { code: shareCode });
+                {/* Clean included items row */}
+                <div className="flex flex-wrap gap-1.5">
+                  {shareModal.sharedContent?.report && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareConsolidatedReport')}
+                    </span>
+                  )}
+                  {shareModal.sharedContent?.notes && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareNotes')}
+                    </span>
+                  )}
+                  {shareModal.sharedContent?.transcripts && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareTranscripts')}
+                    </span>
+                  )}
+                  {shareModal.sharedContent?.media && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareMedia')}
+                    </span>
+                  )}
+                </div>
 
-                      if (navigator.share) {
-                        try {
-                          await navigator.share({
-                            title: t('modals.shareSession'),
-                            text: shareMessage,
-                          });
-                          showToast(t('toast.shareSuccessful'));
-                        } catch (err) {
-                          console.log('Share sheet dismissed or failed, falling back to copy:', err);
-                          navigator.clipboard.writeText(shareMessage);
-                          showToast(t('toast.codeCopied'));
-                        }
-                      } else {
+                {/* Prominent Code Box */}
+                <div className="py-4 border-y border-white/10 flex flex-col items-center justify-center gap-2">
+                  <span className="text-white/40 text-[10px] uppercase tracking-widest">{t('modals.shareCodeLabel')}</span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-brand text-3xl sm:text-4xl font-mono tracking-widest select-all font-semibold drop-shadow-[0_0_12px_rgba(45,212,191,0.3)]">
+                      {shareModal.shareCode}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(shareModal.shareCode || '');
+                        showToast(t('toast.codeCopied'));
+                      }}
+                      className="p-2.5 hover:bg-white/10 active:scale-95 rounded-xl text-brand hover:text-white transition-all cursor-pointer"
+                      title="Copy code"
+                    >
+                      <Copy className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-white/40 text-[11px] text-center italic">
+                  {shareModal.shareTimestamp
+                    ? t('modals.shareLinkExpiryCountdown', { days: Math.max(1, 30 - Math.floor((Date.now() - shareModal.shareTimestamp) / (1000 * 60 * 60 * 24))) })
+                    : t('modals.shareLinkExpiry')}
+                </p>
+
+                <button
+                  onClick={async () => {
+                    const shareCode = shareModal.shareCode || '';
+                    const shareMessage = t('modals.shareMessageTemplate', { code: shareCode });
+
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: t('modals.shareSession'),
+                          text: shareMessage,
+                        });
+                        showToast(t('toast.shareSuccessful'));
+                      } catch (err) {
+                        console.log('Share sheet dismissed or failed, falling back to copy:', err);
                         navigator.clipboard.writeText(shareMessage);
                         showToast(t('toast.codeCopied'));
                       }
-                    }}
-                    className="w-full py-3 bg-brand text-bg-dark rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-[0.98] shadow-lg shadow-brand/20 min-h-[44px]"
-                  >
-                    <Share2 className="w-5 h-5" />
-                    <span>{t('modals.shareCodeBtn')}</span>
-                  </button>
-                </div>
-                <div className="flex justify-end gap-3 items-center">
-                  <button
-                    onClick={() => setShareModal({ ...shareModal, viewState: 'checklist' })}
-                    className="px-5 py-2.5 rounded-xl font-bold border border-white/10 text-white/60 hover:bg-white/5 hover:text-white/80 transition-colors min-h-[44px]"
-                  >
-                    {t('modals.updateExportSettingsBtn')}
-                  </button>
-                  <button onClick={() => setShareModal(null)} className="px-6 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.closeBtn')}</button>
-                </div>
-              </>
-            ) : shareModal.viewState === 'active_file' ? (
-              <>
-                <div className="space-y-4 font-sans">
-                  <div className="text-white/70 text-sm leading-relaxed bg-black/20 p-5 rounded-xl border border-white/5">
-                    <p className="mb-3">
-                      {t('modals.previouslyExportedText', { date: shareModal.shareTimestamp ? new Date(shareModal.shareTimestamp).toLocaleDateString() : '' })}
-                    </p>
-                    <ul className="list-disc pl-5 space-y-1.5 text-xs text-white/90 font-medium">
-                      {shareModal.sharedContent?.report && <li>{t('modals.shareConsolidatedReport')}</li>}
-                      {shareModal.sharedContent?.notes && <li>{t('modals.shareNotes')}</li>}
-                      {shareModal.sharedContent?.transcripts && <li>{t('modals.shareTranscripts')}</li>}
-                      {shareModal.sharedContent?.media && <li>{t('modals.shareMedia')}</li>}
-                      {(!shareModal.sharedContent?.report && !shareModal.sharedContent?.notes && !shareModal.sharedContent?.transcripts && !shareModal.sharedContent?.media) && (
-                        <li className="text-white/40 italic">No specific items recorded.</li>
-                      )}
-                    </ul>
-                  </div>
+                    } else {
+                      navigator.clipboard.writeText(shareMessage);
+                      showToast(t('toast.codeCopied'));
+                    }
+                  }}
+                  className="w-full py-3 bg-brand text-bg-dark font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(45,212,191,0.2)] min-h-[44px] cursor-pointer"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>{t('modals.shareCodeBtn')}</span>
+                </button>
 
-                  <button
-                    onClick={() => handleGenerateShareLink(true)}
-                    className="w-full py-3 bg-brand text-bg-dark rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-[0.98] shadow-lg shadow-brand/20 min-h-[44px]"
-                  >
-                    <Download className="w-5 h-5" />
-                    <span>{t('modals.exportFileAgainBtn')}</span>
-                  </button>
-                </div>
-                <div className="flex justify-end gap-3 items-center mt-6">
+                <div className="flex justify-between items-center pt-2">
                   <button
                     onClick={() => setShareModal({ ...shareModal, viewState: 'checklist' })}
-                    className="px-5 py-2.5 rounded-xl font-bold border border-white/10 text-white/60 hover:bg-white/5 hover:text-white/80 transition-colors min-h-[44px]"
+                    className="text-xs text-white/60 hover:text-white transition-colors cursor-pointer py-1"
                   >
                     {t('modals.updateExportSettingsBtn')}
                   </button>
-                  <button onClick={() => setShareModal(null)} className="px-6 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.closeBtn')}</button>
+                  <button
+                    onClick={() => setShareModal(null)}
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-xs transition-colors cursor-pointer"
+                  >
+                    {t('modals.closeBtn')}
+                  </button>
                 </div>
-              </>
+              </div>
+            ) : shareModal.viewState === 'active_file' ? (
+              <div className="flex flex-col flex-1 space-y-4">
+                <p className="text-white/70 text-xs leading-relaxed">
+                  {t('modals.previouslyExportedText', { date: shareModal.shareTimestamp ? new Date(shareModal.shareTimestamp).toLocaleDateString() : '' })}
+                </p>
+
+                {/* Clean included items row */}
+                <div className="flex flex-wrap gap-1.5 py-2 border-y border-white/10">
+                  {shareModal.sharedContent?.report && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareConsolidatedReport')}
+                    </span>
+                  )}
+                  {shareModal.sharedContent?.notes && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareNotes')}
+                    </span>
+                  )}
+                  {shareModal.sharedContent?.transcripts && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareTranscripts')}
+                    </span>
+                  )}
+                  {shareModal.sharedContent?.media && (
+                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/20 text-brand-light">
+                      {t('modals.shareMedia')}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handleGenerateShareLink(true)}
+                  className="w-full py-3 bg-brand text-bg-dark font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(45,212,191,0.2)] min-h-[44px] cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{t('modals.exportFileAgainBtn')}</span>
+                </button>
+
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    onClick={() => setShareModal({ ...shareModal, viewState: 'checklist' })}
+                    className="text-xs text-white/60 hover:text-white transition-colors cursor-pointer py-1"
+                  >
+                    {t('modals.updateExportSettingsBtn')}
+                  </button>
+                  <button
+                    onClick={() => setShareModal(null)}
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-xs transition-colors cursor-pointer"
+                  >
+                    {t('modals.closeBtn')}
+                  </button>
+                </div>
+              </div>
             ) : null}
           </div>
         </div>
@@ -4791,7 +4905,7 @@ export default function App() {
       {showImportCodeModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
-            <h3 className="text-xl font-bold text-brand flex items-center gap-2">
+            <h3 className="text-xl text-brand flex items-center gap-2">
               <Download className="w-6 h-6 shrink-0 text-brand" />
               {t('modals.importCodeTitle')}
             </h3>
@@ -4804,7 +4918,7 @@ export default function App() {
                 value={importCodeValue}
                 onChange={(e) => setImportCodeValue(e.target.value.toUpperCase().trim())}
                 placeholder={t('modals.importCodePlaceholder')}
-                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-center text-lg font-mono font-bold tracking-widest text-white outline-none focus:border-brand transition-colors"
+                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white outline-none focus:border-brand transition-colors"
               />
             </div>
 
@@ -4815,7 +4929,7 @@ export default function App() {
                     setShowImportCodeModal(false);
                     setImportCodeValue('');
                   }}
-                  className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
                 >
                   {t('modals.cancelBtn')}
                 </button>
@@ -4841,7 +4955,7 @@ export default function App() {
                     }
                   }}
                   disabled={importCodeValue.length !== 6}
-                  className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
+                  className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
                 >
                   {t('modals.importSessionBtn')}
                 </button>
@@ -4854,7 +4968,7 @@ export default function App() {
               </div>
 
               <input type="file" id="zoutty-import-file" accept=".zoutty,.zoutty.zip,.zip,application/zip" className="hidden" onChange={handleImportFile} />
-              <label htmlFor="zoutty-import-file" className="w-full text-center px-5 py-3 rounded-xl font-bold border border-white/10 text-white/80 hover:bg-white/5 transition-colors cursor-pointer">
+              <label htmlFor="zoutty-import-file" className="w-full text-center px-5 py-3 rounded-xl border border-white/10 text-white/80 hover:bg-white/5 transition-colors cursor-pointer">
                 {t('modals.importFromFile')}
               </label>
             </div>
@@ -4866,7 +4980,7 @@ export default function App() {
       {importPreview && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
           <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95 max-h-[85vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-brand flex items-center gap-2">
+            <h3 className="text-xl text-brand flex items-center gap-2">
               <Share2 className="w-6 h-6 shrink-0" />
               {t('modals.sharedSession')}
             </h3>
@@ -4874,37 +4988,37 @@ export default function App() {
 
             <div className="bg-black/30 p-5 rounded-2xl border border-white/10 space-y-3.5">
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedTitle')}</span>
-                <span className="text-sm font-semibold text-white">{importPreview.title}</span>
+                <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedTitle')}</span>
+                <span className="text-sm text-white">{importPreview.title}</span>
               </div>
               {importPreview.subtitle && (
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedSubtitle')}</span>
+                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedSubtitle')}</span>
                   <span className="text-sm text-white/80">{importPreview.subtitle}</span>
                 </div>
               )}
               {importPreview.notes && (
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedNotesShared')}</span>
-                  <span className="text-xs text-green-400 font-semibold block mt-1 font-sans">{t('modals.sharedNotesIncluded')}</span>
+                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedNotesShared')}</span>
+                  <span className="text-xs text-green-400 block mt-1 font-sans">{t('modals.sharedNotesIncluded')}</span>
                 </div>
               )}
               {importPreview.report && (
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedReportShared')}</span>
-                  <span className="text-xs text-green-400 font-semibold block mt-1 font-sans">{t('modals.sharedReportIncluded')}</span>
+                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedReportShared')}</span>
+                  <span className="text-xs text-green-400 block mt-1 font-sans">{t('modals.sharedReportIncluded')}</span>
                 </div>
               )}
               {importPreview.transcripts && (
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedClipsShared')}</span>
-                  <span className="text-xs text-blue-400 font-semibold block mt-1 font-sans">{t('modals.sharedClipsIncluded', { count: importPreview.transcripts.length })}</span>
+                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedClipsShared')}</span>
+                  <span className="text-xs text-blue-400 block mt-1 font-sans">{t('modals.sharedClipsIncluded', { count: importPreview.transcripts.length })}</span>
                 </div>
               )}
               {(importPreview.parsedMediaFiles?.filter((f: any) => !f.isAudioEntry).length > 0 || (importPreview.mediaItems && importPreview.mediaItems.length > 0)) && (
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand block">{t('modals.sharedMediaShared')}</span>
-                  <span className="text-xs text-purple-400 font-semibold block mt-1 font-sans">
+                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedMediaShared')}</span>
+                  <span className="text-xs text-purple-400 block mt-1 font-sans">
                     {t('modals.sharedMediaIncluded', { count: (importPreview.parsedMediaFiles?.filter((f: any) => !f.isAudioEntry).length || 0) + (importPreview.mediaItems?.length || 0) })}
                   </span>
                 </div>
@@ -4917,13 +5031,13 @@ export default function App() {
                   window.history.replaceState({}, document.title, window.location.pathname);
                   setImportPreview(null);
                 }}
-                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
               >
                 {t('modals.rejectBtn')}
               </button>
               <button
                 onClick={handleImportSession}
-                className="px-5 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
+                className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
               >
                 {t('modals.importSessionBtn')}
               </button>
@@ -4940,7 +5054,7 @@ export default function App() {
               onClick={() => {
                 window.history.back();
               }}
-              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 transition-colors shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0 cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
@@ -4953,15 +5067,15 @@ export default function App() {
             <ZouttyIcon className="w-8 h-8 sm:w-10 sm:h-10 text-brand shrink-0" />
           </button>
           <div className="flex flex-col justify-center min-w-0">
-            <h1 className="text-base sm:text-lg uppercase tracking-[0.2em] text-brand font-bold leading-none truncate">
+            <h1 className="text-base sm:text-lg uppercase tracking-[0.2em] text-brand font-bold font-logo leading-none truncate">
               {t('appName')}
             </h1>
             <div className="flex items-center gap-2 mt-1">
-              <p className="hidden sm:block text-[10px] font-semibold tracking-[0.04em] text-white/50 leading-none truncate">
+              <p className="hidden sm:block text-[10px] tracking-[0.04em] text-white/50 leading-none truncate">
                 {t('appSubtitle')}
               </p>
               {isGuestMode && (
-                <span className="px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-white/10 text-white/70 border border-white/10 leading-none">
+                <span className="px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] uppercase tracking-wider bg-white/10 text-white/70 border border-white/10 leading-none">
                   {t('guestModeBadge')}
                 </span>
               )}
@@ -4973,10 +5087,10 @@ export default function App() {
           {/* Quick Test Lab Access Button */}
           <button
             onClick={() => setShowTestLabModal(true)}
-            className={`h-10 px-3 flex items-center gap-1.5 glass rounded-full hover:bg-white/10 transition-all text-xs font-semibold cursor-pointer ${
+            className={`h-9 sm:h-10 px-2 flex items-center gap-1.5 transition-all text-xs cursor-pointer hover:opacity-80 ${
               devState.mockGemini
-                ? 'border-brand/40 text-brand bg-brand/10 shadow-xs shadow-brand/20'
-                : 'border-white/10 text-white/60 hover:text-white'
+                ? 'text-brand'
+                : 'text-white/60 hover:text-white'
             }`}
             title={t('billing.dev.panelTitle')}
           >
@@ -4990,7 +5104,7 @@ export default function App() {
             <>
               <button
                 onClick={() => setShowSearchModal(true)}
-                className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 text-white/40 hover:text-brand transition-colors"
+                className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-white/40 hover:text-brand transition-colors cursor-pointer"
                 title="Search"
               >
                 <Search className="w-5 h-5 text-brand" />
@@ -4998,14 +5112,21 @@ export default function App() {
               <button
                 id="onboarding-settings-btn"
                 onClick={() => setShowAppSettings(true)}
-                className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-white/10 text-white/40 hover:text-brand transition-colors"
+                className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-white/40 hover:text-brand transition-colors cursor-pointer"
                 title="Zoutty Settings"
               >
                 <Settings className="w-5 h-5 text-brand" />
               </button>
             </>
           )}
-          {view === 'detail' && selectedSession && (
+          {view === 'detail' && selectedSession && (() => {
+            const hasExportableContent = !selectedSession.isDemo && (
+              !!selectedSession.summary ||
+              !!selectedSession.notes ||
+              Object.values(audioEntries).some(e => e.sessionId === selectedSession.id && (!!e.transcript || !!e.audioBlob || !!e.audio_storage_path)) ||
+              sessionMedia.some(m => m.sessionId === selectedSession.id)
+            );
+            return (
             <>
               <button
                 id="onboarding-share-btn"
@@ -5064,13 +5185,14 @@ export default function App() {
                     });
                   }
                 }}
-                className={`w-10 h-10 flex items-center justify-center glass rounded-full transition-colors ${selectedSession.shareId ? 'bg-brand/20 text-brand shadow-sm shadow-brand/20' : 'hover:bg-brand/20 text-brand'}`}
+                className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-brand hover:opacity-80 transition-colors cursor-pointer"
                 title={t('session.shareSession')}
               >
                 <Share2 className="w-5 h-5" />
               </button>
               <button
                 id="onboarding-export-btn"
+                disabled={!hasExportableContent && !selectedSession.isDemo}
                 onClick={() => {
                   if (selectedSession.isDemo) {
                     showToast(t('onboarding.demoTooltipExport'), false);
@@ -5078,13 +5200,18 @@ export default function App() {
                     setShowExportConfirm(true);
                   }
                 }}
-                className="w-10 h-10 flex items-center justify-center glass rounded-full hover:bg-brand/20 text-brand transition-colors"
+                className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center transition-colors ${
+                  hasExportableContent || selectedSession.isDemo
+                    ? 'text-brand hover:opacity-80 cursor-pointer'
+                    : 'text-white/20 cursor-not-allowed'
+                }`}
                 title={t('session.exportToPDF')}
               >
                 <Download className="w-5 h-5" />
               </button>
             </>
-          )}
+            );
+          })()}
           {deferredPrompt && (
             <button
               onClick={async () => {
@@ -5096,7 +5223,7 @@ export default function App() {
                   setDeferredPrompt(null);
                 }
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded-xl border border-brand/20 transition-all font-sans text-sm shadow-sm"
+              className="flex items-center gap-1.5 px-2 py-2 text-brand hover:opacity-80 transition-opacity font-sans text-sm cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">{t('installApp')}</span>
@@ -5110,30 +5237,30 @@ export default function App() {
           <div className="space-y-6">
             {/* Home Tab Bar: Lesson History vs Library */}
             {!selectedGroupId && (
-              <div className="flex p-1 bg-white/5 border border-white/10 rounded-2xl mb-6 backdrop-blur-md">
+              <div className="grid grid-cols-2 gap-4 border-b border-white/10 mb-6 px-1">
                 <button
                   type="button"
                   onClick={() => handleTabChange('history')}
-                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`flex items-center justify-center gap-2.5 text-sm sm:text-base pb-3 transition-colors cursor-pointer ${
                     homeTab === 'history'
-                      ? 'bg-brand/20 text-brand shadow-sm border border-brand/30'
-                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                      ? 'text-white border-b-2 border-brand -mb-[1px]'
+                      : 'text-white/40 hover:text-white/70'
                   }`}
                 >
-                  <Clock className="w-4 h-4" />
-                  {t('home.tabHistory')}
+                  <Clock className="w-5 h-5" />
+                  <span>{t('home.tabHistory')}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleTabChange('library')}
-                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`flex items-center justify-center gap-2.5 text-sm sm:text-base pb-3 transition-colors cursor-pointer ${
                     homeTab === 'library'
-                      ? 'bg-brand/20 text-brand shadow-sm border border-brand/30'
-                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                      ? 'text-white border-b-2 border-brand -mb-[1px]'
+                      : 'text-white/40 hover:text-white/70'
                   }`}
                 >
-                  <Folder className="w-4 h-4" />
-                  {t('home.tabLibrary')}
+                  <Library className="w-5 h-5" />
+                  <span>{t('home.tabLibrary')}</span>
                 </button>
               </div>
             )}
@@ -5150,7 +5277,7 @@ export default function App() {
             ) : (
               <div className="space-y-8">
                 {selectedGroupId && (
-                  <div className="flex items-center gap-2 text-sm font-bold text-white/40 uppercase tracking-widest">
+                  <div className="flex items-center gap-2 text-sm text-white/40 uppercase tracking-widest">
                     <FolderOpen className="w-4 h-4 text-blue-400" />
                     <span>{t('home.folderBreadcrumb', { name: groups.find(g => g.id === selectedGroupId)?.name || '' })}</span>
                   </div>
@@ -5164,7 +5291,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-3">
                   <Search className="w-4 h-4 text-purple-400/80 group-hover:text-purple-400 transition-colors" />
-                  <span className="text-sm font-medium text-white/90">
+                  <span className="text-sm text-white/90">
                     {activeSearch.query ? t('search.searching', { query: activeSearch.query }) : t('search.advancedSearch')}
                   </span>
                 </div>
@@ -5179,72 +5306,79 @@ export default function App() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              <div className="flex gap-4">
+            ) : selectedGroupId ? (
+              <div className="flex justify-center items-center">
                 <button
                   id="onboarding-new-session-btn"
                   onClick={handleOpenNewSession}
-                  className={`py-3.5 glass bg-brand/10 border-brand/20 text-brand font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand flex-1 min-h-[52px] ${selectedGroupId ? 'py-4 text-base' : ''}`}
+                  className="py-2 px-3.5 bg-brand/10 border border-brand/20 text-brand text-xs sm:text-sm flex items-center justify-center gap-1.5 hover:bg-brand/20 transition-all rounded-xl shadow-sm glow-brand min-h-[38px] w-[calc((100%-58px)/2)] sm:w-[calc((100%-62px)/2)] cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" />
-                  {t('home.newSession')}
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('home.newLesson')}</span>
                 </button>
-                {!selectedGroupId && (
-                  <>
-                    <button
-                      onClick={() => setFolderModal({ type: 'create', name: '' })}
-                      className="py-3.5 glass bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500/20 transition-all rounded-2xl shadow-lg shadow-blue-500/10 flex-1 min-h-[52px]"
-                    >
-                      <FolderPlus className="w-4 h-4" />
-                      {t('home.newFolder')}
-                    </button>
-                    <button
-                      onClick={() => setShowImportCodeModal(true)}
-                      className="w-[52px] h-[52px] glass bg-purple-500/10 border-purple-500/20 text-purple-400 font-bold flex items-center justify-center hover:bg-purple-500/20 transition-all rounded-2xl shadow-lg shadow-purple-500/10 shrink-0"
-                      title={t('home.importBtnTitle')}
-                    >
-                      <Download className="w-5 h-5" />
-                    </button>
-                  </>
-                )}
+              </div>
+            ) : (
+              <div className="flex gap-2.5 sm:gap-3">
+                <button
+                  id="onboarding-new-session-btn"
+                  onClick={handleOpenNewSession}
+                  className="py-2 px-3.5 bg-brand/10 border border-brand/20 text-brand text-xs sm:text-sm flex items-center justify-center gap-1.5 hover:bg-brand/20 transition-all rounded-xl shadow-sm glow-brand flex-1 min-h-[38px] cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('home.newLesson')}</span>
+                </button>
+                <button
+                  onClick={() => setFolderModal({ type: 'create', name: '' })}
+                  className="py-2 px-3.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs sm:text-sm flex items-center justify-center gap-1.5 hover:bg-blue-500/20 transition-all rounded-xl shadow-sm flex-1 min-h-[38px] cursor-pointer"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" />
+                  <span>{t('home.newFolder')}</span>
+                </button>
+                <button
+                  onClick={() => setShowImportCodeModal(true)}
+                  className="h-[38px] px-3 bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center gap-1.5 hover:bg-purple-500/20 transition-all rounded-xl shadow-sm shrink-0 cursor-pointer text-xs"
+                  title={t('home.importBtnTitle')}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
 
             {activeSearch && activeSearch.matchedSessionIds.size === 0 && activeSearch.matchedGroupIds.size === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in">
                 <Search className="w-12 h-12 text-white/20 mb-4" />
-                <h3 className="text-lg font-bold text-white/60">{t('search.noResults')}</h3>
+                <h3 className="text-lg text-white/60">{t('search.noResults')}</h3>
                 <p className="text-sm text-white/40 mt-1">{t('search.tryAdjusting')}</p>
               </div>
             )}
 
             {/* Folders List - Shown in Root */}
             {!selectedGroupId && groups.filter(g => activeSearch ? activeSearch.matchedGroupIds.has(g.id) : g.id !== 'root').length > 0 && (
-              <div className="space-y-4">
+              <div className="space-y-1">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('home.foldersHeading')}</h2>
+                  <h2 className="text-xs sm:text-sm font-medium tracking-wider uppercase text-blue-400/90">{t('home.foldersHeading')}</h2>
 
                   {/* Folder Sorting controls bar */}
-                  <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
+                  <div className="flex items-center gap-4 text-xs text-white/40 font-sans">
                     <span className="hidden sm:inline">{t('home.sortBy')}</span>
                     <div className="flex gap-3.5">
                       <button
                         onClick={() => handleFolderSortClick('date')}
-                        className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'date' ? 'text-brand font-bold' : ''}`}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'date' ? 'text-brand' : ''}`}
                       >
                         {t('home.sortRecent')}
                         {folderSortBy === 'date' && (folderSortOrder === 'asc' ? ' ↑' : ' ↓')}
                       </button>
                       <button
                         onClick={() => handleFolderSortClick('name')}
-                        className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'name' ? 'text-brand font-bold' : ''}`}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'name' ? 'text-brand' : ''}`}
                       >
                         {t('home.sortName')}
                         {folderSortBy === 'name' && (folderSortOrder === 'asc' ? ' ↑' : ' ↓')}
                       </button>
                       <button
                         onClick={() => handleFolderSortClick('created')}
-                        className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'created' ? 'text-brand font-bold' : ''}`}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${folderSortBy === 'created' ? 'text-brand' : ''}`}
                       >
                         {t('home.sortCreated')}
                         {folderSortBy === 'created' && (folderSortOrder === 'asc' ? ' ↑' : ' ↓')}
@@ -5253,36 +5387,36 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="flex flex-col">
                   {sortFolders(groups.filter(g => activeSearch ? activeSearch.matchedGroupIds.has(g.id) : g.id !== 'root')).map(group => (
                     <div
                       key={group.id}
                       onClick={() => navigateTo('list', null, group.id)}
-                      className="glass p-4.5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer border border-blue-500/10 rounded-2xl"
+                      className="flex items-center gap-3.5 py-3 px-1 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group"
                     >
-                      <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                        <Folder className="w-5 h-5 text-blue-400" />
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                        <Folder className="w-4 h-4 text-blue-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold truncate text-white">{group.name}</h3>
-                        <p className="text-xs text-white/40 mt-0.5 font-medium font-sans">
+                        <h3 className="text-sm truncate text-white/90 group-hover:text-blue-300 transition-colors">{group.name}</h3>
+                        <p className="text-xs text-white/40 mt-0.5 font-sans">
                           {t('home.sessionCount', { count: sessions.filter(s => s.groupId === group.id).length })}
                         </p>
                       </div>
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => setFolderModal({ type: 'rename', id: group.id, name: group.name })}
-                          className="p-2 bg-white/5 hover:bg-white/10 text-white/60 rounded-xl transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+                          className="p-2 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-lg transition-colors min-h-[34px] min-w-[34px] flex items-center justify-center"
                           title="Rename folder"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setDeleteFolderModal({ id: group.id, name: group.name })}
-                          className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+                          className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors min-h-[34px] min-w-[34px] flex items-center justify-center"
                           title="Delete folder"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -5292,33 +5426,33 @@ export default function App() {
             )}
 
             {showSessionsSection && (
-              <div className="space-y-4">
+              <div className="space-y-1">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-white/30">
+                  <h2 className="text-xs sm:text-sm font-medium tracking-wider uppercase text-brand/90">
                     {selectedGroupId ? t('home.sessionsInFolderHeading') : t('home.sessionsHeading')}
                   </h2>
 
                   {/* Sorting controls bar */}
-                  <div className="flex items-center gap-4 text-xs text-white/40 font-sans font-semibold">
+                  <div className="flex items-center gap-4 text-xs text-white/40 font-sans">
                     <span className="hidden sm:inline">{t('home.sortBy')}</span>
                     <div className="flex gap-3.5">
                       <button
                         onClick={() => handleSessionSortClick('date')}
-                        className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'date' ? 'text-brand font-bold' : ''}`}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'date' ? 'text-brand' : ''}`}
                       >
                         {t('home.sortRecent')}
                         {sessionSortBy === 'date' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
                       </button>
                       <button
                         onClick={() => handleSessionSortClick('name')}
-                        className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'name' ? 'text-brand font-bold' : ''}`}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'name' ? 'text-brand' : ''}`}
                       >
                         {t('home.sortName')}
                         {sessionSortBy === 'name' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
                       </button>
                       <button
                         onClick={() => handleSessionSortClick('created')}
-                        className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'created' ? 'text-brand font-bold' : ''}`}
+                        className={`hover:text-white transition-colors flex items-center gap-1 ${sessionSortBy === 'created' ? 'text-brand' : ''}`}
                       >
                         {t('home.sortCreated')}
                         {sessionSortBy === 'created' && (sessionSortOrder === 'asc' ? ' ↑' : ' ↓')}
@@ -5334,17 +5468,17 @@ export default function App() {
                         <div className="absolute inset-0 bg-brand/20 blur-3xl rounded-full animate-pulse" />
                         <Sparkles className="w-full h-full text-brand/60 drop-shadow-[0_0_15px_rgba(45,212,191,0.5)] animate-pulse" style={{ animationDuration: '3s' }} />
                       </div>
-                      <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 tracking-tight">{t('home.emptyHomeTitle')}</h3>
+                      <h3 className="text-xl sm:text-2xl text-white mb-3 tracking-tight">{t('home.emptyHomeTitle')}</h3>
                       <p className="text-sm sm:text-base text-white/50 max-w-sm leading-relaxed">{t('home.emptyHomeDesc')}</p>
                     </div>
                   ) : (
-                    <div className="glass p-12 text-center text-white/20">
-                      <Folder className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                      <p>{t('home.noSessionsInFolder')}</p>
+                    <div className="p-12 text-center text-white/30 border-b border-white/5">
+                      <Folder className="w-10 h-10 mx-auto mb-2.5 opacity-20" />
+                      <p className="text-sm">{t('home.noSessionsInFolder')}</p>
                     </div>
                   )
                 ) : (
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="flex flex-col">
                     {sortSessions(
                       sessions.filter(s => activeSearch ? activeSearch.matchedSessionIds.has(s.id) : (selectedGroupId ? s.groupId === selectedGroupId : !s.groupId))
                     ).map(session => (
@@ -5353,39 +5487,39 @@ export default function App() {
                         onClick={() => {
                           navigateTo('detail', session.id, selectedGroupId);
                         }}
-                        className={`glass p-5 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer rounded-2xl border ${session.isDemo && sessions.length === 1 ? 'border-brand/50 shadow-[0_0_20px_rgba(45,212,191,0.2)] animate-pulse hover:border-brand/70' : 'border-white/5 hover:border-brand/25'}`}
+                        className={`flex items-center gap-3.5 py-3.5 px-1 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group ${session.isDemo && sessions.length === 1 ? 'border-brand/40 shadow-[0_0_15px_rgba(45,212,191,0.15)] animate-pulse' : ''}`}
                       >
-                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
-                          <FileAudio className="w-6 h-6 text-brand" />
+                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+                          <FileAudio className="w-4 h-4 text-brand" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold truncate text-white">{session.title}</h3>
-                          <p className="text-xs text-white/40 mt-1 truncate flex items-center gap-1.5">
+                          <h3 className="text-sm truncate text-white/90 group-hover:text-brand transition-colors">{session.title}</h3>
+                          <p className="text-xs text-white/40 mt-0.5 truncate flex items-center gap-1.5 font-sans">
                             <span className="truncate">{session.subtitle || t('home.sessionDefaultSubtitle')}</span>
                             <span className="opacity-40 shrink-0">•</span>
                             <span className="shrink-0">{formatCompactRelativeDate(getSessionLastActivity(session))}</span>
                           </p>
                         </div>
-                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setMoveSessionModal({ sessionId: session.id, currentGroupId: session.groupId });
                             }}
-                            className="p-3 bg-white/5 text-white/60 hover:text-brand hover:bg-white/10 rounded-xl transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
+                            className="p-2 bg-white/5 text-white/60 hover:text-brand hover:bg-white/10 rounded-lg transition-colors flex items-center justify-center min-h-[34px] min-w-[34px]"
                             title={t('home.moveToFolder')}
                           >
-                            <Folder className="w-5 h-5 shrink-0" />
+                            <Folder className="w-4 h-4 shrink-0" />
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               requestDeleteSession(session.id, session.title);
                             }}
-                            className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
+                            className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors flex items-center justify-center min-h-[34px] min-w-[34px]"
                             title={t('home.deleteSession')}
                           >
-                            <Trash2 className="w-5 h-5 shrink-0" />
+                            <Trash2 className="w-4 h-4 shrink-0" />
                           </button>
                         </div>
                       </div>
@@ -6022,8 +6156,16 @@ function SessionDetail({
     return () => clearTimeout(timer);
   }, [initialAction]);
 
+  const getDanceStyleLabel = (glossaryId?: string, customStyle?: string) => {
+    if (!glossaryId || glossaryId === 'auto') return t('sessionSettings.glossaryAuto');
+    if (glossaryId === 'other') return customStyle || t('sessionSettings.glossaryOther');
+    const translated = t(`danceStyles.${glossaryId}`);
+    if (translated && !translated.startsWith('danceStyles.')) return translated;
+    return glossaries.find(g => g.id === glossaryId)?.name || customStyle || 'Brazilian Zouk';
+  };
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Print-only Logo */}
       <div className="hidden print:block text-center pb-4 border-b border-gray-200">
         <img src="/zouttyLogoHoriz.png" alt="Zoutty" className="h-10 mx-auto" />
@@ -6034,7 +6176,7 @@ function SessionDetail({
           {parentGroup ? (
             <div className="flex items-center gap-1.5 text-xs text-white/40">
               <Folder className="w-3.5 h-3.5 text-brand" />
-              <span className="font-semibold text-white/60">{parentGroup.name}</span>
+              <span className="text-white/60">{parentGroup.name}</span>
               <span className="text-white/20">/</span>
             </div>
           ) : (
@@ -6054,16 +6196,11 @@ function SessionDetail({
                 setIsSettingsOpen(true);
               }
             }}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-brand/10 border border-brand/20 hover:bg-brand/20 transition-all text-brand font-medium cursor-pointer"
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-brand/10 border border-brand/20 hover:bg-brand/20 transition-all text-brand cursor-pointer"
             title={t('session.sessionSettings')}
           >
             <Music className="w-3 h-3 shrink-0" />
-            <span>
-              {session.glossaryId === 'auto'
-                ? t('sessionSettings.glossaryAuto')
-                : ((t(`danceStyles.${session.glossaryId}`) as string) || glossaries.find(g => g.id === session.glossaryId)?.name || 'Brazilian Zouk')
-              }
-            </span>
+            <span>{getDanceStyleLabel(session.glossaryId, session.customGlossaryStyle)}</span>
           </button>
         </div>
         {/* Date line — always shown, white, bold */}
@@ -6074,11 +6211,11 @@ function SessionDetail({
             onChange={(e) => setTempTitle(e.target.value)}
             onBlur={handleTitleSubmit}
             onKeyDown={(e) => { if (e.key === 'Enter') handleTitleSubmit(); if (e.key === 'Escape') { setTempTitle(session.title); setIsEditingTitle(false); } }}
-            className="bg-transparent text-xl font-bold text-white outline-none w-full py-0.5"
+            className="bg-transparent text-xl text-white outline-none w-full py-0.5"
           />
         ) : (
           <p
-            className="text-xl font-bold text-white cursor-text hover:text-white/80 transition-colors flex items-center gap-2 group w-max"
+            className="text-xl text-white cursor-text hover:text-white/80 transition-colors flex items-center gap-2 group w-max"
             onClick={() => {
               if (session.isDemo) {
                 showToast(t('onboarding.demoTooltipEdit'), false);
@@ -6178,8 +6315,8 @@ function SessionDetail({
         )}
 
         {/* Topic Tags / Chips section */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2.5 border-t border-white/5">
-          <div className="flex items-center gap-1 text-white/40 text-xs mr-1 shrink-0 font-medium">
+        <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2.5 pb-2.5 border-t border-b border-white/5">
+          <div className="flex items-center gap-1 text-white/40 text-xs mr-1 shrink-0">
             <Tag className="w-3.5 h-3.5 text-brand/70" />
             <span className="hidden sm:inline">{t('session.topicsHeading')}:</span>
           </div>
@@ -6187,7 +6324,7 @@ function SessionDetail({
           {(session.tags || []).map((tag, idx) => (
             <span
               key={idx}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-brand/10 border border-brand/20 text-brand-light text-xs font-medium group transition-colors hover:bg-brand/15"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-brand/10 border border-brand/20 text-brand-light text-xs group transition-colors hover:bg-brand/15"
             >
               <span>{tag}</span>
               <button
@@ -6277,7 +6414,7 @@ function SessionDetail({
               {/* Autocomplete / Suggested Topics Dropdown */}
               {matchingSuggestions.length > 0 && (
                 <div className="absolute left-0 top-full mt-1.5 z-50 bg-[#161b22] border border-white/15 rounded-xl shadow-2xl overflow-hidden py-1 min-w-[150px] max-w-[240px] animate-in fade-in slide-in-from-top-1">
-                  <div className="px-2.5 py-1 text-[10px] font-semibold text-white/40 uppercase tracking-wider border-b border-white/5">
+                  <div className="px-2.5 py-1 text-[10px] text-white/40 uppercase tracking-wider border-b border-white/5">
                     {t('session.suggestedTopics')}
                   </div>
                   {matchingSuggestions.map((suggestion, sIdx) => {
@@ -6292,7 +6429,7 @@ function SessionDetail({
                         }}
                         className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors cursor-pointer group ${
                           isHighlighted
-                            ? 'bg-brand/25 text-brand font-medium'
+                            ? 'bg-brand/25 text-brand'
                             : 'text-white/80 hover:bg-white/10 hover:text-white'
                         }`}
                       >
@@ -6314,7 +6451,7 @@ function SessionDetail({
                   setIsAddingTopic(true);
                 }
               }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-brand text-xs font-medium transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-brand text-xs transition-colors cursor-pointer"
               title={t('session.addTopic')}
             >
               <Plus className="w-3 h-3" />
@@ -6330,7 +6467,7 @@ function SessionDetail({
         if (lessonVideos.length === 0) return null;
 
         return (
-          <div className="glass p-4 sm:p-5 rounded-3xl border border-white/10 space-y-3.5 shadow-xl transition-all duration-300">
+          <div className="border-b border-white/5 !mt-0 py-2.5 space-y-3.5 transition-all duration-300">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <button
                 type="button"
@@ -6341,10 +6478,10 @@ function SessionDetail({
                 <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
                   <Video className="w-3.5 h-3.5" />
                 </div>
-                <h3 className="text-sm font-semibold text-white tracking-wide group-hover:text-amber-300 transition-colors">
+                <h3 className="text-sm text-white tracking-wide group-hover:text-amber-300 transition-colors">
                   {t('session.lessonVideo')}
                 </h3>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/70 font-mono font-medium">
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/70 font-mono">
                   {lessonVideos.length}
                 </span>
                 <div className="p-1 rounded-md text-white/40 group-hover:text-white transition-colors">
@@ -6360,7 +6497,7 @@ function SessionDetail({
                 <button
                   type="button"
                   onClick={() => lessonVideoInputRef.current?.click()}
-                  className="text-xs text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 cursor-pointer py-1 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 font-medium"
+                  className="text-xs text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 cursor-pointer py-1 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20"
                   title={t('session.addLessonVideo')}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -6410,7 +6547,7 @@ function SessionDetail({
 
                     {/* Metadata overlay at bottom */}
                     <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-between text-xs text-white/80">
-                      <span className="truncate font-medium max-w-[70%]">{primaryItem.filename}</span>
+                      <span className="truncate max-w-[70%]">{primaryItem.filename}</span>
                       <span className="text-[11px] text-white/50 shrink-0 font-mono">{formatBytes(primaryItem.size)}</span>
                     </div>
                   </div>
@@ -6457,7 +6594,7 @@ function SessionDetail({
         );
       })()}
 
-      <div id="sessionDetailContent" className="mt-8">
+      <div id="sessionDetailContent" className="!mt-0">
         <SessionStructuredData
           sessionId={session.id}
           entries={entries}
@@ -6484,7 +6621,7 @@ function SessionDetail({
       <div className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 glass p-4 rounded-full flex items-center justify-center gap-4 sm:gap-6 shadow-2xl z-40 border border-white/10 bg-black/60 backdrop-blur-md print-hide">
 
         {isRecording && (
-          <div className={`absolute -top-12 left-1/2 -translate-x-1/2 text-white text-xs font-semibold px-3.5 py-1 rounded-full flex items-center gap-1.5 shadow-lg border backdrop-blur-md animate-in slide-in-from-bottom-2 duration-300 ${
+          <div className={`absolute -top-12 left-1/2 -translate-x-1/2 text-white text-xs px-3.5 py-1 rounded-full flex items-center gap-1.5 shadow-lg border backdrop-blur-md animate-in slide-in-from-bottom-2 duration-300 ${
             recordingDuration >= TIER_LIMITS.CLIP_COUNTDOWN_SECONDS
               ? 'bg-amber-600/95 border-amber-400 animate-pulse text-amber-100 shadow-amber-500/30 ring-2 ring-amber-400/50'
               : recordingDuration >= TIER_LIMITS.CLIP_WARNING_SECONDS
@@ -6494,7 +6631,7 @@ function SessionDetail({
             <span className="w-2 h-2 rounded-full bg-white animate-ping shrink-0" />
             <span className="font-mono">{formatDuration(recordingDuration)}</span>
             {recordingDuration >= TIER_LIMITS.CLIP_COUNTDOWN_SECONDS && (
-              <span className="font-bold text-[11px] ml-1 text-amber-200">
+              <span className="text-[11px] ml-1 text-amber-200">
                 ({TIER_LIMITS.MAX_CLIP_DURATION_SECONDS - recordingDuration}s)
               </span>
             )}
@@ -6535,7 +6672,7 @@ function SessionDetail({
           style={isRecording ? {
             boxShadow: `0 0 0 ${4 + micLevel * 16}px rgba(${recordingDuration >= TIER_LIMITS.CLIP_WARNING_SECONDS ? '245,158,11' : '239,68,68'},${0.3 + micLevel * 0.6})`
           } : {}}
-          className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full font-bold transition-all shadow-lg ${isRecording
+          className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full transition-all shadow-lg ${isRecording
             ? (recordingDuration >= TIER_LIMITS.CLIP_WARNING_SECONDS ? 'bg-amber-500 text-white hover:bg-amber-600 scale-95 animate-pulse ring-4 ring-amber-400/50' : 'bg-red-500 text-white hover:bg-red-600 scale-95 animate-pulse')
             : 'bg-brand text-black hover:bg-brand-light hover:scale-105'
             } min-h-[64px] min-w-[64px]`}
@@ -6568,7 +6705,7 @@ function SessionDetail({
           >
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <h3 className="text-lg text-white flex items-center gap-2">
                 <SlidersHorizontal className="w-5 h-5 text-brand" />
                 {t('sessionSettings.drawerTitle')}
               </h3>
@@ -6584,7 +6721,7 @@ function SessionDetail({
             <div className="flex-1 overflow-y-auto space-y-6 pr-1">
               {/* Folder Selector */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+                <label className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1.5">
                   <Folder className="w-3.5 h-3.5 text-brand" />
                   {t('sessionSettings.folderLabel')}
                 </label>
@@ -6601,14 +6738,14 @@ function SessionDetail({
 
               {/* Glossary Selector */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+                <label className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5 text-brand" />
                   {t('sessionSettings.glossaryLabel')}
                 </label>
                 <MultiSelectCombobox
                   selectedValues={tempActiveGlossaryIds}
                   onChange={setTempActiveGlossaryIds}
-                  options={SYSTEM_GLOSSARIES.map(g => ({ value: g.id, label: (t(`danceStyles.${g.id}`) as string) || g.name }))}
+                  options={SYSTEM_GLOSSARIES.map(g => ({ value: g.id, label: getDanceStyleLabel(g.id) }))}
                   placeholder={t('glossary.searchPlaceholder')}
                 />
                 {tempActiveGlossaryIds.length === 0 && (
@@ -6626,14 +6763,14 @@ function SessionDetail({
               <div className="flex gap-3">
                 <button
                   onClick={handleCancelSettings}
-                  className="flex-1 px-4 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors text-white text-xs min-h-[40px]"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white text-xs min-h-[40px]"
                 >
                   {t('sessionSettings.cancelBtn')}
                 </button>
                 <button
                   onClick={handleConfirmSettings}
                   disabled={tempActiveGlossaryIds.length === 0}
-                  className="flex-1 px-4 py-2.5 rounded-xl font-bold bg-brand hover:bg-brand-light text-black transition-colors text-xs min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-light text-black transition-colors text-xs min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('sessionSettings.confirmBtn')}
                 </button>
@@ -6642,7 +6779,7 @@ function SessionDetail({
                 onClick={() => {
                   onDeleteSession();
                 }}
-                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-[11px] font-bold shadow-sm"
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-[11px] shadow-sm"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 {t('sessionSettings.deleteSessionBtn')}
@@ -6695,7 +6832,7 @@ function SessionDetail({
           <div className="fixed bottom-0 left-0 right-0 rounded-t-3xl border-t border-white/10 p-6 pb-8 bg-[#1e1e22]/95 backdrop-blur-md z-50 flex flex-col gap-5 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto sm:w-[480px] sm:rounded-l-3xl sm:rounded-tr-none sm:border-l sm:border-t-0 sm:slide-in-from-right max-h-[90vh] sm:max-h-full">
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-white/5 pb-3 shrink-0">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <h3 className="text-lg text-white flex items-center gap-2">
                 <Images className="w-5 h-5 text-purple-400" />
                 {t('session.galleryTitle')}
                 {mediaItems.length > 0 && (
@@ -6706,7 +6843,7 @@ function SessionDetail({
                 {mediaItems.length > 0 && (
                   <button
                     onClick={() => setIsDeleteMode(!isDeleteMode)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${isDeleteMode
+                    className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${isDeleteMode
                       ? 'bg-red-500/20 border-red-500/40 text-red-300'
                       : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                       }`}
@@ -6830,7 +6967,7 @@ function SessionDetail({
               <button
                 onClick={handleAddMedia}
                 disabled={isAddingMedia}
-                className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400/60 transition-all text-xs font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400/60 transition-all text-xs shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isAddingMedia ? (
                   <><div className="w-4 h-4 border-2 border-purple-400/40 border-t-purple-400 rounded-full animate-spin" />{t('session.galleryCompressingImage')}</>
@@ -6915,7 +7052,7 @@ function SessionDetail({
       {mediaToDelete && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[70] p-6" onClick={() => setMediaToDelete(null)}>
           <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold flex items-center gap-2 text-red-400">
+            <h3 className="text-xl flex items-center gap-2 text-red-400">
               <Trash2 className="w-5 h-5 text-red-500" />
               {t('modals.confirmDeletion')}
             </h3>
@@ -6925,7 +7062,7 @@ function SessionDetail({
             <div className="flex gap-3 justify-end items-center mt-6">
               <button
                 onClick={() => setMediaToDelete(null)}
-                className="px-5 py-2.5 rounded-xl font-bold bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer text-xs"
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer text-xs"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -6938,7 +7075,7 @@ function SessionDetail({
                     setLightboxItem(null);
                   }
                 }}
-                className="px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] cursor-pointer text-xs"
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] cursor-pointer text-xs"
               >
                 {t('modals.deleteBtn')}
               </button>
@@ -7013,15 +7150,15 @@ function EditableText({ value, onChange, className, multiline = false, onInterce
 function CollapsiblePanel({ title, children, defaultOpen = true, accent = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean; accent?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className={`rounded-xl border overflow-hidden ${accent ? 'border-brand/30 print:border-brand/30' : 'border-white/10 print:border-black/10'}`}>
+    <div className="py-1">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${accent ? 'bg-brand/10 hover:bg-brand/15 print:bg-brand/5' : 'bg-white/5 hover:bg-white/10 print:bg-black/5'} print-show-flex`}
+        className="w-full flex items-center justify-between py-1.5 text-left transition-colors cursor-pointer group print-show-flex"
       >
-        <span className={`text-xs font-bold uppercase tracking-widest ${accent ? 'text-brand' : 'text-white/50'}`}>{title}</span>
-        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${open ? '' : '-rotate-90'} print-hide-icon`} />
+        <span className={`text-xs uppercase tracking-widest font-medium ${accent ? 'text-brand/90 group-hover:text-brand' : 'text-white/50 group-hover:text-white/80'}`}>{title}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-white/30 group-hover:text-white/60 transition-transform ${open ? '' : '-rotate-90'} print-hide-icon`} />
       </button>
-      <div className={`px-4 pb-4 pt-2 ${open ? 'block' : 'hidden'} print-expand`}>{children}</div>
+      <div className={`pt-1.5 pb-2 ${open ? 'block' : 'hidden'} print-expand`}>{children}</div>
     </div>
   );
 }
@@ -7082,13 +7219,20 @@ function ExpandedInsightsBlock({ data, onChange, onIntercept }: { data: Expanded
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border border-purple-500/20 rounded-2xl overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="w-full px-5 py-3 cursor-pointer flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/15 transition-colors text-left print-show-flex">
-        <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-        <span className="font-bold text-purple-300 text-sm">{t('session.expandedInsights')}</span>
-        <ChevronDown className={`w-4 h-4 text-purple-400/50 ml-auto transition-transform ${open ? 'rotate-180' : ''} print-hide-icon`} />
+    <div className="pt-2">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full py-2 cursor-pointer flex items-center justify-between text-left group print-show-flex"
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+          <span className="text-purple-300 text-xs sm:text-sm font-medium tracking-wide group-hover:text-purple-200 transition-colors">
+            {t('session.expandedInsights')}
+          </span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-purple-400/50 group-hover:text-purple-300 transition-transform ${open ? 'rotate-180' : ''} print-hide-icon`} />
       </button>
-      <div className={`p-4 space-y-3 bg-black/20 print:bg-transparent ${open ? 'block' : 'hidden'} print-expand`}>
+      <div className={`pt-2 pb-1 space-y-2 border-l-2 border-purple-500/30 pl-4 ml-1.5 print:bg-transparent ${open ? 'block' : 'hidden'} print-expand`}>
         {(data.drills?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.drills')} defaultOpen={false}><BulletList items={data.drills} onChange={onChange ? (arr) => handleChange('drills', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
         {(data.homework?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.homework')} defaultOpen={false}><BulletList items={data.homework} onChange={onChange ? (arr) => handleChange('homework', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
         {(data.technicalExpansion?.length ?? 0) > 0 && <CollapsiblePanel title={t('session.technicalExpansion')} defaultOpen={false}><BulletList items={data.technicalExpansion} onChange={onChange ? (arr) => handleChange('technicalExpansion', arr) : undefined} onIntercept={onIntercept} /></CollapsiblePanel>}
@@ -7103,13 +7247,20 @@ function TranscriptBlock({ text, onChange, onIntercept }: { text: string, onChan
   const [open, setOpen] = useState(false);
   if (!text) return null;
   return (
-    <div className="border border-white/10 rounded-2xl overflow-hidden print-transcript">
-      <button onClick={() => setOpen(!open)} className="w-full px-5 py-3 cursor-pointer flex items-center gap-3 bg-white/5 hover:bg-white/8 transition-colors text-left print-show-flex">
-        <FileAudio className="w-4 h-4 text-white/40 shrink-0" />
-        <span className="font-bold text-white/50 text-sm">{t('session.viewTranscript')}</span>
-        <ChevronDown className={`w-4 h-4 text-white/20 ml-auto transition-transform ${open ? 'rotate-180' : ''} print-hide-icon`} />
+    <div className="pt-2 print-transcript">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full py-2 cursor-pointer flex items-center justify-between text-left group print-show-flex"
+      >
+        <div className="flex items-center gap-2">
+          <FileAudio className="w-4 h-4 text-white/40 shrink-0" />
+          <span className="text-white/50 text-xs sm:text-sm group-hover:text-white/80 transition-colors">
+            {t('session.viewTranscript')}
+          </span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-white/30 group-hover:text-white/60 transition-transform ${open ? 'rotate-180' : ''} print-hide-icon`} />
       </button>
-      <div className={`p-4 bg-black/20 print:bg-transparent text-white/50 print:text-black/60 text-sm italic leading-relaxed ${open ? 'block' : 'hidden'} print-expand`}>
+      <div className={`pt-2 pb-1 border-l-2 border-white/10 pl-4 ml-1.5 text-white/50 print:text-black/60 text-xs sm:text-sm italic leading-relaxed ${open ? 'block' : 'hidden'} print-expand`}>
         {onChange ? (
           <EditableText value={text} onChange={onChange} multiline={true} className="whitespace-pre-wrap block" onIntercept={onIntercept} />
         ) : (
@@ -7293,28 +7444,31 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
 
   if (hasConsolidated) {
     availableItems.set(reportId, (
-      <div className={`border rounded-2xl overflow-hidden shadow-sm ${consolidatedStrictSummary ? 'border-brand/40 bg-brand/5 print:bg-transparent print:border-black/10' : 'border-white/10 glass'}`}>
+      <div className="border-b border-brand/20 transition-colors">
         <div
-          className="px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 bg-brand/10 print:bg-black/5 cursor-pointer select-none transition-colors hover:bg-brand/20"
+          className="py-2.5 px-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 cursor-pointer select-none transition-colors hover:bg-white/[0.02] group"
           onClick={() => {
             if (!isReordering) setIsConsolidatedOpen(o => !o);
           }}
         >
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-brand" />
-            <span className="font-bold text-base">{t('session.consolidatedReport')}</span>
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-brand drop-shadow-[0_0_8px_rgba(45,212,191,0.5)]" />
+            <span className="text-sm sm:text-base font-medium text-brand/90 group-hover:text-brand transition-colors">{t('session.consolidatedReport')}</span>
           </div>
-          {report?.timestamp && (
-            <span className="text-[10px] font-sans text-white/40 font-semibold sm:self-center">
-              {t('session.consolidatedOn', { date: formatClipDate(report.timestamp) })}
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {report?.timestamp && (
+              <span className="text-[11px] font-sans text-white/40 sm:self-center">
+                {t('session.consolidatedOn', { date: formatClipDate(report.timestamp) })}
+              </span>
+            )}
+            <ChevronUp className={`w-4 h-4 text-white/40 group-hover:text-white transition-transform ${isConsolidatedOpen ? '' : 'rotate-180'} print-hide-icon`} />
+          </div>
         </div>
-        <div className={`p-4 space-y-4 bg-black/20 print:bg-transparent border-t border-brand/20 print:border-black/10 ${!isReordering && isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
+        <div className={`py-3 px-1 border-l-2 border-brand/40 pl-4 ml-1 space-y-4 ${!isReordering && isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
           {consolidatedStrictSummary && (
             <>
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
+                <p className="text-xs uppercase tracking-widest text-brand mb-2">{t('session.strictSummary')}</p>
                 <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} onIntercept={interceptProp} />
               </div>
               {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} onIntercept={interceptProp} />}
@@ -7384,9 +7538,9 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   const notesList = sessionNotes ? sessionNotes.split('\n').filter(n => n.trim().length > 0) : [];
 
   availableItems.set(notesId, (
-    <div className="bg-white/5 print:bg-transparent backdrop-blur-md border border-white/10 print:border-transparent p-6 rounded-2xl shadow-sm print:shadow-none relative w-full box-border mt-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-white/30">{t('session.notesHeading')}</h3>
+    <div className="border-b border-white/5 py-2.5 w-full">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-xs uppercase tracking-widest text-brand/90 font-medium">{t('session.notesHeading')}</h3>
         {!isNoteVisible && !isReordering && (
           <button
             onClick={() => {
@@ -7396,15 +7550,16 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
                 setIsNoteVisible(true);
               }
             }}
-            className="text-brand hover:text-brand/80 font-bold text-sm transition-colors"
+            className="text-brand hover:opacity-80 text-xs sm:text-sm transition-colors flex items-center gap-1 cursor-pointer"
           >
-            {t('session.addNote')}
+            <Plus className="w-3.5 h-3.5" />
+            <span>{t('session.addNote')}</span>
           </button>
         )}
       </div>
 
       {notesList.length > 0 && (
-        <div className="mb-4">
+        <div className="px-1 mb-3">
           <BulletList 
             items={notesList} 
             onChange={(newList) => onUpdateNotes(newList.join('\n'))}
@@ -7414,7 +7569,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
       )}
 
       {isNoteVisible && !isReordering && (
-        <div className="flex flex-col gap-3 mt-4">
+        <div className="flex flex-col gap-3 mt-3 px-1">
           <AutoGrowingTextarea
             autoFocus
             placeholder={t('session.notesPlaceholder')}
@@ -7427,15 +7582,15 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
             }}
             readOnly={sessionId === 'demo-session'}
             onChange={(e) => setNewNoteText(e.target.value)}
-            className="w-full min-h-[100px] bg-black/20 print:bg-black/5 text-white/80 print:text-black/80 p-4 rounded-xl border border-white/5 print:border-black/10 outline-none focus:border-brand/50 transition-colors resize-none overflow-hidden box-border"
+            className="w-full min-h-[90px] bg-white/5 text-white/90 p-3.5 rounded-xl border border-white/10 focus:border-brand/40 outline-none transition-colors resize-none overflow-hidden text-sm"
           />
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-2.5">
              <button 
                onClick={() => {
                  setNewNoteText('');
                  setIsNoteVisible(false);
                }}
-               className="px-4 py-2 text-white/50 hover:text-white/80 text-sm font-bold transition-colors"
+               className="px-3 py-1.5 text-white/40 hover:text-white text-xs transition-colors cursor-pointer"
              >
                {t('sessionSettings.cancelBtn')}
              </button>
@@ -7448,7 +7603,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
                    setIsNoteVisible(false);
                  }
                }}
-               className="px-4 py-2 bg-brand/20 text-brand hover:bg-brand/30 rounded-lg text-sm font-bold transition-colors"
+               className="px-3.5 py-1.5 bg-brand/15 border border-brand/30 text-brand hover:bg-brand/25 rounded-xl text-xs transition-colors cursor-pointer"
              >
                {t('sessionSettings.confirmBtn')}
              </button>
@@ -7502,12 +7657,12 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   };
 
   return (
-    <div className="space-y-4 relative mt-2">
+    <div className="space-y-0 relative mt-0">
       {isReordering && (
         <div className="flex items-center justify-center mb-6">
           <button
             onClick={() => onToggleReordering?.()}
-            className="bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 text-xs uppercase font-bold tracking-widest px-4 py-2 rounded-full shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
+            className="bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 text-xs uppercase tracking-widest px-4 py-2 rounded-full shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
             title={t('session.disableReorder')}
           >
             <GripHorizontal className="w-4 h-4" /> {t('session.reorderModeActive')}
@@ -7532,7 +7687,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
             <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand/80 animate-spin" style={{ animationDuration: '3s' }} />
             <AudioLines className="w-full h-full p-5 text-brand/60 drop-shadow-[0_0_10px_rgba(45,212,191,0.5)] relative z-10" />
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{t('session.emptySessionTitle')}</h3>
+          <h3 className="text-lg sm:text-xl text-white mb-2">{t('session.emptySessionTitle')}</h3>
           <p className="text-sm text-white/40 max-w-md leading-relaxed">{t('session.emptySessionDesc')}</p>
         </div>
       )}
@@ -7589,12 +7744,12 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
   }, [audio.audioBlob, audio.audio_storage_path]);
 
   return (
-    <div className="border border-white/10 glass rounded-2xl overflow-hidden shadow-sm">
+    <div className="border-b border-white/5 transition-colors">
       <div
         onClick={(e) => {
           if (!isEditingTitle) onToggle();
         }}
-        className="p-4 sm:p-5 cursor-pointer flex justify-between items-center hover:bg-white/5 transition-colors"
+        className="py-2.5 px-1 cursor-pointer flex justify-between items-center hover:bg-white/[0.02] transition-colors group"
       >
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
@@ -7605,12 +7760,12 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                 onChange={(e) => setTempTitle(e.target.value)}
                 onBlur={handleTitleSubmit}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleTitleSubmit(); if (e.key === 'Escape') { setTempTitle(displayTitle); setIsEditingTitle(false); } }}
-                className="bg-transparent font-bold text-sm text-white outline-none w-full"
+                className="bg-transparent text-sm text-white outline-none w-full"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <span
-                className={`font-bold text-sm text-white flex items-center gap-2 group w-max ${isOpen ? 'cursor-text hover:text-white/80' : ''}`}
+                className={`text-sm text-white flex items-center gap-2 group w-max ${isOpen ? 'cursor-text hover:text-white/80' : ''}`}
                 onClick={(e) => {
                   if (isOpen) {
                     e.stopPropagation();
@@ -7633,21 +7788,22 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
             <span className="text-xs text-white/40">{time} - {audio.type === 'recording' ? t('session.liveType') : t('session.clipType')}</span>
           </div>
           {isProcessing && (
-            <span className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand animate-pulse bg-brand/10 px-3 py-1.5 rounded-lg border border-brand/20">{t('session.processing')}</span>
+            <span className="hidden sm:flex items-center gap-1.5 text-xs text-brand animate-pulse bg-brand/10 px-2.5 py-1 rounded-lg border border-brand/20">{t('session.processing')}</span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors cursor-pointer min-h-[34px] min-w-[34px] flex items-center justify-center"
+            title={t('common.delete')}
           >
-            <Trash2 className="w-5 h-5 shrink-0" />
+            <Trash2 className="w-4 h-4 shrink-0" />
           </button>
-          <ChevronUp className={`w-5 h-5 text-white/40 transition-transform ${isOpen ? '' : 'rotate-180'} print-hide-icon`} />
+          <ChevronUp className={`w-4 h-4 text-white/40 group-hover:text-white transition-transform ${isOpen ? '' : 'rotate-180'} print-hide-icon`} />
         </div>
       </div>
 
-      <div className={`p-4 sm:p-5 bg-black/20 print:bg-transparent border-t border-white/5 print:border-black/10 space-y-4 ${isOpen ? 'block' : 'hidden'} print-expand`}>
+      <div className={`py-3 px-1 border-l-2 border-white/10 pl-4 ml-1 space-y-4 ${isOpen ? 'block' : 'hidden'} print-expand`}>
         {audioUrl ? (
           <audio 
             controls 
@@ -7662,9 +7818,9 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                 });
               }
             }}
-            className="w-full h-10 opacity-90 rounded-xl bg-black/20 print-hide" />
+            className="w-full h-9 opacity-85 print-hide my-1" />
         ) : audio.sessionId === 'demo-session' ? (
-          <div className="w-full h-10 flex items-center gap-3 bg-black/20 rounded-xl px-4 overflow-hidden relative cursor-not-allowed print-hide">
+          <div className="w-full h-10 flex items-center gap-3 bg-white/5 rounded-xl px-4 overflow-hidden relative cursor-not-allowed print-hide">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
             <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
               <Play className="w-3 h-3 text-black fill-black ml-[1.5px]" />
@@ -7682,7 +7838,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
           <>
             {audio.strictSummary && (audio.strictSummary as string[]).length > 0 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-brand mb-3">{t('session.strictSummary')}</p>
+                <p className="text-xs uppercase tracking-widest text-brand mb-2">{t('session.strictSummary')}</p>
                 <StrictSummaryBlock data={audio.strictSummary as string[]} onChange={(s) => onUpdateContent({ strictSummary: s })} onIntercept={interceptProp} />
               </div>
             )}
@@ -7709,8 +7865,8 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
               <p className="text-white/40 italic text-sm">{t('session.waitingForContent')}</p>
             ) : null}
             {audio.transcript && !hasNewShape && (
-              <div className="mt-4 pt-4 border-t border-white/5 text-sm print-transcript">
-                <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">{t('session.rawTranscript')}</span>
+              <div className="mt-3 pt-3 border-t border-white/5 text-sm print-transcript">
+                <span className="text-xs uppercase tracking-widest text-white/30 mb-2 block">{t('session.rawTranscript')}</span>
                 <EditableText value={audio.transcript} onChange={(t) => onUpdateContent({ transcript: t })} multiline className="text-white/60 italic leading-relaxed whitespace-pre-wrap block" onIntercept={interceptProp} />
               </div>
             )}
@@ -7718,18 +7874,18 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
         )}
 
         {!isProcessing && (
-          <div className="mt-4 pt-4 border-t border-white/5 flex justify-end print-hide">
+          <div className="mt-3 pt-3 border-t border-white/5 flex justify-end print-hide">
             {(audio.transcript || audio.strictSummary || audio.bulletPoints || Object.keys(legacyContent).length > 0) ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onRequestReprocess();
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm font-bold shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-xs shadow-sm cursor-pointer"
                 title={t('session.reprocessClip')}
               >
-                <Zap className="w-4 h-4" />
-                {t('session.reprocessClip')}
+                <Zap className="w-3.5 h-3.5" />
+                <span>{t('session.reprocessClip')}</span>
               </button>
             ) : (
               <button
@@ -7737,7 +7893,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                   e.stopPropagation();
                   onProcess();
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm font-bold shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm shadow-sm"
                 title={t('session.processClip')}
               >
                 <Zap className="w-4 h-4" />
@@ -7777,12 +7933,12 @@ function CollapsibleSection({ title, contentObj, isReport = false, isOpen, onTog
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isReport ? 'bg-brand/20 text-brand' : 'bg-white/10 text-white/60'}`}>
             {isReport ? <Sparkles className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
           </div>
-          <span className="font-bold text-base sm:text-lg">{title}</span>
+          <span className="text-base sm:text-lg">{title}</span>
         </div>
 
         <div className="flex items-center gap-4">
           {audioData && !audioData.transcript && Object.keys(contentObj).length === 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand animate-pulse bg-brand/10 px-3 py-1.5 rounded-lg border border-brand/20">
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-brand animate-pulse bg-brand/10 px-3 py-1.5 rounded-lg border border-brand/20">
               PROCESSING...
             </div>
           )}
@@ -7828,7 +7984,7 @@ function CollapsibleSection({ title, contentObj, isReport = false, isOpen, onTog
 
           {audioData?.transcript && (
             <div className="mt-6 pt-4 border-t border-white/5 text-sm">
-              <span className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2 block">Raw Transcript</span>
+              <span className="text-xs uppercase tracking-widest text-white/30 mb-2 block">Raw Transcript</span>
               <p className="text-white/60 italic leading-relaxed">"{audioData.transcript}"</p>
             </div>
           )}
@@ -7852,7 +8008,7 @@ function StructuredBullets({ contentObj, isReport, onChange, onIntercept }: { co
     return (
       <li
         key={key}
-        className={`flex gap-3 text-sm sm:text-base leading-relaxed mb-3 ${isHighlight ? 'font-bold text-red-300 bg-red-500/10 px-4 py-3 rounded-xl border border-red-500/20 shadow-inner' : 'text-white/80'
+        className={`flex gap-3 text-sm sm:text-base leading-relaxed mb-3 ${isHighlight ? 'text-red-300 bg-red-500/10 px-4 py-3 rounded-xl border border-red-500/20 shadow-inner' : 'text-white/80'
           }`}
       >
         <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 shadow-sm ${isHighlight ? 'bg-red-500/20' : 'bg-brand/20'}`}>
@@ -7904,7 +8060,7 @@ function StructuredBullets({ contentObj, isReport, onChange, onIntercept }: { co
     const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 
     listItems.push(
-      <li key={`header-${keyIdx++}`} className={`font-bold mt-6 mb-3 uppercase text-xs tracking-widest ${isReport ? 'text-brand' : 'text-white/50'}`}>
+      <li key={`header-${keyIdx++}`} className={`mt-6 mb-3 uppercase text-xs tracking-widest ${isReport ? 'text-brand' : 'text-white/50'}`}>
         {formattedKey}
       </li>
     );

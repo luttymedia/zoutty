@@ -116,14 +116,19 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     });
   };
 
-  // Format short date for card (e.g. "Sep 8" or "8 sept")
-  const formatShortDate = (timestamp: number) => {
+  // Format month (e.g. "Sep")
+  const formatMonth = (timestamp: number) => {
     const locale = uiLanguage === 'es' ? 'es-ES' : 'en-US';
     const formatter = new Intl.DateTimeFormat(locale, {
       month: 'short',
-      day: 'numeric',
     });
     return formatter.format(new Date(timestamp));
+  };
+
+  // Format day number with leading zero (e.g. "08")
+  const formatDayNumber = (timestamp: number) => {
+    const d = new Date(timestamp);
+    return String(d.getDate()).padStart(2, '0');
   };
 
   return (
@@ -136,7 +141,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         >
           <div className="flex items-center gap-3">
             <Search className="w-4 h-4 text-purple-400/80 group-hover:text-purple-400 transition-colors" />
-            <span className="text-sm font-medium text-white/90">
+            <span className="text-sm text-white/90">
               {activeSearch.query
                 ? t('search.searching', { query: activeSearch.query })
                 : t('search.advancedSearch')}
@@ -154,14 +159,14 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </button>
         </div>
       ) : (
-        <div className="flex gap-4">
+        <div className="flex justify-center items-center">
           <button
             id="onboarding-new-session-btn"
             onClick={onAddLesson}
-            className="py-3.5 glass bg-brand/10 border-brand/20 text-brand font-medium text-sm flex items-center justify-center gap-2 hover:bg-brand/20 transition-all rounded-2xl shadow-lg glow-brand flex-1 min-h-[52px] cursor-pointer"
+            className="py-2 px-3.5 bg-brand/10 border border-brand/20 text-brand text-xs sm:text-sm flex items-center justify-center gap-1.5 hover:bg-brand/20 transition-all rounded-xl shadow-sm glow-brand min-h-[38px] w-[calc((100%-58px)/2)] sm:w-[calc((100%-62px)/2)] cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            {t('home.addLesson')}
+            <Plus className="w-3.5 h-3.5" />
+            <span>{t('home.newLesson')}</span>
           </button>
         </div>
       )}
@@ -170,7 +175,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
       {activeSearch && filteredSessions.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in">
           <Search className="w-12 h-12 text-white/20 mb-4" />
-          <h3 className="text-lg font-bold text-white/60">{t('search.noResults')}</h3>
+          <h3 className="text-lg text-white/60">{t('search.noResults')}</h3>
           <p className="text-sm text-white/40 mt-1">{t('search.tryAdjusting')}</p>
         </div>
       )}
@@ -182,7 +187,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <div className="absolute inset-0 bg-brand/20 blur-2xl rounded-full animate-pulse" />
             <BookOpen className="w-12 h-12 text-brand drop-shadow-[0_0_15px_rgba(45,212,191,0.4)]" />
           </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 tracking-tight">
+          <h3 className="text-xl sm:text-2xl text-white mb-2 tracking-tight">
             {t('history.emptyTitle')}
           </h3>
           <p className="text-sm sm:text-base text-white/50 max-w-md leading-relaxed mb-6">
@@ -190,7 +195,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </p>
           <button
             onClick={onAddLesson}
-            className="px-6 py-3.5 bg-brand text-bg-dark font-bold rounded-2xl flex items-center gap-2 shadow-lg shadow-brand/20 hover:scale-105 transition-all text-sm cursor-pointer"
+            className="px-6 py-3.5 bg-brand text-bg-dark rounded-2xl flex items-center gap-2 shadow-lg shadow-brand/20 hover:scale-105 transition-all text-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             {t('history.addFirstLessonBtn')}
@@ -210,14 +215,15 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               type="button"
               onClick={() => toggleMonthCollapse(group.key)}
               title={isCollapsed ? t('history.expandMonth') : t('history.collapseMonth')}
-              className="w-full flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition-colors group cursor-pointer"
+              className="w-full flex items-center justify-between py-2.5 px-1 transition-colors group cursor-pointer"
             >
-              <div className="flex items-center gap-2.5">
-                <Calendar className="w-4 h-4 text-brand/70 group-hover:text-brand transition-colors" />
-                <span className="text-xs sm:text-sm font-medium text-white/80 group-hover:text-white tracking-wide">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-brand/70 group-hover:text-brand transition-colors shrink-0" />
+                <span className="text-xs sm:text-sm font-medium tracking-wider uppercase text-brand/90 group-hover:text-brand transition-colors">
                   {group.label}
                 </span>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/40 font-normal">
+                <span className="text-white/30 text-xs">|</span>
+                <span className="text-white/40 text-xs font-normal lowercase">
                   {count === 1
                     ? t('history.sessionCountSingular')
                     : t('history.sessionCountPlural', { count })}
@@ -231,9 +237,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               />
             </button>
 
-            {/* Session Cards in Month */}
+            {/* Session Rows in Month */}
             {!isCollapsed && (
-              <div className="grid grid-cols-1 gap-2.5 pl-1">
+              <div className="flex flex-col">
                 {group.sessions.map((session) => {
                   const hasReport = Boolean(session.summary);
                   const sessionTags = session.tags || [];
@@ -242,55 +248,53 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     <div
                       key={session.id}
                       onClick={() => onSelectSession(session.id, session.groupId || null)}
-                      className={`glass p-4 sm:p-4.5 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 group hover:bg-white/5 ${
+                      className={`flex items-center gap-4 py-3.5 px-1 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group ${
                         session.isDemo && sessions.length === 1
-                          ? 'border-brand/50 shadow-[0_0_20px_rgba(45,212,191,0.2)] animate-pulse'
-                          : 'border-white/5 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/5'
+                          ? 'border-brand/40 shadow-[0_0_15px_rgba(45,212,191,0.15)] animate-pulse'
+                          : ''
                       }`}
                     >
-                      {/* Top row: Date + Subtitle/Title + AI Badge */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-baseline gap-2 min-w-0 flex-1">
-                          <span className="text-xs font-medium text-brand/90 shrink-0">
-                            {formatShortDate(session.date)}
-                          </span>
-                          <span className="text-white/25 text-xs shrink-0">•</span>
-                          <h3 className="text-sm sm:text-base font-medium text-white/90 truncate group-hover:text-brand-light transition-colors">
-                            {session.subtitle || session.title}
-                          </h3>
-                        </div>
+                      {/* Left stacked date column */}
+                      <div className="w-14 shrink-0 text-left flex flex-col justify-center">
+                        <span className="text-[11px] text-white/40 leading-none truncate">
+                          {formatMonth(session.date)}
+                        </span>
+                        <span className="text-base sm:text-lg text-white/80 font-medium leading-tight mt-0.5">
+                          {formatDayNumber(session.date)}
+                        </span>
+                      </div>
 
-                        {/* AI Consolidated Report indicator */}
-                        {hasReport && (
-                          <div
-                            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-brand text-[11px] font-normal shrink-0 shadow-xs"
-                            title={t('history.hasReportBadge')}
-                          >
-                            <Sparkles className="w-3 h-3 text-brand" />
-                            <span className="hidden sm:inline">{t('history.hasReportBadge')}</span>
+                      {/* Main Title & Topics Column */}
+                      <div className="flex-1 min-w-0 flex flex-col gap-1">
+                        <h3 className="text-sm sm:text-base text-white/90 truncate group-hover:text-brand transition-colors">
+                          {session.isDemo ? session.title : (session.subtitle || session.title)}
+                        </h3>
+
+                        {/* Topics Row */}
+                        {sessionTags.length > 0 ? (
+                          <div className="flex items-center gap-1.5 text-xs text-white/40 truncate">
+                            <Tag className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                            <span className="truncate">{sessionTags.join(', ')}</span>
+                          </div>
+                        ) : session.isDemo && session.subtitle ? (
+                          <div className="flex items-center gap-1.5 text-xs text-white/40 truncate">
+                            <span className="truncate">{session.subtitle}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-xs text-white/20 italic truncate">
+                            <Tag className="w-3.5 h-3.5 opacity-40 shrink-0" />
+                            <span>{t('history.noTags')}</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Secondary line: If subtitle was shown above, show title if distinct */}
-                      {session.subtitle && session.title !== session.subtitle && (
-                        <p className="text-xs font-normal text-white/35 truncate -mt-0.5">
-                          {session.title}
-                        </p>
-                      )}
-
-                      {/* Topic Tags / Chips */}
-                      {sessionTags.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          {sessionTags.map((tag, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-brand/10 border border-brand/20 text-brand-light text-[11px] font-normal"
-                            >
-                              <Tag className="w-3 h-3 text-brand/60" />
-                              {tag}
-                            </span>
-                          ))}
+                      {/* Right AI Sparkles Indicator */}
+                      {hasReport && (
+                        <div
+                          className="shrink-0 pl-1"
+                          title={t('history.hasReportBadge')}
+                        >
+                          <Sparkles className="w-4 h-4 text-brand/70 group-hover:text-brand transition-colors" />
                         </div>
                       )}
                     </div>

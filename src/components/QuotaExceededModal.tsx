@@ -91,7 +91,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
 
         {/* Title & Badge */}
         <div className="space-y-1 mb-3">
-          <span className={`text-[10px] px-3 py-1 rounded-full uppercase tracking-widest font-mono font-bold border ${
+          <span className={`text-[10px] px-3 py-1 rounded-full uppercase tracking-widest font-mono border ${
             isPaymentIssue
               ? 'bg-red-500/20 text-red-300 border-red-500/40'
               : isFree
@@ -104,7 +104,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
               ? t('billing.limits.freeLimitBadge')
               : t('billing.limits.monthlyLimitBadge')}
           </span>
-          <h3 className="text-xl font-extrabold text-white tracking-tight mt-2">
+          <h3 className="text-xl text-white tracking-tight mt-2">
             {isPaymentIssue
               ? t('billing.limits.paymentIssueTitle')
               : t('billing.limits.quotaExceededTitle')}
@@ -122,7 +122,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
 
         {/* Reset Date Notice for Active Paid Users */}
         {!isFree && !isPaymentIssue && (
-          <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-sky-200 text-xs font-semibold mb-5 flex items-center justify-center gap-2">
+          <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-sky-200 text-xs mb-5 flex items-center justify-center gap-2">
             <Calendar className="w-4 h-4 text-sky-400 shrink-0" />
             <span>{t('billing.usage.resetDate', { date: formattedResetDate })}</span>
           </div>
@@ -145,10 +145,10 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                    <span className="text-sm text-white group-hover:text-amber-300 transition-colors">
                       {t('billing.plans.studentName')}
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase font-mono">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase font-mono">
                       {t('billing.plans.studentPrice')}
                     </span>
                   </div>
@@ -174,10 +174,10 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white group-hover:text-sky-300 transition-colors">
+                    <span className="text-sm text-white group-hover:text-sky-300 transition-colors">
                       {t('billing.plans.teacherName')}
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 uppercase font-mono">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 uppercase font-mono">
                       {t('billing.plans.teacherPrice')}
                     </span>
                   </div>
@@ -205,7 +205,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
               className="w-full p-4 rounded-2xl bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/30 hover:border-sky-500/50 text-left space-y-2.5 mb-5 transition-all group cursor-pointer block"
             >
               <div className="flex items-center justify-between">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-sky-400 group-hover:text-sky-300 transition-colors flex items-center gap-1.5">
+                <div className="text-[11px] uppercase tracking-wider text-sky-400 group-hover:text-sky-300 transition-colors flex items-center gap-1.5">
                   <Sparkle className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                   <span>{t('billing.limits.unlockTeacherHeading', { price: t('billing.plans.teacherPrice') })}</span>
                 </div>
@@ -226,7 +226,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
             </button>
           ) : (
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2.5 mb-5">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-2">
+              <div className="text-[11px] uppercase tracking-wider text-white/40 mb-2">
                 {t('billing.usage.unlimitedStorage')}
               </div>
               <div className="flex items-center gap-2 text-xs text-white/90">
@@ -254,7 +254,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                 onClose();
                 if (onOpenBillingPortal) onOpenBillingPortal();
               }}
-              className="w-full py-3.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <CreditCard className="w-4 h-4" />
               <span>{t('billing.limits.paymentIssueAction')}</span>
@@ -268,18 +268,18 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                 onClose();
                 onTopupClick();
               }}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-zinc-950 text-xs font-extrabold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-between group cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-zinc-950 text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-between group cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-zinc-950/20 flex items-center justify-center">
                   <Zap className="w-4 h-4 fill-zinc-950 text-zinc-950" />
                 </div>
                 <div className="text-left">
-                  <span className="font-extrabold block text-xs">{t('billing.topup.buyBtn')}</span>
-                  <span className="block text-[10px] font-medium text-zinc-900/80">{t('billing.topup.noExpireNote')}</span>
+                  <span className="block text-xs">{t('billing.topup.buyBtn')}</span>
+                  <span className="block text-[10px] text-zinc-900/80">{t('billing.topup.noExpireNote')}</span>
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded-lg bg-zinc-950/15 text-zinc-950 text-xs font-mono font-black shrink-0 ml-2">
+              <span className="px-2.5 py-1 rounded-lg bg-zinc-950/15 text-zinc-950 text-xs font-mono shrink-0 ml-2">
                 {t('billing.topup.price')}
               </span>
             </button>
@@ -292,7 +292,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                 onClose();
                 onReferralClick();
               }}
-              className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
             >
               <Gift className="w-4 h-4 text-purple-400" />
               <span>
@@ -305,7 +305,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
 
           <button
             onClick={onClose}
-            className="w-full py-2 text-xs font-semibold text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+            className="w-full py-2 text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer"
           >
             {t('common.cancel')}
           </button>

@@ -79,7 +79,7 @@ export const GlossaryCombobox: React.FC<GlossaryComboboxProps> = ({ value, onCha
                   }}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-xs flex items-center justify-between ${
                     value === opt.value 
-                      ? 'bg-brand/10 text-brand font-medium' 
+                      ? 'bg-brand/10 text-brand' 
                       : 'text-white/80 hover:bg-white/5 hover:text-white'
                   }`}
                 >

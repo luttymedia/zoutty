@@ -28,7 +28,7 @@ export function SearchModal({
 
   // Handle exclusivity of the "All" filter
   const handleFilterChange = (key: keyof SearchFilters, value: boolean | string) => {
-    if (key === 'hasGalleryItems' || key === 'hasAudioRecordings' || key === 'glossaryUsed') {
+    if (key === 'hasGalleryItems' || key === 'hasAudioRecordings' || key === 'hasConsolidatedReport' || key === 'glossaryUsed') {
       setFilters(prev => ({ ...prev, [key]: value }));
       return;
     }
@@ -95,7 +95,7 @@ export function SearchModal({
           <div className="w-10 h-10 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
             <Search className="w-5 h-5 text-brand" />
           </div>
-          <h2 className="text-xl font-bold text-white">{t('search.title')}</h2>
+          <h2 className="text-xl text-white">{t('search.title')}</h2>
           <button onClick={onClose} className="ml-auto p-2 hover:bg-white/10 rounded-full transition-colors">
             <X className="w-5 h-5 text-white/70" />
           </button>
@@ -118,7 +118,7 @@ export function SearchModal({
         <div className="mb-6 overflow-y-auto pr-2">
           {/* Filters & Advanced Filters */}
           <div className="mb-2">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-white/40 mb-3">{t('search.searchIn')}</h3>
+            <h3 className="text-sm uppercase tracking-widest text-white/40 mb-3">{t('search.searchIn')}</h3>
             <div className="grid grid-cols-2 gap-3 mb-8">
               <CustomCheckbox
                 checked={filters.all}
@@ -169,7 +169,7 @@ export function SearchModal({
               />
             </div>
 
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-brand/70 mb-4 flex items-center gap-2">
+            <h3 className="text-sm uppercase tracking-widest text-brand/70 mb-4 flex items-center gap-2">
               <Settings className="w-4 h-4" />
               {t('search.advancedFilters')}
             </h3>
@@ -184,8 +184,13 @@ export function SearchModal({
                 checked={filters.hasAudioRecordings}
                 onChange={(c) => handleFilterChange('hasAudioRecordings', c)}
               />
+              <CustomSwitch
+                label={t('search.hasConsolidatedReport')}
+                checked={filters.hasConsolidatedReport}
+                onChange={(c) => handleFilterChange('hasConsolidatedReport', c)}
+              />
               <div className="flex items-center justify-between pt-4 border-t border-white/10 relative">
-                <span className="text-sm font-semibold text-white">{t('search.glossaryUsed')}</span>
+                <span className="text-sm text-white">{t('search.glossaryUsed')}</span>
                 <div className="w-48">
                   <CustomSelect
                     value={filters.glossaryUsed}
@@ -203,13 +208,13 @@ export function SearchModal({
         <div className="flex gap-3 mt-auto">
           <button
             onClick={onClose}
-            className="flex-1 py-3 glass bg-white/5 border-white/10 text-white/70 font-semibold rounded-xl hover:bg-white/10 transition-colors"
+            className="flex-1 py-3 glass bg-white/5 border-white/10 text-white/70 rounded-xl hover:bg-white/10 transition-colors"
           >
             {t('search.cancel')}
           </button>
           <button
             onClick={() => onConfirm(query, filters)}
-            className="flex-1 py-3 rounded-xl font-bold bg-brand text-black hover:bg-brand/90 transition-colors shadow-[0_0_15px_rgba(45,212,191,0.2)]"
+            className="flex-1 py-3 rounded-xl bg-brand text-black hover:bg-brand/90 transition-colors shadow-[0_0_15px_rgba(45,212,191,0.2)]"
           >
             {t('search.confirm')}
           </button>

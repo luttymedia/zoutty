@@ -11,6 +11,7 @@ export interface SearchFilters {
   topics: boolean;
   hasGalleryItems: boolean;
   hasAudioRecordings: boolean;
+  hasConsolidatedReport: boolean;
   glossaryUsed: string | 'all';
 }
 
@@ -25,6 +26,7 @@ export const defaultSearchFilters: SearchFilters = {
   topics: false,
   hasGalleryItems: false,
   hasAudioRecordings: false,
+  hasConsolidatedReport: false,
   glossaryUsed: 'all'
 };
 
@@ -68,11 +70,16 @@ export function performSearch(
     sessionToAudioCount.set(a.sessionId, (sessionToAudioCount.get(a.sessionId) || 0) + 1);
   });
 
+  const sessionToReport = new Set<string>();
+  reports.forEach(r => {
+    sessionToReport.add(r.sessionId);
+  });
+
   // Basic Group matching (Folders)
   groups.forEach(group => {
     let matches = false;
     
-    const hasAdvancedFilter = filters.hasGalleryItems || filters.hasAudioRecordings || filters.glossaryUsed !== 'all';
+    const hasAdvancedFilter = filters.hasGalleryItems || filters.hasAudioRecordings || filters.hasConsolidatedReport || filters.glossaryUsed !== 'all';
     
     if (normQ && (filters.all || filters.folders)) {
       if (checkQuery(group.name)) {
@@ -96,6 +103,7 @@ export function performSearch(
     // Advanced filters (MUST match if active)
     if (filters.hasGalleryItems && (sessionToMediaCount.get(session.id) || 0) === 0) return;
     if (filters.hasAudioRecordings && (sessionToAudioCount.get(session.id) || 0) === 0) return;
+    if (filters.hasConsolidatedReport && !session.summary && !sessionToReport.has(session.id)) return;
     if (filters.glossaryUsed !== 'all' && session.glossaryId !== filters.glossaryUsed) return;
 
     if (!normQ) {

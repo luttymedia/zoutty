@@ -60,14 +60,14 @@ const es: Translations = {
 
   // ─── Home / List View ───────────────────────────────────────────────────────
   home: {
-    newSession: 'Sesión',
+    newLesson: 'Clase',
     newFolder: 'Carpeta',
     folderBreadcrumb: 'Carpeta: {name}',
     saveSession: 'Guardar',
     sessionSaved: 'Sesión guardada',
     noSessionsInFolder: 'No hay sesiones en esta carpeta.',
     emptyHomeTitle: '¿Listo para la próxima clase?',
-    emptyHomeDesc: 'Toca el botón \'+ Sesión\' para configurar una nueva sesión.',
+    emptyHomeDesc: 'Toca el botón \'+ Clase\' para configurar una nueva clase.',
     sortBy: 'Ordenar por:',
     sortRecent: 'Reciente',
     sortName: 'Nombre',
@@ -86,7 +86,6 @@ const es: Translations = {
     timeDaysAgo: 'hace {count} d',
     tabHistory: 'Historial',
     tabLibrary: 'Biblioteca',
-    addLesson: 'Añadir Clase',
   },
 
   history: {
@@ -214,11 +213,15 @@ const es: Translations = {
   },
 
   danceStyles: {
+    'auto': 'Detección automática (IA)',
+    'other': 'Otro',
+    'custom': 'Estilo personalizado',
     'bachata': 'Bachata',
     'salsa': 'Salsa',
     'kizomba': 'Kizomba',
     'reggaeton': 'Reguetón',
     'brazilian-zouk': 'Zouk Brasileño',
+    'zouk': 'Zouk Brasileño',
     'afro-beats': 'Afrobeats',
     'dancehall': 'Dancehall',
     'hip-hop': 'Hip Hop',
@@ -227,7 +230,13 @@ const es: Translations = {
     'west-coast-swing': 'West Coast Swing',
     'swing': 'Swing',
     'belly-dance': 'Danza del Vientre',
-    'ballet': 'Ballet'
+    'ballet': 'Ballet',
+    'samba': 'Samba',
+    'forro': 'Forró',
+    'lambada': 'Lambada',
+    'tarraxinha': 'Tarraxinha',
+    'semba': 'Semba',
+    'urbankiz': 'Urban Kiz'
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -405,7 +414,7 @@ const es: Translations = {
     waitingForContent: 'Esperando a que se extraiga el contenido...',
     // Notes card
     notesHeading: 'Notas',
-    addNote: '+ Añadir nota',
+    addNote: 'Añadir nota',
     notesPlaceholder: 'Añade tus notas de sesión aquí...',
     // Topics / Tags
     topicsHeading: 'Temas',
@@ -659,7 +668,7 @@ const es: Translations = {
   // ─── Install Enforcer ───────────────────────────────────────────────────────
   installEnforcer: {
     title: "¡Ya casi estamos!",
-    subtitle: "Para usar <strong class='text-brand font-bold'>Zoutty</strong> e importar sesiones, por favor instala la aplicación en tu dispositivo.",
+    subtitle: "Para usar <strong class='text-brand font-bold font-logo'>Zoutty</strong> e importar sesiones, por favor instala la aplicación en tu dispositivo.",
     btnInstallText: "Instalar Zoutty",
     btnInstallDesktop: "Usa tu teléfono",
     btnInstallDesktopHint: "Instala Zoutty en tu dispositivo móvil para disfrutar de la mejor experiencia.",
@@ -698,6 +707,7 @@ const es: Translations = {
     advancedFilters: 'Filtros avanzados',
     hasGalleryItems: 'Tiene ítems de galería',
     hasAudioRecordings: 'Tiene audios',
+    hasConsolidatedReport: 'Informe consolidado',
     glossaryUsed: 'Glosario usado',
     anyGlossary: 'Cualquier glosario',
     cancel: 'Cancelar',

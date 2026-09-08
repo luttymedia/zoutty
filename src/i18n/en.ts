@@ -58,14 +58,14 @@ const en = {
 
   // ─── Home / List View ───────────────────────────────────────────────────────
   home: {
-    newSession: 'Session',
+    newLesson: 'Lesson',
     newFolder: 'Folder',
     folderBreadcrumb: 'Folder: {name}',
     saveSession: 'Save',
     sessionSaved: 'Session saved',
     noSessionsInFolder: 'No sessions in this folder.',
     emptyHomeTitle: 'Ready for the next lesson?',
-    emptyHomeDesc: 'Tap the \'+ Session\' button to set up a new session.',
+    emptyHomeDesc: 'Tap the \'+ Lesson\' button to set up a new lesson.',
     sortBy: 'Sort by:',
     sortRecent: 'Recent',
     sortName: 'Name',
@@ -84,7 +84,6 @@ const en = {
     timeDaysAgo: '{count}d ago',
     tabHistory: 'Lesson History',
     tabLibrary: 'Library',
-    addLesson: 'Add Lesson',
   },
 
   history: {
@@ -212,11 +211,15 @@ const en = {
   },
 
   danceStyles: {
+    'auto': 'Auto-Detect (AI)',
+    'other': 'Other',
+    'custom': 'Custom Style',
     'bachata': 'Bachata',
     'salsa': 'Salsa',
     'kizomba': 'Kizomba',
     'reggaeton': 'Reggaeton',
     'brazilian-zouk': 'Brazilian Zouk',
+    'zouk': 'Brazilian Zouk',
     'afro-beats': 'Afro Beats',
     'dancehall': 'DanceHall',
     'hip-hop': 'Hip Hop',
@@ -225,7 +228,13 @@ const en = {
     'west-coast-swing': 'West Coast Swing',
     'swing': 'Swing',
     'belly-dance': 'Belly Dance',
-    'ballet': 'Ballet'
+    'ballet': 'Ballet',
+    'samba': 'Samba',
+    'forro': 'Forró',
+    'lambada': 'Lambada',
+    'tarraxinha': 'Tarraxinha',
+    'semba': 'Semba',
+    'urbankiz': 'Urban Kiz'
   },
 
   // ─── Session Settings Drawer ────────────────────────────────────────────────
@@ -403,7 +412,7 @@ const en = {
     waitingForContent: 'Waiting for content to be extracted...',
     // Notes card
     notesHeading: 'Notes',
-    addNote: '+ Add note',
+    addNote: 'Add note',
     notesPlaceholder: 'Add your session notes here...',
     // Topics / Tags
     topicsHeading: 'Topics',
@@ -657,7 +666,7 @@ const en = {
   // ─── Install Enforcer ───────────────────────────────────────────────────────
   installEnforcer: {
     title: "You're almost there!",
-    subtitle: "To use <strong class='text-brand font-bold'>Zoutty</strong> and import sessions, please install the app on your device.",
+    subtitle: "To use <strong class='text-brand font-bold font-logo'>Zoutty</strong> and import sessions, please install the app on your device.",
     btnInstallText: "Install Zoutty",
     btnInstallDesktop: "Use your phone",
     btnInstallDesktopHint: "Install Zoutty on your mobile device for the best experience.",
@@ -696,6 +705,7 @@ const en = {
     advancedFilters: 'Advanced Filters',
     hasGalleryItems: 'Has gallery items',
     hasAudioRecordings: 'Has audio recordings',
+    hasConsolidatedReport: 'Consolidated report',
     glossaryUsed: 'Glossary used',
     anyGlossary: 'Any Glossary',
     cancel: 'Cancel',

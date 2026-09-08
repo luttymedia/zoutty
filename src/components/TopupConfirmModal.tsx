@@ -48,7 +48,7 @@ export const TopupConfirmModal: React.FC<TopupConfirmModalProps> = ({
         </div>
 
         <div className="space-y-1 mb-6 text-center">
-          <h3 className="text-2xl font-black text-white tracking-tight">
+          <h3 className="text-2xl text-white tracking-tight">
             {t('billing.topup.confirmModalTitle', { fallback: 'Confirm Top-Up' })}
           </h3>
           <p className="text-xs sm:text-sm text-white/70 max-w-xs mx-auto">
@@ -62,7 +62,7 @@ export const TopupConfirmModal: React.FC<TopupConfirmModalProps> = ({
               <Zap className="w-5 h-5 fill-emerald-400 text-emerald-400" />
             </div>
             <div>
-              <div className="text-xs font-bold text-white">
+              <div className="text-xs text-white">
                 {t('billing.topup.successFeatureSessions')}
               </div>
               <div className="text-[11px] text-white/50">
@@ -76,7 +76,7 @@ export const TopupConfirmModal: React.FC<TopupConfirmModalProps> = ({
               <AudioLines className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold text-white">
+              <div className="text-xs text-white">
                 {t('billing.topup.successFeatureClips')}
               </div>
               <div className="text-[11px] text-white/50">
@@ -90,7 +90,7 @@ export const TopupConfirmModal: React.FC<TopupConfirmModalProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold text-emerald-300">
+              <div className="text-xs text-emerald-300">
                 {t('billing.topup.successFeatureRollover')}
               </div>
               <div className="text-[11px] text-emerald-400/80">
@@ -104,7 +104,7 @@ export const TopupConfirmModal: React.FC<TopupConfirmModalProps> = ({
           type="button"
           onClick={onConfirm}
           disabled={isLoading}
-          className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 text-sm font-bold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 text-sm shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">

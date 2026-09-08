@@ -131,11 +131,11 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white tracking-tight">
+              <h3 className="text-lg text-white tracking-tight">
                 {t('billing.manage.modalTitle')}
               </h3>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-medium border border-emerald-500/30">
+                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   {t('billing.manage.activePlanBadge')}
                 </span>
@@ -182,14 +182,14 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                       {isTeacher ? <Sparkle className="w-5 h-5" /> : <GraduationCap className="w-5 h-5" />}
                     </div>
                     <div>
-                      <div className="text-[11px] font-bold text-white/50 uppercase tracking-wider">
+                      <div className="text-[11px] text-white/50 uppercase tracking-wider">
                         {t('billing.manage.currentPlanTitle')}
                       </div>
-                      <h4 className="text-base font-bold text-white">{currentPlanName}</h4>
+                      <h4 className="text-base text-white">{currentPlanName}</h4>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold text-white font-mono">{currentPrice}</div>
+                    <div className="text-sm text-white font-mono">{currentPrice}</div>
                     <div className="text-[11px] text-white/50 flex items-center gap-1 justify-end mt-0.5">
                       <Calendar className="w-3 h-3" />
                       <span>
@@ -233,7 +233,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                   <>
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="text-sm font-bold text-white">
+                        <h4 className="text-sm text-white">
                           {t('billing.manage.reactivateTitle')}
                         </h4>
                         <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
@@ -243,7 +243,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                     </div>
                     <button
                       onClick={onReactivate}
-                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20"
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20"
                     >
                       <Zap className="w-4 h-4 fill-zinc-950" />
                       <span>{t('billing.manage.reactivateBtn')}</span>
@@ -253,7 +253,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                   <>
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="text-sm font-bold text-white">
+                        <h4 className="text-sm text-white">
                           {isStudent
                             ? t('billing.manage.upgradeToTeacherTitle')
                             : pendingDowngrade
@@ -274,7 +274,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                       <button
                         disabled={isUpgrading}
                         onClick={handleUpgradeClick}
-                        className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-500/20 disabled:opacity-60"
+                        className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-500/20 disabled:opacity-60"
                       >
                         {isUpgrading ? (
                           <>
@@ -291,14 +291,14 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                     ) : (
                       pendingDowngrade ? (
                         <div className="space-y-3">
-                          <div className="w-full py-2 px-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-xs font-medium text-center">
+                          <div className="w-full py-2 px-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-xs text-center">
                             {t('billing.manage.pendingDowngradeText')}
                           </div>
                           {onCancelDowngrade && (
                             <button
                               disabled={isCancelingDowngrade}
                               onClick={onCancelDowngrade}
-                              className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-500/20 disabled:opacity-60"
+                              className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-500/20 disabled:opacity-60"
                             >
                               {isCancelingDowngrade ? (
                                 <>
@@ -317,7 +317,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                       ) : (
                         <button
                           onClick={() => setView('downgrade_confirm')}
-                          className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/10"
+                          className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/10"
                         >
                           <GraduationCap className="w-4 h-4 text-amber-400" />
                           <span>{t('billing.manage.downgradeToStudentBtn', { price: alternativePrice })}</span>
@@ -335,13 +335,13 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                     <CreditCard className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white">
+                    <h4 className="text-sm text-white">
                       {t('billing.manage.billingPortalTitle')}
                     </h4>
                     <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
                       {t('billing.manage.billingPortalDesc')}
                     </p>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-brand/80 mt-1 font-medium">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-brand/80 mt-1">
                       {t('billing.manage.billingPortalRedirectNotice')}
                     </span>
                   </div>
@@ -350,7 +350,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                 <button
                   disabled={isPortalLoading}
                   onClick={onOpenCustomerPortal}
-                  className="w-full py-2.5 px-4 rounded-xl bg-brand/10 hover:bg-brand/20 text-brand border border-brand/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm shadow-brand/10"
+                  className="w-full py-2.5 px-4 rounded-xl bg-brand/10 hover:bg-brand/20 text-brand border border-brand/30 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm shadow-brand/10"
                 >
                   {isPortalLoading ? (
                     <>
@@ -386,7 +386,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-amber-200">
+                  <h4 className="text-sm text-amber-200">
                     {t('billing.manage.downgradeConfirmTitle')}
                   </h4>
                   <p className="text-xs text-amber-200/70 mt-1 leading-relaxed">
@@ -400,7 +400,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
 
               {/* What you're giving up */}
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                <div className="text-[11px] font-bold text-white/50 uppercase tracking-wider">
+                <div className="text-[11px] text-white/50 uppercase tracking-wider">
                   {t('billing.manage.currentFeaturesTitle')}
                 </div>
                 <div className="space-y-2.5 text-xs text-white/90">
@@ -423,7 +423,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
               <div className="space-y-2 pt-2">
                 <button
                   onClick={() => setView('overview')}
-                  className="w-full py-3 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand/20"
+                  className="w-full py-3 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand/20"
                 >
                   <Sparkle className="w-4 h-4 fill-zinc-950" />
                   <span>{t('billing.manage.keepPlanBtn', { plan: currentPlanName })}</span>
@@ -433,7 +433,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                     onDowngrade();
                     handleClose();
                   }}
-                  className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-medium transition-all cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs transition-all cursor-pointer"
                 >
                   {t('billing.manage.confirmDowngradeBtn', { targetPlan: alternativePlanName })}
                 </button>
@@ -449,7 +449,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                   <ShieldAlert className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-rose-200">
+                  <h4 className="text-sm text-rose-200">
                     {t('billing.manage.cancelConfirmTitle')}
                   </h4>
                   <p className="text-xs text-rose-200/70 mt-1 leading-relaxed">
@@ -489,7 +489,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
               <div className="space-y-2 pt-2">
                 <button
                   onClick={() => setView('overview')}
-                  className="w-full py-3 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand/20"
+                  className="w-full py-3 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand/20"
                 >
                   <Zap className="w-4 h-4 fill-zinc-950" />
                   <span>{t('billing.manage.keepSubscriptionBtn')}</span>
@@ -499,7 +499,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                     onCancelSubscription();
                     handleClose();
                   }}
-                  className="w-full py-2.5 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition-all cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs transition-all cursor-pointer"
                 >
                   {t('billing.manage.confirmCancelBtn')}
                 </button>
@@ -515,7 +515,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                   <Sparkle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-brand">
+                  <h4 className="text-sm text-brand">
                     {t('billing.manage.upgradeConfirmTitle')}
                   </h4>
                   <p className="text-xs text-brand/70 mt-1 leading-relaxed">
@@ -529,7 +529,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                 <button
                   disabled={isUpgrading}
                   onClick={executeUpgrade}
-                  className="w-full py-3 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand/20 disabled:opacity-70"
+                  className="w-full py-3 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand/20 disabled:opacity-70"
                 >
                   {isUpgrading ? (
                     <>
@@ -546,7 +546,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                 <button
                   disabled={isUpgrading}
                   onClick={() => setView('overview')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-medium transition-all cursor-pointer disabled:opacity-50"
+                  className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs transition-all cursor-pointer disabled:opacity-50"
                 >
                   {t('common.cancel')}
                 </button>

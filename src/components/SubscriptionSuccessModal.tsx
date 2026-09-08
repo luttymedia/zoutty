@@ -90,11 +90,11 @@ export const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> =
         {/* Title */}
         <div className="space-y-1 mb-6">
           <span
-            className={`inline-block text-[11px] px-3 py-0.5 rounded-full font-mono font-bold uppercase border ${themeColor.badgeBg} mb-1`}
+            className={`inline-block text-[11px] px-3 py-0.5 rounded-full font-mono uppercase border ${themeColor.badgeBg} mb-1`}
           >
             {t('billing.plans.checkoutSuccessBadge')}
           </span>
-          <h3 className="text-2xl font-black text-white tracking-tight">
+          <h3 className="text-2xl text-white tracking-tight">
             {t('billing.plans.checkoutSuccessModalTitle', { plan: planName })}
           </h3>
           <p className="text-xs sm:text-sm text-white/70 max-w-xs mx-auto">
@@ -104,7 +104,7 @@ export const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> =
 
         {/* Unlocked Benefits Card */}
         <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-3 mb-6">
-          <div className="text-[11px] font-bold text-white/50 uppercase tracking-wider">
+          <div className="text-[11px] text-white/50 uppercase tracking-wider">
             {t('billing.plans.unlockedPerksTitle')}
           </div>
 
@@ -143,7 +143,7 @@ export const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> =
         {/* Primary Action Button */}
         <button
           onClick={onClose}
-          className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm text-zinc-950 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${themeColor.btnBg}`}
+          className={`w-full py-3.5 px-6 rounded-xl text-sm text-zinc-950 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${themeColor.btnBg}`}
         >
           <span>{t('billing.plans.getStartedBtn')}</span>
           <ArrowRight className="w-4 h-4" />
