@@ -343,7 +343,9 @@ export default function App() {
     () => localStorage.getItem('zoutty_onboarding_completed') === 'true'
   );
   const [onboardingTourStep, setOnboardingTourStep] = useState<number | null>(() => {
-    return localStorage.getItem('zoutty_onboarding_completed') === 'true' ? null : 0;
+    const isCompleted = localStorage.getItem('zoutty_onboarding_completed') === 'true';
+    const isGuest = localStorage.getItem('zoutty_guest_mode') === 'true';
+    return (!isCompleted && isGuest) ? 0 : null;
   });
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -483,12 +485,22 @@ export default function App() {
         supabase.from('usage_tracking').select('*').eq('user_id', userId).maybeSingle()
       ]);
 
-      if (profile?.active_glossaries && Array.isArray(profile.active_glossaries) && profile.active_glossaries.length > 0) {
+      const hasGlossaries = profile?.active_glossaries && Array.isArray(profile.active_glossaries) && profile.active_glossaries.length > 0;
+      const hasUsage = usage && (usage.lifetime_sessions > 0 || usage.lifetime_clips > 0);
+
+      if (hasGlossaries) {
         setActiveGlossaryIds(profile.active_glossaries);
         localStorage.setItem('zoutty_active_glossaries', JSON.stringify(profile.active_glossaries));
         localStorage.setItem('zoutty_onboarding_completed', 'true');
         setHasCompletedOnboarding(true);
         setOnboardingTourStep(null);
+      } else if (hasUsage) {
+        localStorage.setItem('zoutty_onboarding_completed', 'true');
+        setHasCompletedOnboarding(true);
+        setOnboardingTourStep(null);
+      } else if (localStorage.getItem('zoutty_onboarding_completed') !== 'true') {
+        // Brand new account: Trigger onboarding tour
+        setOnboardingTourStep(prev => (prev === null ? 0 : prev));
       }
 
       if (profile || usage) {
@@ -2939,7 +2951,16 @@ export default function App() {
   }
 
   if (!session && !isGuestMode) {
-    return <AuthScreen onSuccess={() => setIsGuestMode(true)} />;
+    return (
+      <AuthScreen
+        onSuccess={() => {
+          setIsGuestMode(true);
+          if (localStorage.getItem('zoutty_onboarding_completed') !== 'true') {
+            setOnboardingTourStep(0);
+          }
+        }}
+      />
+    );
   }
 
   if (showSyncConflict) {
