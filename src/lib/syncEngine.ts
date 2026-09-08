@@ -143,6 +143,16 @@ export const syncEngine = {
           }
         }
 
+        // Strip any unexpected/transient fields that don't belong to Supabase tables
+        if (localTableName === 'audios') {
+          delete (dbData as any).limits;
+          delete (dbData as any).tier;
+          delete (dbData as any).usage;
+          delete (dbData as any).mockData;
+          delete (dbData as any).status;
+          delete (dbData as any).processedAt;
+        }
+
         return {
           ...dbData,
           user_id: userId,

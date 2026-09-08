@@ -124,37 +124,35 @@ async function processAudioWithGemini(base64Audio: string, mimeType: string, lan
     const isTranslate = targetLanguage !== 'Auto-Detect';
 
     if (isAuto) {
-        const stylesList = availableStyleNames.length > 0 ? availableStyleNames.join(', ') : 'Brazilian Zouk, Salsa, Bachata, Kizomba, West Coast Swing, or another style';
-        prompt = `You are an expert dance instructor processing a lesson audio.
+        prompt = `You are an expert dance instructor transcribing a lesson audio clip.
 Dancers frequently mix languages (e.g. Portuguese terms in Brazilian Zouk, Spanish in Salsa/Bachata, French in Ballet, etc.). If foreign technical dance terms are mixed into the spoken language, preserve their exact technical spelling and original language rather than phonetically transcribing or mistranslating them.
 
-Provide:
-1. A clean transcription of the audio in the language it is spoken. Remove speech disfluencies and false starts.
-2. The detected dance style of this lesson (must be one of: ${stylesList}).
-
-Return ONLY valid JSON matching this schema:
-{
-  "transcript": "raw transcription text in the spoken language",
-  "detectedStyle": "detected dance style name"
-}
+CRITICAL INSTRUCTIONS:
+- Transcribe the ENTIRE audio recording from beginning to end without stopping early.
+- Remove speech disfluencies and false starts (e.g., "um", "uh").
+- Output ONLY the raw transcription text in the language it is spoken.
+- DO NOT return JSON. DO NOT wrap in quotes. DO NOT include markdown formatting.
 
 ${glossaryContext}`;
     } else {
-        prompt = `You are an expert ${danceStyle} instructor processing a lesson audio.
-Provide a clean transcription of the audio in the language it is spoken.
+        prompt = `You are an expert ${danceStyle} instructor transcribing a lesson audio clip.
+
+CRITICAL INSTRUCTIONS:
+- Transcribe the ENTIRE audio recording from beginning to end without stopping early.
 - Remove speech disfluencies and false starts.
 - Preserve exact technical meaning and terminology.
-- Output ONLY the raw transcription text in the spoken language. No JSON, no markdown.
+- Output ONLY the raw transcription text in the language it is spoken.
+- DO NOT return JSON. DO NOT wrap in quotes. DO NOT include markdown formatting.
 
 ${glossaryContext}`;
     }
 
     const result = await genAI.models.generateContent({
-        model: 'gemini-2.5-flash', // Fast and accurate for transcribing
+        model: 'gemini-2.5-flash',
         config: {
-            temperature: 0.1, // Very low temp for stable transcription
-            maxOutputTokens: 2000,
-            responseMimeType: isAuto ? 'application/json' : 'text/plain'
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+            responseMimeType: 'text/plain'
         },
         contents: [
             {
@@ -179,35 +177,32 @@ ${glossaryContext}`;
     console.log(`[Gemini Transcription Usage] Response: ${totalResponseTokens} tokens`);
     console.log(`[Gemini Transcription Usage] Total: ${totalTokens} tokens`);
 
-    if (isAuto) {
+    let rawText = (result.text || '').trim();
+
+    // Defensive cleanup in case Gemini still outputted JSON or code blocks
+    if (rawText.startsWith('```') || rawText.startsWith('{')) {
         try {
-            const cleanText = (result.text || '').replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
-            const parsed = JSON.parse(cleanText || '{}');
-            let transcript = (parsed.transcript || '').trim();
-            const detectedStyle = (parsed.detectedStyle || '').trim();
-
-            if (isTranslate && transcript) {
-                transcript = await translateText(transcript, targetLanguage);
+            const cleanJson = rawText.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+            const parsed = JSON.parse(cleanJson);
+            if (parsed.transcript) {
+                rawText = parsed.transcript.trim();
             }
-
-            return {
-                transcript,
-                detectedStyle
-            };
-        } catch (e) {
-            console.error('Failed to parse detected JSON from Gemini, fallback to raw text:', e);
-            let fallbackTranscript = (result.text || '').trim();
-            if (isTranslate && fallbackTranscript) {
-                fallbackTranscript = await translateText(fallbackTranscript, targetLanguage);
+        } catch (_) {
+            // Regex match inside "transcript": "..." even if cut off or malformed JSON
+            const match = rawText.match(/"transcript"\s*:\s*"((?:[^"\\]|\\.)*)/i);
+            if (match && match[1]) {
+                try {
+                    rawText = JSON.parse(`"${match[1]}"`);
+                } catch {
+                    rawText = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+                }
+            } else {
+                rawText = rawText.replace(/^\s*\{\s*"transcript"\s*:\s*"?/i, '').replace(/"?\s*\}?\s*$/i, '').trim();
             }
-            return {
-                transcript: fallbackTranscript,
-                detectedStyle: undefined
-            };
         }
     }
 
-    let transcript = (result.text || '').trim();
+    let transcript = rawText.trim();
     if (isTranslate && transcript) {
         transcript = await translateText(transcript, targetLanguage);
     }
@@ -535,16 +530,6 @@ app.post('/api/gemini/process-audio', async (req, res) => {
                 if (result.transcript) {
                     allTranscripts.push(result.transcript);
                     newTranscriptsRecord[audioId] = result.transcript;
-                }
-                // If we are in Auto mode and haven't matched a glossary yet, check if this transcription detected a style
-                if (isAutoStyle && !detectedStyleName && result.detectedStyle && Array.isArray(availableGlossaries)) {
-                    const matched = availableGlossaries.find((g: any) => g.name.toLowerCase() === result.detectedStyle.toLowerCase());
-                    if (matched) {
-                        detectedStyleName = matched.name;
-                        activeStyle = matched.name;
-                        activeGlossary = matched.terms;
-                        console.log(`[/api/gemini/process-audio] Dynamically detected style: ${detectedStyleName}. Switched to its glossary.`);
-                    }
                 }
             } catch (err: any) {
                 console.error(`[/api/gemini/process-audio] Gemini SDK Error for audio id=${audioId}:`, err?.message);

@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.5.3',
+    date: '2026-09-08',
+    changes: [
+      'Transparent Video Audio Extraction: Importing video files into session audio clips now automatically extracts, downmixes, and converts the audio track into a lightweight 16kHz mono audio file directly on device, slashing Gemini token consumption by ~90% and saving storage space'
+    ]
+  },
+  {
     version: '3.5.2',
     date: '2026-09-07',
     changes: [

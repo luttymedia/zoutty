@@ -73,6 +73,7 @@ import { TopupSuccessModal } from './components/TopupSuccessModal';
 import { TopupConfirmModal } from './components/TopupConfirmModal';
 import { ManageSubscriptionModal, ModalView as ManageSubscriptionView } from './components/ManageSubscriptionModal';
 import { getMediaDuration } from './lib/audioDuration';
+import { isVideoFile, extractAudioFromVideo } from './lib/audioExtractor';
 import { formatSafeDate } from './lib/dateUtils';
 import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout, updateStripeSubscription, cancelStripeSubscription, reactivateStripeSubscription, cancelStripeDowngrade } from './lib/stripe';
 
@@ -2148,14 +2149,15 @@ export default function App() {
 
       if (controller.signal.aborted) return;
 
-      // Update entry with result
-      const finalizedEntry: any = {
+      // Update entry with result, omitting transient API metadata
+      const { status, processedAt, mockData, tier, usage, limits, ...cleanResult } = result || {};
+      const finalizedEntry: AudioEntry = {
         ...entry,
         audioBlob: blobToProcess,
-        ...result
+        ...cleanResult
       };
 
-      console.log('[handleProcessEntry] Finalized entry structure - hasStrictSummary:', !!(finalizedEntry as any).strictSummary, '| hasTranscript:', !!(finalizedEntry as any).transcript);
+      console.log('[handleProcessEntry] Finalized entry structure - hasStrictSummary:', !!finalizedEntry.strictSummary, '| hasTranscript:', !!finalizedEntry.transcript);
       await db.saveAudioEntry(finalizedEntry);
       if (controller.signal.aborted) return;
       setAudioEntries(prev => ({ ...prev, [entryId]: finalizedEntry }));
@@ -2207,12 +2209,30 @@ export default function App() {
     const exceededFiles: ExceededAudioFile[] = [];
 
     for (const file of fileList) {
-      const duration = await getMediaDuration(file);
-      if (duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
-        exceededFiles.push({ name: file.name, duration });
-        continue;
+      if (isVideoFile(file)) {
+        showSpinner(t('toast.extractingAudio'));
+        try {
+          const extracted = await extractAudioFromVideo(file);
+          hideSpinner();
+          if (extracted.duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
+            exceededFiles.push({ name: file.name, duration: extracted.duration });
+            continue;
+          }
+          await addAudioEntry(selectedSession.id, extracted.blob, language, 'upload', extracted.filename);
+        } catch (err: any) {
+          hideSpinner();
+          console.error('[handleFileUpload] Failed to extract audio from video:', err);
+          const isNoAudio = err?.message?.toLowerCase().includes('no audio');
+          showToast(isNoAudio ? t('toast.noAudioInVideo') : t('toast.failedExtractAudio'), true);
+        }
+      } else {
+        const duration = await getMediaDuration(file);
+        if (duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
+          exceededFiles.push({ name: file.name, duration });
+          continue;
+        }
+        await addAudioEntry(selectedSession.id, file, language, 'upload', file.name);
       }
-      await addAudioEntry(selectedSession.id, file, language, 'upload', file.name);
     }
 
     if (exceededFiles.length > 0) {
