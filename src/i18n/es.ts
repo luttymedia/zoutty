@@ -457,6 +457,8 @@ const es: Translations = {
     cancelRecording: 'Cancelar grabación',
     stopRecording: 'Detener grabación y guardar',
     startRecording: 'Iniciar grabación',
+    recordingCountdown: 'Prepárate para grabar...',
+    cancelCountdown: 'Cancelar',
     zouttySettings: 'Ajustes de Zoutty',
     // Gallery / Media
     openGallery: 'Abrir galería multimedia',

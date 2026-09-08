@@ -92,6 +92,7 @@ import { CustomSwitch } from './components/CustomSwitch';
 import { AutoGrowingTextarea } from './components/AutoGrowingTextarea';
 import { WelcomeModal } from './components/WelcomeModal';
 import { NewSessionEntryModal, EntryOption } from './components/NewSessionEntryModal';
+import { RecordingCountdownOverlay } from './components/RecordingCountdownOverlay';
 import { HistoryView } from './components/HistoryView';
 import { TopicsView } from './components/TopicsView';
 import { InteractiveOnboardingOverlay, OnboardingStepConfig } from './components/InteractiveOnboardingOverlay';
@@ -5951,6 +5952,7 @@ function SessionDetail({
   const [tempSubtitle, setTempSubtitle] = useState(session.subtitle ?? '');
   const [isReordering, setIsReordering] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showRecordCountdown, setShowRecordCountdown] = useState(false);
 
   const parentGroup = groups.find(g => g.id === session.groupId);
 
@@ -6201,7 +6203,11 @@ function SessionDetail({
     if (!initialAction) return;
     const timer = setTimeout(() => {
       if (initialAction === 'record') {
-        startRecording();
+        if (session.isDemo) {
+          showToast(t('onboarding.demoTooltipRecord'), false);
+        } else {
+          setShowRecordCountdown(true);
+        }
       } else if (initialAction === 'upload_audio' || initialAction === 'upload_video') {
         const uploadEl = document.getElementById('uploadBtn') as HTMLInputElement | null;
         if (uploadEl) {
@@ -7141,6 +7147,18 @@ function SessionDetail({
           </div>
         </div>
       )}
+
+      {/* 3-Second Camera-Style Recording Countdown Overlay */}
+      <RecordingCountdownOverlay
+        isOpen={showRecordCountdown}
+        onComplete={() => {
+          setShowRecordCountdown(false);
+          startRecording();
+        }}
+        onCancel={() => {
+          setShowRecordCountdown(false);
+        }}
+      />
     </div>
   );
 }

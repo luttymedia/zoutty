@@ -455,6 +455,8 @@ const en = {
     cancelRecording: 'Cancel recording',
     stopRecording: 'Stop recording and save',
     startRecording: 'Start recording',
+    recordingCountdown: 'Get ready to record...',
+    cancelCountdown: 'Cancel',
     zouttySettings: 'Zoutty Settings',
     // Gallery / Media
     openGallery: 'Open media gallery',
