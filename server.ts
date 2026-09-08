@@ -236,14 +236,14 @@ Your task is to provide a single, cohesive, "Consolidated Session Report" that s
 CRITICAL: 
 - If multiple clips discuss the same concept (e.g. "Frame", "Lateral step"), do NOT mention it multiple times.
 - Summarize the repetitive information into the most complete and clear technical description possible.
-- The goal is to provide a unified summary of what was taught across the whole session.
-- Write the text content/values of all array elements in the JSON (i.e. all items inside strictSummary, drills, homework, technicalExpansion, and emotionalNotes) in ${targetLanguageName}. Do not translate the JSON keys (keep them exactly as "strictSummary", "expandedInsights", "drills", "homework", "technicalExpansion", "emotionalNotes"${isAuto ? ', "detectedStyle"' : ''}).
+- Write text content in ${targetLanguageName}. Do not translate JSON keys (keep them exactly as "strictSummary", "expandedInsights", "drills", "homework", "technicalExpansion", "emotionalNotes", "tags"${isAuto ? ', "detectedStyle"' : ''}).
 
 Perform these tasks and return the result EXACTLY as a JSON object:
 
-1. strictSummary: Extract atomic technical notes. Each bullet must be self-contained (ONE complete technical idea). Use concise, dense technical phrasing. 
-2. expandedInsights: Infer drills, homework, technical expansions, and emotional notes based on the combined information.
-${isAuto ? '3. detectedStyle: Detect the specific dance style of this lesson (e.g., Brazilian Zouk, Salsa, Bachata, Kizomba, West Coast Swing, etc.) based on the transcription contents.' : ''}
+1. strictSummary: Extract atomic technical notes (one concise, complete idea per bullet).
+2. expandedInsights: Infer drills, homework, technical expansions, and emotional notes.
+3. tags: Extract 1-4 concise topic labels for key dance concepts taught in this lesson in ${targetLanguageName} (keep standard dance terms in their native language e.g. Viradinha, Dile que no, Plié).
+${isAuto ? '4. detectedStyle: Detect the specific dance style of this lesson (e.g., Brazilian Zouk, Salsa, Bachata, Kizomba, West Coast Swing, etc.) based on the transcription contents.' : ''}
 
 ${glossaryContext}
 
@@ -259,7 +259,8 @@ Return ONLY valid JSON matching this schema:
     "homework": [],
     "technicalExpansion": [],
     "emotionalNotes": []
-  }${isAuto ? ',\n  "detectedStyle": "detected dance style name"' : ''}
+  },
+  "tags": ["topic 1", "topic 2"]${isAuto ? ',\n  "detectedStyle": "detected dance style name"' : ''}
 }`;
 
     const result = await genAI.models.generateContent({
@@ -279,7 +280,7 @@ Return ONLY valid JSON matching this schema:
         return JSON.parse(cleanText || '{}');
     } catch (e) {
         console.error('Failed to parse consolidated JSON from Gemini:', e, 'Raw output:', result.text);
-        return { strictSummary: [], expandedInsights: { drills: [], homework: [], technicalExpansion: [], emotionalNotes: [] } };
+        return { strictSummary: [], expandedInsights: { drills: [], homework: [], technicalExpansion: [], emotionalNotes: [] }, tags: [] };
     }
 }
 
@@ -443,29 +444,47 @@ app.post('/api/gemini/process-audio', async (req, res) => {
                 }
             }
             const style = (!danceStyle || danceStyle.toLowerCase() === 'auto') ? 'Brazilian Zouk' : danceStyle;
+            const mockTags = appLanguage === 'es'
+                ? ["Conexión", "Transferencia de peso", "Giros", "Musicalidad"]
+                : ["Connection", "Weight Transfer", "Turns", "Musicality"];
             return res.json({
                 report: {
-                    strictSummary: [
+                    strictSummary: appLanguage === 'es' ? [
+                        "Mantener una conexión suave y elástica en marco cerrado sin tensión en los hombros.",
+                        "Iniciar los pasos laterales transfiriendo el peso corporal suavemente en los tiempos 1 y 2.",
+                        "Usar la rotación del torso en lugar de empujar con los brazos para indicar cambios de dirección."
+                    ] : [
                         "Maintain soft, elastic connection in closed frame without tension in the shoulders.",
                         "Initiate lateral steps by shifting body weight smoothly on counts 1 and 2.",
                         "Use torso rotation rather than arm pushing to indicate direction changes."
                     ],
                     expandedInsights: {
-                        drills: [
+                        drills: appLanguage === 'es' ? [
+                            "Practicar 8 tiempos del paso básico en el lugar con ojos cerrados para desarrollar equilibrio.",
+                            "Ejercicio de resistencia líder-seguidor con una pelota pequeña entre los torsos."
+                        ] : [
                             "Practice 8 counts of basic step in place with eyes closed to build balance and weight sensation.",
                             "Lead-and-follow resistance drill with a small ball between torsos."
                         ],
-                        homework: [
+                        homework: appLanguage === 'es' ? [
+                            "Ejercicio diario de 5 minutos de trabajo de pies manteniendo contacto constante con el suelo."
+                        ] : [
                             "Daily 5-minute footwork drill maintaining constant ground contact."
                         ],
-                        technicalExpansion: [
+                        technicalExpansion: appLanguage === 'es' ? [
+                            "Asegurar que la caja torácica guíe el giro antes de que los pies pisen."
+                        ] : [
                             "Ensure ribcage leads the turn before the feet step to prevent balance breakdown."
                         ],
-                        emotionalNotes: [
+                        emotionalNotes: appLanguage === 'es' ? [
+                            "Gran musicalidad en las secciones lentas; enfocarse en respirar juntos en las transiciones."
+                        ] : [
                             "Great musicality on the slow sections; focus on breathing together through the transitions."
                         ]
-                    }
+                    },
+                    tags: mockTags
                 },
+                tags: mockTags,
                 newTranscripts: newTranscriptsRecord,
                 detectedStyle: style,
                 mockData: true,
@@ -551,8 +570,11 @@ app.post('/api/gemini/process-audio', async (req, res) => {
             delete reportResult.detectedStyle;
         }
 
+        const tags = Array.isArray(reportResult?.tags) ? reportResult.tags : [];
+
         return res.json({
             report: reportResult,
+            tags,
             newTranscripts: newTranscriptsRecord,
             detectedStyle: finalDetectedStyle,
             tier: gate.tier,

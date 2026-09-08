@@ -236,7 +236,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               <div className="grid grid-cols-1 gap-2.5 pl-1">
                 {group.sessions.map((session) => {
                   const hasReport = Boolean(session.summary);
-                  const sessionTags: string[] = (session as any).tags || [];
+                  const sessionTags = session.tags || [];
 
                   return (
                     <div
@@ -279,15 +279,15 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                         </p>
                       )}
 
-                      {/* Topic Tags / Chips (Populated in Phase 3) */}
+                      {/* Topic Tags / Chips */}
                       {sessionTags.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                           {sessionTags.map((tag, idx) => (
                             <span
                               key={idx}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-white/60 text-[11px] font-normal"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-brand/10 border border-brand/20 text-brand-light text-[11px] font-normal"
                             >
-                              <Tag className="w-3 h-3 text-white/40" />
+                              <Tag className="w-3 h-3 text-brand/60" />
                               {tag}
                             </span>
                           ))}

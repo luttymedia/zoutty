@@ -6,6 +6,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.8.0',
+    date: '2026-09-08',
+    changes: [
+      'Phase 3: AI-Generated Topic Tags — Gemini automatically extracts 1-4 concise dance concept tags during session consolidation',
+      'Multilingual Dance Tag Intelligence: Generates tags in the user\'s UI language while keeping standard dance loanwords (e.g. Viradinha, Dile que no, Plié) in their native terminology',
+      'Interactive Topic Tag Editor: Students can easily add, remove, and manage topic chips directly inside session details',
+      'Topic Chips on Lesson History: Lesson History cards now prominently display topic tags for quick learning recall',
+      'Tag-Aware Search: Full-text search across all sessions now indexes topic tags in both History and Library views',
+      'Cloud Synchronization: Full IndexedDB schema upgrade (v5) and Supabase cloud sync support for session tags'
+    ]
+  },
+  {
     version: '3.7.0',
     date: '2026-09-08',
     changes: [

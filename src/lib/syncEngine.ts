@@ -170,6 +170,15 @@ export const syncEngine = {
           const retry = await supabase.from(supabaseTableName).upsert(strippedPayload);
           error = retry.error;
         }
+        if (error && supabaseTableName === 'sessions' && (error as any).code === 'PGRST204') {
+          console.warn('[Sync] Remote sessions table missing tags column. Falling back to sync without it. Please run ALTER TABLE sessions ADD COLUMN IF NOT EXISTS "tags" text[];');
+          const strippedPayload = payload.map((row: any) => {
+            const { tags, ...rest } = row;
+            return rest;
+          });
+          const retry = await supabase.from(supabaseTableName).upsert(strippedPayload);
+          error = retry.error;
+        }
 
         if (error) {
           console.error(`[Sync] Failed to push ${supabaseTableName}:`, error);

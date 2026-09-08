@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Plus,
   Mic,
@@ -52,6 +52,7 @@ import {
   CreditCard,
   Compass,
   Check,
+  Tag,
   Eye,
   EyeOff,
 } from 'lucide-react';
@@ -75,7 +76,7 @@ import { TopupSuccessModal } from './components/TopupSuccessModal';
 import { TopupConfirmModal } from './components/TopupConfirmModal';
 import { ManageSubscriptionModal, ModalView as ManageSubscriptionView } from './components/ManageSubscriptionModal';
 import { getMediaDuration } from './lib/audioDuration';
-import { isVideoFile, extractAudioFromVideo } from './lib/audioExtractor';
+import { isVideoFile, extractAudioFromVideo, ExtractedAudioResult } from './lib/audioExtractor';
 import { formatSafeDate } from './lib/dateUtils';
 import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout, updateStripeSubscription, cancelStripeSubscription, reactivateStripeSubscription, cancelStripeDowngrade } from './lib/stripe';
 
@@ -93,7 +94,7 @@ import { NewSessionEntryModal, EntryOption } from './components/NewSessionEntryM
 import { HistoryView } from './components/HistoryView';
 import { InteractiveOnboardingOverlay, OnboardingStepConfig } from './components/InteractiveOnboardingOverlay';
 import { SearchModal } from './components/SearchModal';
-import { SearchFilters, performSearch } from './lib/search';
+import { SearchFilters, performSearch, normalizeSearchText } from './lib/search';
 import Markdown from 'react-markdown';
 import { useTranslation } from './i18n/TranslationContext';
 import { UI_LANGUAGE_NAMES } from './i18n';
@@ -1381,6 +1382,19 @@ export default function App() {
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
 
+  const allExistingTopics = useMemo(() => {
+    const topicMap = new Map<string, string>();
+    sessions.forEach(s => {
+      (s.tags || []).forEach(tag => {
+        const norm = normalizeSearchText(tag);
+        if (norm && !topicMap.has(norm)) {
+          topicMap.set(norm, tag.trim());
+        }
+      });
+    });
+    return Array.from(topicMap.values()).sort((a, b) => a.localeCompare(b));
+  }, [sessions]);
+
   // Load media for the selected session whenever it changes
   useEffect(() => {
     if (!selectedSessionId) {
@@ -2512,7 +2526,7 @@ export default function App() {
         throw err;
       }
 
-      const { report: reportResult, newTranscripts, detectedStyle } = await response.json();
+      const { report: reportResult, tags: responseTags, newTranscripts, detectedStyle } = await response.json();
       if (controller.signal.aborted) return;
 
       if (currentDev.mockGemini) {
@@ -2604,6 +2618,15 @@ export default function App() {
       // Update session summary and glossary if detectedStyle matches a registered glossary
       const sessionChanges: Partial<Session> = { summary: reportResult };
       let gotStyleMatch = false;
+
+      const extractedTags: string[] = Array.isArray(responseTags)
+        ? responseTags
+        : (Array.isArray(reportResult?.tags) ? reportResult.tags : []);
+
+      if (extractedTags.length > 0) {
+        const currentTags = selectedSession.tags || [];
+        sessionChanges.tags = Array.from(new Set([...currentTags, ...extractedTags]));
+      }
 
       if (detectedStyle && selectedSession.glossaryId === 'auto') {
         const matched = glossaries.find(g => g.name.toLowerCase() === detectedStyle.toLowerCase());
@@ -5417,6 +5440,7 @@ export default function App() {
             onDeleteSession={() => requestDeleteSession(selectedSession.id, selectedSession.title)}
             mediaItems={sessionMedia}
             onMediaChange={setSessionMedia}
+            existingTopics={allExistingTopics}
           />
         )}
       </main>
@@ -5463,7 +5487,8 @@ function SessionDetail({
   mediaItems,
   onMediaChange,
   activeGlossaryIds,
-  onUpdateActiveGlossaryIds
+  onUpdateActiveGlossaryIds,
+  existingTopics = []
 }: {
   session: Session;
   initialAction?: 'record' | 'upload_audio' | 'upload_video' | null;
@@ -5488,6 +5513,7 @@ function SessionDetail({
   onMediaChange: (items: SessionMedia[]) => void;
   activeGlossaryIds: string[];
   onUpdateActiveGlossaryIds: (ids: string[]) => void;
+  existingTopics?: string[];
 }) {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
@@ -5496,6 +5522,9 @@ function SessionDetail({
   const timerRef = useRef<any>(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isAddingMedia, setIsAddingMedia] = useState(false);
+  const [isAddingTopic, setIsAddingTopic] = useState(false);
+  const [newTopicText, setNewTopicText] = useState('');
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState<number>(-1);
   const [mediaObjectUrls, setMediaObjectUrls] = useState<Record<string, string>>({});
   const [brokenMediaIds, setBrokenMediaIds] = useState<Set<string>>(new Set());
   const [lightboxItem, setLightboxItem] = useState<SessionMedia | null>(null);
@@ -5924,6 +5953,57 @@ function SessionDetail({
     setIsEditingTitle(false);
   };
 
+  const matchingSuggestions = useMemo(() => {
+    const trimmed = newTopicText.trim();
+    if (!trimmed) return [];
+    const normInput = normalizeSearchText(trimmed);
+    const currentNormTags = new Set((session.tags || []).map(normalizeSearchText));
+    return (existingTopics || [])
+      .filter(topic => {
+        const norm = normalizeSearchText(topic);
+        return !currentNormTags.has(norm) && norm.includes(normInput);
+      })
+      .slice(0, 5);
+  }, [newTopicText, existingTopics, session.tags]);
+
+  const commitTopic = (topicToAdd: string) => {
+    const trimmed = topicToAdd.trim();
+    if (!trimmed) {
+      setIsAddingTopic(false);
+      setNewTopicText('');
+      setSelectedSuggestionIndex(-1);
+      return;
+    }
+    const currentTags = session.tags || [];
+    const normNew = normalizeSearchText(trimmed);
+    if (currentTags.some(t => normalizeSearchText(t) === normNew)) {
+      showToast(t('session.tagAlreadyExists'), false, undefined, undefined, 2000, 'warning');
+      return;
+    }
+    const existingMatch = (existingTopics || []).find(t => normalizeSearchText(t) === normNew);
+    const finalTopic = existingMatch || trimmed;
+
+    const updatedTags = [...currentTags, finalTopic];
+    onUpdateSession({ tags: updatedTags });
+    setNewTopicText('');
+    setSelectedSuggestionIndex(-1);
+    setIsAddingTopic(false);
+  };
+
+  const handleAddTopic = () => {
+    if (selectedSuggestionIndex >= 0 && selectedSuggestionIndex < matchingSuggestions.length) {
+      commitTopic(matchingSuggestions[selectedSuggestionIndex]);
+    } else {
+      commitTopic(newTopicText);
+    }
+  };
+
+  const handleRemoveTopic = (indexToRemove: number) => {
+    const currentTags = session.tags || [];
+    const updatedTags = currentTags.filter((_, idx) => idx !== indexToRemove);
+    onUpdateSession({ tags: updatedTags });
+  };
+
   // Auto-trigger entry action (record, upload audio, upload video)
   useEffect(() => {
     if (!initialAction) return;
@@ -6097,7 +6177,151 @@ function SessionDetail({
           </div>
         )}
 
+        {/* Topic Tags / Chips section */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2.5 border-t border-white/5">
+          <div className="flex items-center gap-1 text-white/40 text-xs mr-1 shrink-0 font-medium">
+            <Tag className="w-3.5 h-3.5 text-brand/70" />
+            <span className="hidden sm:inline">{t('session.topicsHeading')}:</span>
+          </div>
 
+          {(session.tags || []).map((tag, idx) => (
+            <span
+              key={idx}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-brand/10 border border-brand/20 text-brand-light text-xs font-medium group transition-colors hover:bg-brand/15"
+            >
+              <span>{tag}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (session.isDemo) {
+                    showToast(t('onboarding.demoTooltipEdit'), false);
+                  } else {
+                    handleRemoveTopic(idx);
+                  }
+                }}
+                className="text-brand/50 hover:text-white transition-colors p-0.5 rounded-md hover:bg-white/10 cursor-pointer"
+                title={t('session.removeTopic')}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+
+          {isAddingTopic ? (
+            <div className="relative inline-flex items-center">
+              <div className="inline-flex items-center gap-1 bg-white/5 border border-brand/40 rounded-xl px-2 py-0.5">
+                <input
+                  autoFocus
+                  placeholder={t('session.topicPlaceholder')}
+                  value={newTopicText}
+                  maxLength={35}
+                  onChange={(e) => {
+                    setNewTopicText(e.target.value);
+                    setSelectedSuggestionIndex(-1);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setSelectedSuggestionIndex(prev =>
+                        prev < matchingSuggestions.length - 1 ? prev + 1 : 0
+                      );
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSelectedSuggestionIndex(prev =>
+                        prev > 0 ? prev - 1 : matchingSuggestions.length - 1
+                      );
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTopic();
+                    } else if (e.key === 'Escape') {
+                      setNewTopicText('');
+                      setSelectedSuggestionIndex(-1);
+                      setIsAddingTopic(false);
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setIsAddingTopic(false);
+                      setNewTopicText('');
+                      setSelectedSuggestionIndex(-1);
+                    }, 150);
+                  }}
+                  className="bg-transparent text-xs text-white outline-none w-24 sm:w-32 placeholder:text-white/30"
+                />
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleAddTopic();
+                  }}
+                  className="text-brand hover:text-brand-light p-0.5 rounded transition-colors cursor-pointer"
+                  title={t('session.addTopic')}
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewTopicText('');
+                    setSelectedSuggestionIndex(-1);
+                    setIsAddingTopic(false);
+                  }}
+                  className="text-white/40 hover:text-white p-0.5 rounded transition-colors cursor-pointer"
+                  title={t('sessionSettings.cancelBtn')}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Autocomplete / Suggested Topics Dropdown */}
+              {matchingSuggestions.length > 0 && (
+                <div className="absolute left-0 top-full mt-1.5 z-50 bg-[#161b22] border border-white/15 rounded-xl shadow-2xl overflow-hidden py-1 min-w-[150px] max-w-[240px] animate-in fade-in slide-in-from-top-1">
+                  <div className="px-2.5 py-1 text-[10px] font-semibold text-white/40 uppercase tracking-wider border-b border-white/5">
+                    {t('session.suggestedTopics')}
+                  </div>
+                  {matchingSuggestions.map((suggestion, sIdx) => {
+                    const isHighlighted = sIdx === selectedSuggestionIndex;
+                    return (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          commitTopic(suggestion);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors cursor-pointer group ${
+                          isHighlighted
+                            ? 'bg-brand/25 text-brand font-medium'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <span className="truncate">{suggestion}</span>
+                        <Plus className="w-3 h-3 shrink-0 opacity-40 group-hover:opacity-100 text-brand" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (session.isDemo) {
+                  showToast(t('onboarding.demoTooltipEdit'), false);
+                } else {
+                  setIsAddingTopic(true);
+                }
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-brand text-xs font-medium transition-colors cursor-pointer"
+              title={t('session.addTopic')}
+            >
+              <Plus className="w-3 h-3" />
+              <span>{t('session.addTopic')}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Inline Lesson Video Section */}

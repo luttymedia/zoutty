@@ -405,6 +405,14 @@ const en = {
     notesHeading: 'Notes',
     addNote: '+ Add note',
     notesPlaceholder: 'Add your session notes here...',
+    // Topics / Tags
+    topicsHeading: 'Topics',
+    addTopic: 'Add topic',
+    topicPlaceholder: 'Add a topic…',
+    removeTopic: 'Remove topic',
+    noTopicsYet: 'No topics yet',
+    tagAlreadyExists: 'Topic already added',
+    suggestedTopics: 'Suggested topics',
     // Consolidated report
     consolidatedReport: 'Consolidated Session Report',
     consolidatedOn: 'Consolidated: {date}',
@@ -684,6 +692,7 @@ const en = {
     transcriptions: 'Transcriptions',
     reports: 'Reports',
     notes: 'Notes',
+    topics: 'Topics',
     advancedFilters: 'Advanced Filters',
     hasGalleryItems: 'Has gallery items',
     hasAudioRecordings: 'Has audio recordings',

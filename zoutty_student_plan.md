@@ -235,7 +235,7 @@ This also lays the foundation for Phase 4 (cross-session intelligence) without r
 ### User experience
 
 After AI consolidation runs on a session:
-- The session gains 3–6 topic tags (e.g. `weight transfer`, `connection`, `turns`, `musicality`).
+- The session gains 1-4 topic tags (The most relevant according to the contents of the session. e.g. `weight transfer`, `connection`, `turns`, `musicality`).
 - Tags appear as chips in the Lesson History card for that session.
 - Inside the session detail, a "Topics" section shows the tags as editable chips.
 - The user can: **delete a tag** (tap X on chip), **add a tag manually** (small text input + add button).
@@ -270,7 +270,7 @@ We extend the prompt to add a `tags` field:
 }
 ```
 
-Prompt addition: *"tags: Extract 3-8 concise topic labels representing the main dance concepts discussed in this lesson. Use simple English noun phrases (e.g. 'weight transfer', 'connection', 'turns'). These will be used to tag the lesson for future reference."*
+Prompt addition: *"tags: Extract 1-5 concise topic labels representing the main dance concepts discussed in this lesson. Use simple English noun phrases (e.g. 'weight transfer', 'connection', 'turns'). These will be used to tag the lesson for future reference."*
 
 The server returns `tags` in the `/api/gemini/process-audio` response. The client saves them onto the session via `updateSession()`.
 

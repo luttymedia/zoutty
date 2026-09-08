@@ -8,6 +8,7 @@ export interface SearchFilters {
   transcriptions: boolean;
   reports: boolean;
   notes: boolean;
+  topics: boolean;
   hasGalleryItems: boolean;
   hasAudioRecordings: boolean;
   glossaryUsed: string | 'all';
@@ -21,9 +22,18 @@ export const defaultSearchFilters: SearchFilters = {
   transcriptions: false,
   reports: false,
   notes: false,
+  topics: false,
   hasGalleryItems: false,
   hasAudioRecordings: false,
   glossaryUsed: 'all'
+};
+
+export const normalizeSearchText = (text: string): string => {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 };
 
 export function performSearch(
@@ -38,12 +48,12 @@ export function performSearch(
   const matchedSessionIds = new Set<string>();
   const matchedGroupIds = new Set<string>();
   
-  const q = query.toLowerCase().trim();
+  const normQ = normalizeSearchText(query);
   const checkQuery = (text?: any) => {
     if (!text) return false;
-    if (typeof text === 'string') return text.toLowerCase().includes(q);
-    if (Array.isArray(text)) return text.some(t => typeof t === 'string' && t.toLowerCase().includes(q));
-    if (typeof text === 'object') return JSON.stringify(text).toLowerCase().includes(q);
+    if (typeof text === 'string') return normalizeSearchText(text).includes(normQ);
+    if (Array.isArray(text)) return text.some(t => typeof t === 'string' && normalizeSearchText(t).includes(normQ));
+    if (typeof text === 'object') return normalizeSearchText(JSON.stringify(text)).includes(normQ);
     return false;
   };
 
@@ -64,13 +74,13 @@ export function performSearch(
     
     const hasAdvancedFilter = filters.hasGalleryItems || filters.hasAudioRecordings || filters.glossaryUsed !== 'all';
     
-    if (q && (filters.all || filters.folders)) {
+    if (normQ && (filters.all || filters.folders)) {
       if (checkQuery(group.name)) {
         if (!hasAdvancedFilter) {
           matches = true;
         }
       }
-    } else if (!q && filters.folders && !hasAdvancedFilter) {
+    } else if (!normQ && filters.folders && !hasAdvancedFilter) {
        matches = true;
     }
 
@@ -88,11 +98,14 @@ export function performSearch(
     if (filters.hasAudioRecordings && (sessionToAudioCount.get(session.id) || 0) === 0) return;
     if (filters.glossaryUsed !== 'all' && session.glossaryId !== filters.glossaryUsed) return;
 
-    if (!q) {
+    if (!normQ) {
       matches = true;
     } else {
       if (filters.all || filters.sessions) {
         if (checkQuery(session.title) || checkQuery(session.subtitle)) matches = true;
+      }
+      if (!matches && (filters.all || filters.topics)) {
+        if (session.tags && session.tags.some(t => checkQuery(t))) matches = true;
       }
       if (!matches && (filters.all || filters.notes)) {
         if (checkQuery(session.notes)) matches = true;

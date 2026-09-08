@@ -44,6 +44,7 @@ export function SearchModal({
           transcriptions: false,
           reports: false,
           notes: false,
+          topics: false,
         }));
       } else {
         // Unchecking "All" without checking anything else shouldn't be allowed or defaults back to All.
@@ -63,13 +64,14 @@ export function SearchModal({
             entries: key === 'entries',
             transcriptions: key === 'transcriptions',
             reports: key === 'reports',
-            notes: key === 'notes'
+            notes: key === 'notes',
+            topics: key === 'topics'
           };
         }
         
         const next = { ...prev, [key]: value, all: false };
         // If all specific standard filters become unchecked, revert to "All"
-        if (!next.folders && !next.sessions && !next.entries && !next.transcriptions && !next.reports && !next.notes) {
+        if (!next.folders && !next.sessions && !next.entries && !next.transcriptions && !next.reports && !next.notes && !next.topics) {
           next.all = true;
         }
         return next;
@@ -157,6 +159,12 @@ export function SearchModal({
                 checked={filters.notes || filters.all}
                 onChange={(c) => handleFilterChange('notes', c)}
                 label={t('search.notes')}
+                className={filters.all ? "opacity-50 hover:opacity-100 transition-opacity" : ""}
+              />
+              <CustomCheckbox
+                checked={filters.topics || filters.all}
+                onChange={(c) => handleFilterChange('topics', c)}
+                label={t('search.topics')}
                 className={filters.all ? "opacity-50 hover:opacity-100 transition-opacity" : ""}
               />
             </div>

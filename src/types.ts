@@ -32,6 +32,7 @@ export interface Session {
   title: string;
   subtitle?: string; // Optional subtitle (editable by user)
   date: number;
+  tags?: string[]; // AI-generated or user-defined dance concept topic tags
   summary?: string;
   notes?: string; // Optional user notes
   cardOrder?: string[]; // IDs of cards in preferred order

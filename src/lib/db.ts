@@ -2,7 +2,7 @@ import { Session, AudioEntry, FinalReport, SessionGroup, DanceGlossary, SessionM
 import { supabase } from './supabase';
 
 const DB_NAME = 'ZouttyAppDB';
-const DB_VERSION = 4; // v4: added sessionMedia store
+const DB_VERSION = 5; // v5: added session tags (Phase 3)
 
 const base64ToBlob = (dataUrl: string): Blob => {
   const arr = dataUrl.split(',');

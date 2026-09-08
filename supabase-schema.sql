@@ -18,6 +18,7 @@ create table sessions (
   "date" bigint not null,
   "summary" text,
   "notes" text,
+  "tags" text[],
   "cardOrder" text[],
   "groupId" text,
   "glossaryId" text,

@@ -407,6 +407,14 @@ const es: Translations = {
     notesHeading: 'Notas',
     addNote: '+ Añadir nota',
     notesPlaceholder: 'Añade tus notas de sesión aquí...',
+    // Topics / Tags
+    topicsHeading: 'Temas',
+    addTopic: 'Añadir tema',
+    topicPlaceholder: 'Añadir un tema…',
+    removeTopic: 'Eliminar tema',
+    noTopicsYet: 'Aún no hay temas',
+    tagAlreadyExists: 'El tema ya ha sido añadido',
+    suggestedTopics: 'Temas sugeridos',
     // Consolidated report
     consolidatedReport: 'Informe consolidado de sesión',
     consolidatedOn: 'Consolidado: {date}',
@@ -686,6 +694,7 @@ const es: Translations = {
     transcriptions: 'Transcripciones',
     reports: 'Informes',
     notes: 'Notas',
+    topics: 'Temas',
     advancedFilters: 'Filtros avanzados',
     hasGalleryItems: 'Tiene ítems de galería',
     hasAudioRecordings: 'Tiene audios',
