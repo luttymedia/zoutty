@@ -445,6 +445,14 @@ const en = {
     galleryRemoved: 'Media removed.',
     galleryFailedAttach: 'Failed to attach media.',
     galleryFailedRemove: 'Failed to remove media.',
+    lessonVideo: 'Lesson Video',
+    lessonMedia: 'Lesson Media',
+    playVideo: 'Play video',
+    openGalleryHint: 'View in gallery',
+    viewAllMedia: 'View all ({count})',
+    collapseMedia: 'Collapse video section',
+    expandMedia: 'Expand video section',
+    addLessonVideo: 'Add video',
   },
 
   offline: {

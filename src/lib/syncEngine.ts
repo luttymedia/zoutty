@@ -160,7 +160,17 @@ export const syncEngine = {
         };
         }));
 
-        const { error } = await supabase.from(supabaseTableName).upsert(payload);
+        let { error } = await supabase.from(supabaseTableName).upsert(payload);
+        if (error && supabaseTableName === 'sessionmedia' && (error as any).code === 'PGRST204') {
+          console.warn('[Sync] Remote sessionmedia table missing isLessonVideo column. Falling back to sync without it. Please run ALTER TABLE sessionmedia ADD COLUMN IF NOT EXISTS "isLessonVideo" boolean DEFAULT false;');
+          const strippedPayload = payload.map((row: any) => {
+            const { isLessonVideo, ...rest } = row;
+            return rest;
+          });
+          const retry = await supabase.from(supabaseTableName).upsert(strippedPayload);
+          error = retry.error;
+        }
+
         if (error) {
           console.error(`[Sync] Failed to push ${supabaseTableName}:`, error);
           return;

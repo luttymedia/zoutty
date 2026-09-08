@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Video, FileAudio, Mic, FileText, ChevronRight, X } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
 
@@ -8,14 +8,18 @@ interface NewSessionEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectOption: (option: EntryOption) => void;
+  onSelectFile?: (option: 'video' | 'audio', file: File) => void;
 }
 
 export const NewSessionEntryModal: React.FC<NewSessionEntryModalProps> = ({
   isOpen,
   onClose,
   onSelectOption,
+  onSelectFile,
 }) => {
   const { t } = useTranslation();
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   // Close on Escape key
   useEffect(() => {
@@ -105,12 +109,48 @@ export const NewSessionEntryModal: React.FC<NewSessionEntryModalProps> = ({
           </button>
         </div>
 
+        {/* Hidden inputs for direct file picking */}
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept="video/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file && onSelectFile) {
+              onSelectFile('video', file);
+            }
+            e.target.value = '';
+          }}
+        />
+        <input
+          ref={audioInputRef}
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file && onSelectFile) {
+              onSelectFile('audio', file);
+            }
+            e.target.value = '';
+          }}
+        />
+
         {/* Options List */}
         <div className="space-y-2.5">
           {options.map((option) => (
             <button
               key={option.id}
-              onClick={() => onSelectOption(option.id)}
+              onClick={() => {
+                if (option.id === 'video' && onSelectFile) {
+                  videoInputRef.current?.click();
+                } else if (option.id === 'audio' && onSelectFile) {
+                  audioInputRef.current?.click();
+                } else {
+                  onSelectOption(option.id);
+                }
+              }}
               className={`w-full p-3.5 sm:p-4 glass rounded-2xl border border-white/5 ${option.hoverBorderClass} transition-all duration-150 flex items-center gap-3.5 sm:gap-4 text-left group cursor-pointer`}
             >
               <div

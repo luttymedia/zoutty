@@ -5,9 +5,11 @@ import {
   Square,
   Upload,
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
   FileAudio,
+  Video,
   Wand2,
   Trash2,
   Calendar,
@@ -1396,8 +1398,169 @@ export default function App() {
     setShowNewSessionModal(true);
   };
 
-  const handleSelectEntryOption = async (option: EntryOption) => {
+  const addAudioEntry = async (
+    sessionId: string,
+    blob: Blob,
+    language: Language,
+    type: 'recording' | 'upload',
+    filename?: string,
+    silent = false
+  ) => {
+    const entryId = crypto.randomUUID();
+
+    const newEntry: AudioEntry = {
+      id: entryId,
+      sessionId,
+      timestamp: Date.now(),
+      language,
+      type,
+      filename,
+      audioBlob: blob,
+    };
+
+    try {
+      // Save to IndexedDB and update UI
+      await db.saveAudioEntry(newEntry);
+      setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
+      if (silent) return;
+      const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === sessionId);
+      if (sessionEntries.length === 1 && !localStorage.getItem('hasShownConsolidationHint')) {
+        localStorage.setItem('hasShownConsolidationHint', 'true');
+        // Show the hint instead of the default toast
+        showToast(t('onboarding.hintConsolidation'), false, undefined, undefined, 10000);
+      } else {
+        showToast(filename ? t('toast.fileAdded', { filename }) : t('toast.audioAdded'));
+      }
+    } catch (err) {
+      console.error('Failed to save audio to database:', err);
+      showToast(t('toast.failedSaveAudio'), true);
+    }
+  };
+
+  const processAndSaveVideo = async (
+    file: File,
+    sessionId: string,
+    language: Language
+  ): Promise<boolean> => {
+    showSpinner(t('toast.processingVideo'));
+    try {
+      let extracted: ExtractedAudioResult | null = null;
+      try {
+        extracted = await extractAudioFromVideo(file);
+      } catch (err: any) {
+        console.warn('[processAndSaveVideo] Audio extraction warning:', err);
+        const isNoAudio = err?.message?.toLowerCase().includes('no audio');
+        if (isNoAudio) {
+          const videoMediaItem: SessionMedia = {
+            id: crypto.randomUUID(),
+            sessionId,
+            timestamp: Date.now(),
+            filename: file.name,
+            mimeType: file.type || 'video/mp4',
+            size: file.size,
+            storageMode: 'blob',
+            blob: file,
+            isLessonVideo: true
+          };
+          await db.saveMediaItem(videoMediaItem);
+          setSessionMedia(prev => [...prev, videoMediaItem]);
+          showToast(t('toast.noAudioInVideo'), true);
+          return true;
+        }
+        throw err;
+      }
+
+      if (extracted.duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
+        setShowDurationExceededModal({
+          isOpen: true,
+          files: [{ name: file.name, duration: extracted.duration }]
+        });
+        return false;
+      }
+
+      await addAudioEntry(sessionId, extracted.blob, language, 'upload', extracted.filename);
+
+      const videoMediaItem: SessionMedia = {
+        id: crypto.randomUUID(),
+        sessionId,
+        timestamp: Date.now(),
+        filename: file.name,
+        mimeType: file.type || 'video/mp4',
+        size: file.size,
+        storageMode: 'blob',
+        blob: file,
+        isLessonVideo: true
+      };
+      await db.saveMediaItem(videoMediaItem);
+      setSessionMedia(prev => [...prev, videoMediaItem]);
+      showToast(t('toast.videoSavedToGallery'));
+      return true;
+    } catch (err: any) {
+      console.error('[processAndSaveVideo] Failed to process video:', err);
+      showToast(t('toast.failedExtractAudio'), true);
+      return false;
+    } finally {
+      hideSpinner();
+    }
+  };
+
+  const handleSelectEntryOption = async (option: EntryOption, file?: File) => {
     setShowNewSessionModal(false);
+
+    if (file) {
+      if (option === 'video') {
+        const newSession: Session = {
+          id: crypto.randomUUID(),
+          title: getSessionDefaultTitle(Date.now(), uiLanguage),
+          subtitle: '',
+          date: Date.now(),
+          groupId: selectedGroupId || undefined,
+          glossaryId: 'auto'
+        };
+        try {
+          await db.saveSession(newSession);
+          setSessions(prev => [newSession, ...prev]);
+          setPendingSessionAction(null);
+          navigateTo('detail', newSession.id, selectedGroupId);
+          await processAndSaveVideo(file, newSession.id, uiLanguage);
+        } catch (err) {
+          console.error('Failed to create session for video:', err);
+          showToast(t('toast.failedSaveSession'), true);
+        }
+        return;
+      }
+
+      if (option === 'audio') {
+        const duration = await getMediaDuration(file);
+        if (duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
+          setShowDurationExceededModal({
+            isOpen: true,
+            files: [{ name: file.name, duration }]
+          });
+          return;
+        }
+        const newSession: Session = {
+          id: crypto.randomUUID(),
+          title: getSessionDefaultTitle(Date.now(), uiLanguage),
+          subtitle: '',
+          date: Date.now(),
+          groupId: selectedGroupId || undefined,
+          glossaryId: 'auto'
+        };
+        try {
+          await db.saveSession(newSession);
+          setSessions(prev => [newSession, ...prev]);
+          setPendingSessionAction(null);
+          await addAudioEntry(newSession.id, file, uiLanguage, 'upload', file.name);
+          navigateTo('detail', newSession.id, selectedGroupId);
+        } catch (err) {
+          console.error('Failed to create session for audio:', err);
+          showToast(t('toast.failedSaveSession'), true);
+        }
+        return;
+      }
+    }
+
     const newSession: Session = {
       id: crypto.randomUUID(),
       title: getSessionDefaultTitle(Date.now(), uiLanguage),
@@ -2091,44 +2254,6 @@ export default function App() {
     }
   };
 
-  const addAudioEntry = async (
-    sessionId: string,
-    blob: Blob,
-    language: Language,
-    type: 'recording' | 'upload',
-    filename?: string,
-    silent = false
-  ) => {
-    const entryId = crypto.randomUUID();
-
-    const newEntry: AudioEntry = {
-      id: entryId,
-      sessionId,
-      timestamp: Date.now(),
-      language,
-      type,
-      filename,
-      audioBlob: blob,
-    };
-
-    try {
-      // Save to IndexedDB and update UI
-      await db.saveAudioEntry(newEntry);
-      setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
-      if (silent) return;
-      const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === sessionId);
-      if (sessionEntries.length === 1 && !localStorage.getItem('hasShownConsolidationHint')) {
-        localStorage.setItem('hasShownConsolidationHint', 'true');
-        // Show the hint instead of the default toast
-        showToast(t('onboarding.hintConsolidation'), false, undefined, undefined, 10000);
-      } else {
-        showToast(filename ? t('toast.fileAdded', { filename }) : t('toast.audioAdded'));
-      }
-    } catch (err) {
-      console.error('Failed to save audio to database:', err);
-      showToast(t('toast.failedSaveAudio'), true);
-    }
-  };
 
   const handleProcessEntry = async (entryId: string) => {
     if (activeGlossaryIds.length === 0) {
@@ -2261,56 +2386,7 @@ export default function App() {
 
     for (const file of fileList) {
       if (isVideoFile(file)) {
-        showSpinner(t('toast.processingVideo'));
-        try {
-          const extracted = await extractAudioFromVideo(file);
-          if (extracted.duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
-            exceededFiles.push({ name: file.name, duration: extracted.duration });
-            continue;
-          }
-          await addAudioEntry(selectedSession.id, extracted.blob, language, 'upload', extracted.filename);
-
-          // Save video to Gallery (sessionMedia) so the dancer can watch it later
-          const videoMediaItem: SessionMedia = {
-            id: crypto.randomUUID(),
-            sessionId: selectedSession.id,
-            timestamp: Date.now(),
-            filename: file.name,
-            mimeType: file.type || 'video/mp4',
-            size: file.size,
-            storageMode: 'blob',
-            blob: file
-          };
-          await db.saveMediaItem(videoMediaItem);
-          setSessionMedia(prev => [...prev, videoMediaItem]);
-          showToast(t('toast.videoSavedToGallery'));
-        } catch (err: any) {
-          console.error('[handleFileUpload] Failed to extract audio from video:', err);
-          const isNoAudio = err?.message?.toLowerCase().includes('no audio');
-          if (isNoAudio) {
-            try {
-              const videoMediaItem: SessionMedia = {
-                id: crypto.randomUUID(),
-                sessionId: selectedSession.id,
-                timestamp: Date.now(),
-                filename: file.name,
-                mimeType: file.type || 'video/mp4',
-                size: file.size,
-                storageMode: 'blob',
-                blob: file
-              };
-              await db.saveMediaItem(videoMediaItem);
-              setSessionMedia(prev => [...prev, videoMediaItem]);
-              showToast(t('toast.noAudioInVideo'), true);
-            } catch (mediaErr) {
-              console.error('[handleFileUpload] Failed to save video to gallery:', mediaErr);
-            }
-          } else {
-            showToast(t('toast.failedExtractAudio'), true);
-          }
-        } finally {
-          hideSpinner();
-        }
+        await processAndSaveVideo(file, selectedSession.id, language);
       } else {
         const duration = await getMediaDuration(file);
         if (duration > TIER_LIMITS.MAX_CLIP_DURATION_SECONDS) {
@@ -3995,6 +4071,7 @@ export default function App() {
         isOpen={showNewSessionModal}
         onClose={() => setShowNewSessionModal(false)}
         onSelectOption={handleSelectEntryOption}
+        onSelectFile={(option, file) => handleSelectEntryOption(option, file)}
       />
 
       <GlossaryModal
@@ -5307,6 +5384,7 @@ export default function App() {
             onRecording={(blob, lang, silent) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipRecord'), false) : addAudioEntry(selectedSession.id, blob, lang, 'recording', undefined, silent)}
             onAutoStoppedLimit={() => setShowAutoStoppedModal(true)}
             onUpload={(e, lang) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipUpload'), false) : handleFileUpload(e, lang)}
+            onProcessVideo={(file, lang) => selectedSession.isDemo ? (showToast(t('onboarding.demoTooltipUpload'), false), Promise.resolve(false)) : processAndSaveVideo(file, selectedSession.id, lang)}
             onConsolidate={
               activeGlossaryIds.length === 0 
                 ? () => setShowMandatoryGlossaryModal(true)
@@ -5371,6 +5449,7 @@ function SessionDetail({
   onRecording,
   onAutoStoppedLimit,
   onUpload,
+  onProcessVideo,
   onConsolidate,
   onUpdateSession,
   onUpdateEntry,
@@ -5394,6 +5473,7 @@ function SessionDetail({
   onRecording: (blob: Blob, lang: Language, silent?: boolean) => void;
   onAutoStoppedLimit?: () => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>, lang: Language) => void;
+  onProcessVideo?: (file: File, lang: Language) => Promise<boolean>;
   onConsolidate: () => void;
   onUpdateSession: (changes: Partial<Session>) => void;
   onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void;
@@ -5421,8 +5501,11 @@ function SessionDetail({
   const [lightboxItem, setLightboxItem] = useState<SessionMedia | null>(null);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [mediaToDelete, setMediaToDelete] = useState<SessionMedia | null>(null);
+  const [isMediaSectionExpanded, setIsMediaSectionExpanded] = useState(true);
+  const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
+  const lessonVideoInputRef = useRef<HTMLInputElement>(null);
   const isFileAccessSupported = false;
 
   // Revoke object URLs on cleanup
@@ -5432,9 +5515,9 @@ function SessionDetail({
     };
   }, []);
 
-  // Resolve object URLs for media items when drawer opens
+  // Resolve object URLs for media items whenever media items exist or change
   useEffect(() => {
-    if (!isGalleryOpen) return;
+    if (mediaItems.length === 0) return;
     const resolveUrls = async () => {
       const newUrls: Record<string, string> = {};
       const newBroken = new Set<string>();
@@ -5473,7 +5556,7 @@ function SessionDetail({
       });
     };
     resolveUrls();
-  }, [isGalleryOpen, mediaItems]);
+  }, [mediaItems]);
 
   const formatBytes = (bytes: number) => {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -5541,6 +5624,7 @@ function SessionDetail({
           showToast(t('session.galleryUnsupportedType'), true);
           continue;
         }
+
         // Hard cap
         if (file.size > MAX_BLOB_SIZE) {
           showToast(t('session.galleryFileTooLarge', { size: formatBytes(file.size) }), true);
@@ -5575,7 +5659,8 @@ function SessionDetail({
           mimeType: file.type,
           size: blobToStore.size,
           storageMode: 'blob',
-          blob: blobToStore
+          blob: blobToStore,
+          isLessonVideo: false
         };
         await db.saveMediaItem(item);
         newItems.push(item);
@@ -6015,6 +6100,139 @@ function SessionDetail({
 
       </div>
 
+      {/* Inline Lesson Video Section */}
+      {(() => {
+        const lessonVideos = mediaItems.filter(m => m.mimeType?.startsWith('video/') && m.isLessonVideo !== false);
+        if (lessonVideos.length === 0) return null;
+
+        return (
+          <div className="glass p-4 sm:p-5 rounded-3xl border border-white/10 space-y-3.5 shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setIsMediaSectionExpanded(!isMediaSectionExpanded)}
+                className="flex items-center gap-2 group cursor-pointer text-left"
+                title={isMediaSectionExpanded ? t('session.collapseMedia') : t('session.expandMedia')}
+              >
+                <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
+                  <Video className="w-3.5 h-3.5" />
+                </div>
+                <h3 className="text-sm font-semibold text-white tracking-wide group-hover:text-amber-300 transition-colors">
+                  {t('session.lessonVideo')}
+                </h3>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/70 font-mono font-medium">
+                  {lessonVideos.length}
+                </span>
+                <div className="p-1 rounded-md text-white/40 group-hover:text-white transition-colors">
+                  {isMediaSectionExpanded ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </div>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => lessonVideoInputRef.current?.click()}
+                  className="text-xs text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 cursor-pointer py-1 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 font-medium"
+                  title={t('session.addLessonVideo')}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('session.addLessonVideo')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsGalleryOpen(true)}
+                  className="text-xs text-white/50 hover:text-white transition-colors flex items-center gap-1 cursor-pointer py-1 px-2 rounded-lg hover:bg-white/5"
+                >
+                  <span>{t('session.openGalleryHint')}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Collapsible Content */}
+            {isMediaSectionExpanded && (() => {
+              const primaryItem = (activeMediaId ? lessonVideos.find(m => m.id === activeMediaId) : null)
+                || lessonVideos[0];
+              const primaryUrl = mediaObjectUrls[primaryItem.id];
+
+              return (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div
+                    onClick={() => setLightboxItem(primaryItem)}
+                    className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 aspect-video max-h-72 w-full flex items-center justify-center group cursor-pointer hover:border-amber-400/40 transition-all shadow-inner"
+                  >
+                    {primaryUrl ? (
+                      <>
+                        <video
+                          src={primaryUrl}
+                          className="w-full h-full object-contain"
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white group-hover:scale-110 group-hover:bg-amber-500/80 transition-all shadow-xl">
+                            <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-6 h-6 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
+                    )}
+
+                    {/* Metadata overlay at bottom */}
+                    <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-between text-xs text-white/80">
+                      <span className="truncate font-medium max-w-[70%]">{primaryItem.filename}</span>
+                      <span className="text-[11px] text-white/50 shrink-0 font-mono">{formatBytes(primaryItem.size)}</span>
+                    </div>
+                  </div>
+
+                  {/* Video selector strip when there are multiple lesson videos */}
+                  {lessonVideos.length > 1 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+                      {lessonVideos.map(item => {
+                        const itemUrl = mediaObjectUrls[item.id];
+                        const isSelected = item.id === primaryItem.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setActiveMediaId(item.id)}
+                            className={`w-14 h-14 rounded-xl overflow-hidden border shrink-0 relative group cursor-pointer bg-black/30 transition-all ${
+                              isSelected
+                                ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-md scale-105'
+                                : 'border-white/10 hover:border-white/30 opacity-70 hover:opacity-100'
+                            }`}
+                            title={item.filename}
+                          >
+                            {itemUrl ? (
+                              <>
+                                <video src={itemUrl} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <Play className="w-3.5 h-3.5 fill-white text-white" />
+                                </div>
+                              </>
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="w-3 h-3 border border-white/20 border-t-purple-400 rounded-full animate-spin" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        );
+      })()}
+
       <div id="sessionDetailContent" className="mt-8">
         <SessionStructuredData
           sessionId={session.id}
@@ -6218,6 +6436,24 @@ function SessionDetail({
         multiple
         className="hidden"
         onChange={handleFileInputChange}
+      />
+
+      {/* Hidden file input for adding lesson videos */}
+      <input
+        ref={lessonVideoInputRef}
+        type="file"
+        accept="video/*"
+        multiple
+        className="hidden"
+        onChange={async (e) => {
+          const files = Array.from(e.target.files || []);
+          for (const file of files) {
+            if (onProcessVideo) {
+              await onProcessVideo(file, language);
+            }
+          }
+          e.target.value = '';
+        }}
       />
 
       {/* Gallery Drawer */}

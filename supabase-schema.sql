@@ -88,6 +88,7 @@ create table sessionMedia (
   "size" bigint not null,
   "storageMode" text not null,
   "media_storage_path" text,
+  "isLessonVideo" boolean default false,
   "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null,
   "deleted" boolean default false not null
 );

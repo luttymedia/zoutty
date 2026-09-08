@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.7.0',
+    date: '2026-09-08',
+    changes: [
+      'Phase 2: Video as Primary Input — Direct video import from New Session entry point with synchronous OS picker trigger',
+      'Unified Video Dual-Save Pipeline: Automatically extracts 16kHz mono audio for AI processing while preserving the full video in the session gallery',
+      'Inline Lesson Video Section: Embedded playable video card directly in session detail with quick-play and full lightbox viewer',
+      'Gallery Video Sync: Importing videos from the gallery drawer automatically synchronizes with session audio clips and enforces the 3-minute limit'
+    ]
+  },
+  {
     version: '3.6.0',
     date: '2026-09-08',
     changes: [

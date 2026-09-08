@@ -447,6 +447,14 @@ const es: Translations = {
     galleryRemoved: 'Archivo eliminado.',
     galleryFailedAttach: 'Error al adjuntar el archivo.',
     galleryFailedRemove: 'Error al eliminar el archivo.',
+    lessonVideo: 'Vídeo de la clase',
+    lessonMedia: 'Multimedia de la clase',
+    playVideo: 'Reproducir vídeo',
+    openGalleryHint: 'Ver en galería',
+    viewAllMedia: 'Ver todo ({count})',
+    collapseMedia: 'Plegar sección de vídeo',
+    expandMedia: 'Desplegar sección de vídeo',
+    addLessonVideo: 'Añadir vídeo',
   },
 
   offline: {

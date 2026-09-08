@@ -100,6 +100,7 @@ export interface SessionMedia {
   media_storage_path?: string; // Supabase storage path
   pending_sync?: boolean;
   deleted?: boolean;
+  isLessonVideo?: boolean;
 }
 
 // ─── Monetization, Tiers & Billing Types ─────────────────────────────────────
