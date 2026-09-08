@@ -968,7 +968,8 @@ app.get('/api/sessions/shared/:shareCode', async (req, res) => {
                     filename: m.filename,
                     mimeType: m.mimeType,
                     timestamp: m.timestamp,
-                    media_storage_path: m.media_storage_path
+                    media_storage_path: m.media_storage_path,
+                    isLessonVideo: m.isLessonVideo
                 }));
             }
         }

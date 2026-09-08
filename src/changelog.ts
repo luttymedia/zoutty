@@ -6,6 +6,27 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.10.5',
+    date: '2026-09-08',
+    changes: [
+      'Auto-Open Imported Session: Automatically navigates to and opens the session detail view immediately upon successful import'
+    ]
+  },
+  {
+    version: '3.10.4',
+    date: '2026-09-08',
+    changes: [
+      'Sync-Safe Lesson Video Import: Fixed inline lesson video disappearing after navigating away from an imported session — the sync pull no longer overwrites the locally-authoritative isLessonVideo flag with a stale Supabase DEFAULT false value'
+    ]
+  },
+  {
+    version: '3.10.3',
+    date: '2026-09-08',
+    changes: [
+      'Import Media Fidelity Fix: Preserved isLessonVideo flag across export and import for both file (.zoutty) and code-share paths, ensuring inline lesson videos and gallery media are correctly classified after import'
+    ]
+  },
+  {
     version: '3.10.2',
     date: '2026-09-08',
     changes: [

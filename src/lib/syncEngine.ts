@@ -307,6 +307,10 @@ export const syncEngine = {
               if (localItem.blob !== undefined) cleanCloudItem.blob = localItem.blob;
               if (localItem.audioBlob !== undefined) cleanCloudItem.audioBlob = localItem.audioBlob;
               if (localItem.fileHandle !== undefined) cleanCloudItem.fileHandle = localItem.fileHandle;
+              // Preserve isLessonVideo from local — the Supabase column may be missing or default to
+              // false, which would overwrite a correctly imported true value. isLessonVideo is set
+              // authoritatively at item-creation time and should not be silently reset by a pull.
+              if (localItem.isLessonVideo !== undefined) cleanCloudItem.isLessonVideo = localItem.isLessonVideo;
             }
 
             store.put({ ...cleanCloudItem, pending_sync: false });

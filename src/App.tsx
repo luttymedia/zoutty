@@ -2043,7 +2043,8 @@ export default function App() {
         payload.mediaItems = sessionMediaItems.map(m => ({
           filename: m.filename,
           mimeType: m.mimeType,
-          timestamp: m.timestamp
+          timestamp: m.timestamp,
+          isLessonVideo: m.isLessonVideo
         }));
       }
 
@@ -2212,7 +2213,7 @@ export default function App() {
           if (fileData) {
             const rawBlob = await fileData.async('blob');
             const blob = new Blob([rawBlob], { type: m.mimeType || 'image/jpeg' });
-            parsedMediaFiles.push({ filename: m.filename, blob, isAudioEntry: false, mimeType: m.mimeType, timestamp: m.timestamp });
+            parsedMediaFiles.push({ filename: m.filename, blob, isAudioEntry: false, mimeType: m.mimeType, timestamp: m.timestamp, isLessonVideo: m.isLessonVideo });
           }
         }
       }
@@ -2306,7 +2307,8 @@ export default function App() {
               filename: m.filename,
               blob: m.blob,
               size: m.blob.size,
-              storageMode: 'blob'
+              storageMode: 'blob',
+              ...(m.isLessonVideo !== undefined ? { isLessonVideo: m.isLessonVideo } : {})
             });
           }
         }
@@ -2326,7 +2328,8 @@ export default function App() {
                   filename: m.filename,
                   blob: blob,
                   size: blob.size,
-                  storageMode: 'blob'
+                  storageMode: 'blob',
+                  ...(m.isLessonVideo !== undefined ? { isLessonVideo: m.isLessonVideo } : {})
                 });
               }
             } catch (e) {
@@ -2349,6 +2352,7 @@ export default function App() {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
       setImportPreview(null);
+      navigateTo('detail', newSessionId, newSession.groupId || null);
       showToast(t('toast.sessionImported'));
     } catch (e) {
       console.error(e);
