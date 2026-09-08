@@ -361,6 +361,7 @@ export default function App() {
   };
 
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [audioEntries, setAudioEntries] = useState<Record<string, AudioEntry>>({});
   const [sessionMedia, setSessionMedia] = useState<SessionMedia[]>([]);
 
@@ -694,14 +695,16 @@ export default function App() {
   }, [hasCompletedOnboarding, activeGlossaryIds]);
   const initialSyncCheckedRef = useRef(false);
 
-  const finishInitialSync = useCallback(() => {
-    localStorage.removeItem('zoutty_initial_sync_pending');
-    setIsInitialSync(false);
-    setShowSyncConflict(false);
+  const finishInitialSync = useCallback(async () => {
     try {
-      syncEngine.syncAll();
+      await syncEngine.syncAll();
     } catch (err) {
-      console.warn('[Sync] Background syncAll error:', err);
+      console.warn('[Sync] finishInitialSync error:', err);
+    } finally {
+      localStorage.removeItem('zoutty_initial_sync_pending');
+      setIsInitialSync(false);
+      setShowSyncConflict(false);
+      setIsLoadingData(false);
     }
   }, []);
 
@@ -716,7 +719,7 @@ export default function App() {
         if (hasLocalPending && hasCloudData) {
           setShowSyncConflict(true);
         } else {
-          finishInitialSync();
+          await syncEngine.syncAll();
         }
       } else {
         syncEngine.syncAll();
@@ -1118,12 +1121,14 @@ export default function App() {
       } catch (err) {
         console.error("Failed to load IndexedDB", err);
         showToast(t('toast.failedLoadData'), true);
+      } finally {
+        setIsLoadingData(false);
       }
     };
     loadData();
 
-    const handleSyncComplete = () => {
-      loadData();
+    const handleSyncComplete = async () => {
+      await loadData();
       if (localStorage.getItem('zoutty_initial_sync_pending')) {
         localStorage.removeItem('zoutty_initial_sync_pending');
         setIsInitialSync(false);
@@ -3008,6 +3013,10 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  if (isInitialSync) {
+    return <Spinner text={t('sync.title')} />;
   }
 
   // --- Renderers ---
@@ -5313,6 +5322,7 @@ export default function App() {
                 activeSearch={activeSearch}
                 onClearSearch={() => setActiveSearch(null)}
                 onOpenSearch={() => setShowSearchModal(true)}
+                isLoading={isLoadingData}
               />
             ) : homeTab === 'topics' && !selectedGroupId ? (
               <TopicsView

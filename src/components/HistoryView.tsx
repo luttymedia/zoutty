@@ -7,7 +7,8 @@ import {
   X,
   Calendar,
   Tag,
-  BookOpen
+  BookOpen,
+  Loader2
 } from 'lucide-react';
 import { Session } from '../types';
 import { useTranslation } from '../i18n/TranslationContext';
@@ -22,6 +23,7 @@ interface HistoryViewProps {
   } | null;
   onClearSearch: () => void;
   onOpenSearch: () => void;
+  isLoading?: boolean;
 }
 
 interface MonthGroup {
@@ -37,6 +39,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   activeSearch,
   onClearSearch,
   onOpenSearch,
+  isLoading = false,
 }) => {
   const { t, uiLanguage } = useTranslation();
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(() => {
@@ -180,8 +183,15 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         </div>
       )}
 
+      {/* Loading State while fetching data */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
+          <Loader2 className="w-8 h-8 text-brand animate-spin mb-3" />
+        </div>
+      )}
+
       {/* Empty State when no sessions exist */}
-      {!activeSearch && sessions.length === 0 && (
+      {!activeSearch && !isLoading && sessions.length === 0 && (
         <div className="glass p-8 sm:p-12 text-center rounded-3xl border border-white/10 flex flex-col items-center justify-center animate-in fade-in">
           <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-5 flex items-center justify-center">
             <div className="absolute inset-0 bg-brand/20 blur-2xl rounded-full animate-pulse" />
