@@ -8,7 +8,8 @@ import {
   Lightbulb,
   CheckCircle2,
   Globe,
-  Compass
+  Compass,
+  ChevronRight
 } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { UI_LANGUAGE_NAMES } from '../i18n';
@@ -76,6 +77,10 @@ export function InteractiveOnboardingOverlay({
     const el = document.querySelector(stepConfig.targetSelector);
     if (el) {
       const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) {
+        setTargetRect(null);
+        return;
+      }
       const padding = 6;
       setTargetRect({
         top: Math.max(0, rect.top - padding),
@@ -150,14 +155,15 @@ export function InteractiveOnboardingOverlay({
     let left = targetCenterX - cardWidth / 2;
     left = Math.max(margin, Math.min(left, windowSize.width - cardWidth - margin));
 
+    const spaceBelow = windowSize.height - targetRect.bottom;
+    const spaceAbove = targetRect.top;
     let placement: 'top' | 'bottom';
 
     if (stepConfig.preferredPlacement === 'top') {
-      placement = 'top';
+      placement = (spaceAbove >= estimatedHeight + clearance || spaceAbove > spaceBelow) ? 'top' : 'bottom';
     } else if (stepConfig.preferredPlacement === 'bottom') {
-      placement = 'bottom';
+      placement = (spaceBelow >= estimatedHeight + clearance || spaceBelow >= spaceAbove) ? 'bottom' : 'top';
     } else {
-      const spaceBelow = windowSize.height - targetRect.bottom;
       if (spaceBelow > estimatedHeight + clearance) {
         placement = 'bottom';
       } else {
@@ -166,12 +172,12 @@ export function InteractiveOnboardingOverlay({
     }
 
     if (placement === 'top') {
-      const bottomPos = windowSize.height - targetRect.top + clearance;
-      const maxH = Math.max(160, targetRect.top - clearance - 16);
+      const bottomPos = Math.max(margin, windowSize.height - targetRect.top + clearance);
+      const maxH = Math.max(160, targetRect.top - clearance - margin);
       return { placement, left, width: cardWidth, bottom: bottomPos, maxHeight: maxH };
     } else {
-      const topPos = targetRect.bottom + clearance;
-      const maxH = Math.max(160, windowSize.height - targetRect.bottom - clearance - 16);
+      const topPos = Math.max(margin, targetRect.bottom + clearance);
+      const maxH = Math.max(160, windowSize.height - targetRect.bottom - clearance - margin);
       return { placement, left, width: cardWidth, top: topPos, maxHeight: maxH };
     }
   };
@@ -222,15 +228,29 @@ export function InteractiveOnboardingOverlay({
             <div className="absolute inset-0 bg-brand/30 blur-xl rounded-full" />
             <ZouttyIcon className="w-12 h-12 text-brand relative z-10 animate-float" />
           </div>
+          {/* "Bring it to Zoutty" transformation visual */}
+          <div className="flex items-center justify-center gap-2 text-2xl mt-2 mb-1">
+            <span>🎥</span>
+            <ChevronRight className="w-4 h-4 text-white/30" />
+            <span>✨</span>
+            <ChevronRight className="w-4 h-4 text-white/30" />
+            <span>📋</span>
+          </div>
         </div>
       )}
 
       {/* Main Title and Description */}
-      <div className="space-y-1">
-        <h3 className="text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
+      <div className={`space-y-1.5 ${isFirstStep ? 'text-center my-1' : ''}`}>
+        <h3
+          className={
+            isFirstStep
+              ? 'text-xl sm:text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand via-amber-200 to-brand leading-tight'
+              : 'text-base sm:text-lg text-white tracking-tight flex items-center gap-2'
+          }
+        >
           {t(stepConfig.titleKey)}
         </h3>
-        <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
+        <p className={`${isFirstStep ? 'text-xs sm:text-sm text-zinc-300/90 leading-relaxed max-w-sm mx-auto' : 'text-xs sm:text-sm text-zinc-300 leading-relaxed'}`}>
           {t(stepConfig.descKey)}
         </p>
       </div>

@@ -2778,15 +2778,15 @@ export default function App() {
     },
     {
       stepIndex: 2,
-      targetSelector: '#recordBtn',
+      targetSelector: '#entry-option-video',
       titleKey: 'onboarding.step2Title',
       descKey: 'onboarding.step2Desc',
       tipKey: 'onboarding.step2Tip',
-      preferredPlacement: 'top',
+      preferredPlacement: 'bottom',
     },
     {
       stepIndex: 3,
-      targetSelector: '#consolidateBtn',
+      targetSelector: '#recordBtn',
       titleKey: 'onboarding.step3Title',
       descKey: 'onboarding.step3Desc',
       tipKey: 'onboarding.step3Tip',
@@ -2794,11 +2794,11 @@ export default function App() {
     },
     {
       stepIndex: 4,
-      targetSelector: '#onboarding-export-btn',
+      targetSelector: '#consolidateBtn',
       titleKey: 'onboarding.step4Title',
       descKey: 'onboarding.step4Desc',
       tipKey: 'onboarding.step4Tip',
-      preferredPlacement: 'bottom',
+      preferredPlacement: 'top',
     },
     {
       stepIndex: 5,
@@ -2810,18 +2810,10 @@ export default function App() {
     },
     {
       stepIndex: 6,
-      targetSelector: '#onboarding-settings-btn',
       titleKey: 'onboarding.step6Title',
       descKey: 'onboarding.step6Desc',
+      sandboxNoticeKey: 'onboarding.step6SandboxNotice',
       tipKey: 'onboarding.step6Tip',
-      preferredPlacement: 'bottom',
-    },
-    {
-      stepIndex: 7,
-      titleKey: 'onboarding.step7Title',
-      descKey: 'onboarding.step7Desc',
-      sandboxNoticeKey: 'onboarding.step7SandboxNotice',
-      tipKey: 'onboarding.step7Tip',
       isCenterModal: true,
     },
   ];
@@ -2833,6 +2825,12 @@ export default function App() {
       navigateTo('list', null, null, 'replace');
       setOnboardingTourStep(1);
     } else if (onboardingTourStep === 1) {
+      // Step 1 -> 2: Open the "Add a Lesson" drawer/modal, spotlight the "Upload Video" option
+      setShowNewSessionModal(true);
+      setOnboardingTourStep(2);
+    } else if (onboardingTourStep === 2) {
+      // Step 2 -> 3: Close the modal, create demo session with sample video & audio, navigate to detail
+      setShowNewSessionModal(false);
       const demoSessionId = "demo-session";
       const newSession = {
         id: demoSessionId,
@@ -2840,22 +2838,22 @@ export default function App() {
         subtitle: t('onboarding.demoSessionSubtitle'),
         date: Date.now(),
         glossaryId: 'auto',
+        tags: ['Weight transfer', 'Frame'],
         isDemo: true
       };
       await db.saveSession(newSession);
       const loadedSessions = await db.getSessions();
       loadedSessions.sort((a, b) => b.date - a.date);
       setSessions(loadedSessions);
-      navigateTo('detail', demoSessionId, null, 'push');
-      setOnboardingTourStep(2);
-    } else if (onboardingTourStep === 2) {
+
+      // Create mock uploaded video audio entry
       const mockAudio = {
         id: "demo-audio-1",
         sessionId: "demo-session",
         timestamp: Date.now(),
         language: uiLanguage,
         transcript: t('onboarding.demoAudioTranscript'),
-        type: "recording" as const,
+        type: "upload" as const,
         filename: t('onboarding.demoAudioFilename'),
       };
       await db.saveAudioEntry(mockAudio);
@@ -2863,8 +2861,34 @@ export default function App() {
       const audioRecord: Record<string, any> = {};
       loadedAudios.forEach(a => audioRecord[a.id] = a);
       setAudioEntries(audioRecord);
+
+      // Fetch and save the placeholder lesson video as a SessionMedia blob
+      try {
+        const res = await fetch('/inline_lesson_video.mp4');
+        const blob = await res.blob();
+        const demoMediaItem: SessionMedia = {
+          id: 'demo-media-1',
+          sessionId: 'demo-session',
+          timestamp: Date.now(),
+          filename: 'inline_lesson_video.mp4',
+          mimeType: 'video/mp4',
+          size: blob.size,
+          storageMode: 'blob',
+          blob,
+          isLessonVideo: true,
+        };
+        await db.saveMediaItem(demoMediaItem);
+        setSessionMedia(prev => [...prev, demoMediaItem]);
+      } catch (e) {
+        console.warn('[Demo] Could not load placeholder lesson video:', e);
+      }
+
+      navigateTo('detail', demoSessionId, null, 'push');
       setOnboardingTourStep(3);
     } else if (onboardingTourStep === 3) {
+      // Spotlight recordBtn — no data created, simple increment
+      setOnboardingTourStep(4);
+    } else if (onboardingTourStep === 4) {
       showSpinner(t('session.consolidatingWithAI'));
       setTimeout(async () => {
         const mockReport = {
@@ -2891,16 +2915,12 @@ export default function App() {
         loadedSessions.sort((a, b) => b.date - a.date);
         setSessions(loadedSessions);
         hideSpinner();
-        setOnboardingTourStep(4);
+        setOnboardingTourStep(5);
       }, 700);
-    } else if (onboardingTourStep === 4) {
-      setOnboardingTourStep(5);
     } else if (onboardingTourStep === 5) {
-      navigateTo('list', null, null, 'push');
+      // Spotlight shareBtn — no data created, simple increment
       setOnboardingTourStep(6);
     } else if (onboardingTourStep === 6) {
-      setOnboardingTourStep(7);
-    } else if (onboardingTourStep === 7) {
       handleTourFinish();
     }
   };
@@ -2911,6 +2931,10 @@ export default function App() {
     if (onboardingTourStep === 1) {
       setOnboardingTourStep(0);
     } else if (onboardingTourStep === 2) {
+      setShowNewSessionModal(false);
+      setOnboardingTourStep(1);
+    } else if (onboardingTourStep === 3) {
+      // Back from recordBtn step: undo demo session & media and re-open Add a Lesson modal
       try {
         await db.deleteSession("demo-session");
         const loadedSessions = await db.getSessions();
@@ -2919,9 +2943,6 @@ export default function App() {
       } catch (e) {
         console.error(e);
       }
-      navigateTo('list', null, null, 'push');
-      setOnboardingTourStep(1);
-    } else if (onboardingTourStep === 3) {
       try {
         await db.deleteAudioEntry("demo-audio-1");
         const loadedAudios = await db.getAudioEntries();
@@ -2931,8 +2952,20 @@ export default function App() {
       } catch (e) {
         console.error(e);
       }
+      try {
+        await db.deleteMediaItem("demo-media-1");
+        setSessionMedia(prev => prev.filter(m => m.id !== 'demo-media-1'));
+      } catch (e) {
+        console.error(e);
+      }
+      navigateTo('list', null, null, 'push');
+      setShowNewSessionModal(true);
       setOnboardingTourStep(2);
     } else if (onboardingTourStep === 4) {
+      // Back from consolidateBtn step: no data was created at step 3→4, simple decrement
+      setOnboardingTourStep(3);
+    } else if (onboardingTourStep === 5) {
+      // Back from shareBtn step: undo mock report created at step 4→5
       try {
         await db.deleteFinalReport("demo-report-1");
         const demoSession = await db.getSession("demo-session");
@@ -2946,14 +2979,10 @@ export default function App() {
       } catch (e) {
         console.error(e);
       }
-      setOnboardingTourStep(3);
-    } else if (onboardingTourStep === 5) {
       setOnboardingTourStep(4);
     } else if (onboardingTourStep === 6) {
-      navigateTo('detail', 'demo-session', null, 'push');
+      // Back from finish modal: simple decrement, still in detail view
       setOnboardingTourStep(5);
-    } else if (onboardingTourStep === 7) {
-      setOnboardingTourStep(6);
     }
   };
 
@@ -2962,6 +2991,7 @@ export default function App() {
       await db.deleteSession("demo-session");
       await db.deleteAudioEntry("demo-audio-1");
       await db.deleteFinalReport("demo-report-1");
+      await db.deleteMediaItem("demo-media-1");
       const loadedSessions = await db.getSessions();
       loadedSessions.sort((a, b) => b.date - a.date);
       setSessions(loadedSessions);
@@ -6616,7 +6646,7 @@ function SessionDetail({
               type="button"
               onClick={() => {
                 if (session.isDemo) {
-                  showToast(t('onboarding.demoTooltipEdit'), false);
+                  showToast(t('onboarding.demoTooltipTopics'), false);
                 } else {
                   setIsAddingTopic(true);
                 }
@@ -6624,7 +6654,7 @@ function SessionDetail({
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-brand text-xs transition-colors cursor-pointer"
               title={t('session.addTopic')}
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-3.5 h-3.5" />
               <span>{t('session.addTopic')}</span>
             </button>
           )}
@@ -6666,7 +6696,13 @@ function SessionDetail({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => lessonVideoInputRef.current?.click()}
+                  onClick={() => {
+                    if (session.isDemo) {
+                      showToast(t('onboarding.demoTooltipGallery'), false);
+                    } else {
+                      lessonVideoInputRef.current?.click();
+                    }
+                  }}
                   className="text-xs text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 cursor-pointer py-1 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20"
                   title={t('session.addLessonVideo')}
                 >
@@ -6675,7 +6711,13 @@ function SessionDetail({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsGalleryOpen(true)}
+                  onClick={() => {
+                    if (session.isDemo) {
+                      showToast(t('onboarding.demoTooltipGallery'), false);
+                    } else {
+                      setIsGalleryOpen(true);
+                    }
+                  }}
                   className="text-xs text-white/50 hover:text-white transition-colors flex items-center gap-1 cursor-pointer py-1 px-2 rounded-lg hover:bg-white/5"
                 >
                   <span>{t('session.openGalleryHint')}</span>
@@ -6809,6 +6851,7 @@ function SessionDetail({
         )}
 
         <label
+          id="uploadLabelBtn"
           onClick={(e) => {
             if (session.isDemo) {
               e.preventDefault();

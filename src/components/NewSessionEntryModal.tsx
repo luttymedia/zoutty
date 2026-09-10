@@ -142,6 +142,7 @@ export const NewSessionEntryModal: React.FC<NewSessionEntryModalProps> = ({
           {options.map((option) => (
             <button
               key={option.id}
+              id={option.id === 'video' ? 'entry-option-video' : undefined}
               onClick={() => {
                 if (option.id === 'video' && onSelectFile) {
                   videoInputRef.current?.click();
