@@ -12,9 +12,16 @@ interface MultiSelectComboboxProps {
   onChange: (values: string[]) => void;
   options: MultiSelectOption[];
   placeholder?: string;
+  closeOnSelect?: boolean;
 }
 
-export const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({ selectedValues, onChange, options, placeholder }) => {
+export const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({ 
+  selectedValues, 
+  onChange, 
+  options, 
+  placeholder,
+  closeOnSelect = false 
+}) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -48,6 +55,9 @@ export const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({ select
       onChange(selectedValues.filter(v => v !== val));
     } else {
       onChange([...selectedValues, val]);
+    }
+    if (closeOnSelect) {
+      setIsOpen(false);
     }
   };
 

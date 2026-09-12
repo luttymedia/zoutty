@@ -40,6 +40,7 @@ export const MandatoryGlossaryModal: React.FC<MandatoryGlossaryModalProps> = ({
               return { value: g.id, label: (tr && !tr.startsWith('danceStyles.')) ? tr : g.name };
             })}
             placeholder={t('glossary.searchPlaceholder')}
+            closeOnSelect={true}
           />
         </div>
 

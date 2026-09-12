@@ -140,7 +140,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Action Bar / Search Header */}
-      {activeSearch ? (
+      {activeSearch && (
         <div
           className="flex items-center justify-between px-4 py-3 rounded-xl bg-purple-500/5 border border-purple-500/10 hover:bg-purple-500/10 transition-colors cursor-pointer group"
           onClick={onOpenSearch}
@@ -164,27 +164,31 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
-      ) : (
-        <div className="flex justify-center items-center gap-2.5 sm:gap-3">
-          <button
-            id="onboarding-new-session-btn"
-            onClick={onAddLesson}
-            className="py-2 px-3.5 bg-brand/10 border border-brand/20 text-brand text-xs sm:text-sm flex items-center justify-center gap-1.5 hover:bg-brand/20 transition-all rounded-xl shadow-sm glow-brand min-h-[38px] w-[calc((100%-58px)/2)] sm:w-[calc((100%-62px)/2)] cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{t('home.newLesson')}</span>
-          </button>
-          {onImportSession && (
-            <button
-              onClick={onImportSession}
-              className="h-[38px] px-3 bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center gap-1.5 hover:bg-purple-500/20 transition-all rounded-xl shadow-sm shrink-0 cursor-pointer text-xs"
-              title={t('home.importBtnTitle')}
-            >
-              <Download className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
       )}
+
+      {/* Floating Action Buttons (FAB) */}
+      <div 
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
+        className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center justify-center gap-2.5 sm:gap-3 pointer-events-auto !m-0"
+      >
+        <button
+          id="onboarding-new-session-btn"
+          onClick={onAddLesson}
+          className="h-11 sm:h-12 px-5 sm:px-6 rounded-full bg-brand text-bg-dark font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-brand/90 active:scale-95 transition-all shadow-xl shadow-black/40 cursor-pointer"
+        >
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          <span>{t('home.newLesson')}</span>
+        </button>
+        {onImportSession && (
+          <button
+            onClick={onImportSession}
+            className="h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-500 active:scale-95 transition-all shadow-xl shadow-black/40 shrink-0 cursor-pointer"
+            title={t('home.importBtnTitle')}
+          >
+            <Download className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          </button>
+        )}
+      </div>
 
       {/* Search No Results */}
       {activeSearch && filteredSessions.length === 0 && (
@@ -217,9 +221,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </p>
           <button
             onClick={onAddLesson}
-            className="px-6 py-3.5 bg-brand text-bg-dark rounded-2xl flex items-center gap-2 shadow-lg shadow-brand/20 hover:scale-105 transition-all text-sm cursor-pointer"
+            className="px-6 py-3.5 bg-brand text-bg-dark font-semibold rounded-full flex items-center gap-2 shadow-xl shadow-black/30 hover:scale-105 active:scale-95 transition-all text-sm cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             {t('history.addFirstLessonBtn')}
           </button>
         </div>
@@ -300,17 +304,12 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                         )}
 
                         {/* Topics Row */}
-                        {sessionTags.length > 0 ? (
+                        {sessionTags.length > 0 && (
                           <div className="flex items-center gap-1.5 text-xs text-white/40 truncate">
                             <Tag className="w-3.5 h-3.5 text-white/30 shrink-0" />
                             <span className="truncate">{sessionTags.join(', ')}</span>
                           </div>
-                        ) : !session.subtitle ? (
-                          <div className="flex items-center gap-1.5 text-xs text-white/20 italic truncate">
-                            <Tag className="w-3.5 h-3.5 opacity-40 shrink-0" />
-                            <span>{t('history.noTags')}</span>
-                          </div>
-                        ) : null}
+                        )}
                       </div>
 
                       {/* Right AI Sparkles Indicator */}

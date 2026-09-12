@@ -2774,7 +2774,7 @@ export default function App() {
       titleKey: 'onboarding.step1Title',
       descKey: 'onboarding.step1Desc',
       tipKey: 'onboarding.step1Tip',
-      preferredPlacement: 'bottom',
+      preferredPlacement: 'top',
     },
     {
       stepIndex: 2,
@@ -5212,16 +5212,6 @@ export default function App() {
       {/* Top Bar */}
       <header className="max-w-2xl mx-auto w-full px-4 sm:px-5 py-4 sm:py-7 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          {(view === 'detail' || (view === 'list' && selectedGroupId !== null)) && (
-            <button
-              onClick={() => {
-                window.history.back();
-              }}
-              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0 cursor-pointer"
-            >
-              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          )}
           <button
             onClick={() => navigateTo('list', null, null)}
             className="hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-xl shrink-0"
@@ -5465,14 +5455,31 @@ export default function App() {
             ) : (
               <div className="space-y-8">
                 {selectedGroupId && (
-                  <div className="flex items-center gap-2 text-sm text-white/40 uppercase tracking-widest">
-                    <FolderOpen className="w-4 h-4 text-blue-400" />
-                    <span>{t('home.folderBreadcrumb', { name: groups.find(g => g.id === selectedGroupId)?.name || '' })}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.history.length > 1) {
+                          window.history.back();
+                        } else {
+                          navigateTo('list', null, null);
+                        }
+                      }}
+                      className="p-1.5 -ml-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center justify-center shrink-0 group"
+                      title={t('back')}
+                      aria-label={t('back')}
+                    >
+                      <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:-translate-x-0.5" />
+                    </button>
+                    <div className="flex items-center gap-2 text-sm text-white/40 uppercase tracking-widest min-w-0">
+                      <FolderOpen className="w-4 h-4 text-blue-400 shrink-0" />
+                      <span className="truncate">{t('home.folderBreadcrumb', { name: groups.find(g => g.id === selectedGroupId)?.name || '' })}</span>
+                    </div>
                   </div>
                 )}
 
-            {/* Action buttons - Compact same-line layout */}
-            {activeSearch ? (
+            {/* Search Header banner if searching */}
+            {activeSearch && (
               <div 
                 className="flex items-center justify-between px-4 py-3 rounded-xl bg-purple-500/5 border border-purple-500/10 hover:bg-purple-500/10 transition-colors cursor-pointer group"
                 onClick={() => setShowSearchModal(true)}
@@ -5494,43 +5501,49 @@ export default function App() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-            ) : selectedGroupId ? (
-              <div className="flex justify-center items-center">
-                <button
-                  id="onboarding-new-session-btn"
-                  onClick={handleOpenNewSession}
-                  className="py-2 px-3.5 bg-brand/10 border border-brand/20 text-brand text-xs sm:text-sm flex items-center justify-center gap-1.5 hover:bg-brand/20 transition-all rounded-xl shadow-sm glow-brand min-h-[38px] w-[calc((100%-58px)/2)] sm:w-[calc((100%-62px)/2)] cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{t('home.newLesson')}</span>
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-2.5 sm:gap-3">
-                <button
-                  id="onboarding-new-session-btn"
-                  onClick={handleOpenNewSession}
-                  className="py-2 px-3.5 bg-brand/10 border border-brand/20 text-brand text-xs sm:text-sm flex items-center justify-center gap-1.5 hover:bg-brand/20 transition-all rounded-xl shadow-sm glow-brand flex-1 min-h-[38px] cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{t('home.newLesson')}</span>
-                </button>
-                <button
-                  onClick={() => setFolderModal({ type: 'create', name: '' })}
-                  className="py-2 px-3.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs sm:text-sm flex items-center justify-center gap-1.5 hover:bg-blue-500/20 transition-all rounded-xl shadow-sm flex-1 min-h-[38px] cursor-pointer"
-                >
-                  <FolderPlus className="w-3.5 h-3.5" />
-                  <span>{t('home.newFolder')}</span>
-                </button>
-                <button
-                  onClick={() => setShowImportCodeModal(true)}
-                  className="h-[38px] px-3 bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center gap-1.5 hover:bg-purple-500/20 transition-all rounded-xl shadow-sm shrink-0 cursor-pointer text-xs"
-                  title={t('home.importBtnTitle')}
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
-              </div>
             )}
+
+            {/* Floating Action Buttons (FAB) for Library / Folder view */}
+            <div 
+              style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
+              className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center justify-center gap-2.5 sm:gap-3 pointer-events-auto !m-0"
+            >
+              {selectedGroupId ? (
+                <button
+                  id="onboarding-new-session-btn"
+                  onClick={handleOpenNewSession}
+                  className="h-11 sm:h-12 px-5 sm:px-6 rounded-full bg-brand text-bg-dark font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-brand/90 active:scale-95 transition-all shadow-xl shadow-black/40 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                  <span>{t('home.newLesson')}</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    id="onboarding-new-session-btn"
+                    onClick={handleOpenNewSession}
+                    className="h-11 sm:h-12 px-4 sm:px-5 rounded-full bg-brand text-bg-dark font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-brand/90 active:scale-95 transition-all shadow-xl shadow-black/40 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                    <span>{t('home.newLesson')}</span>
+                  </button>
+                  <button
+                    onClick={() => setFolderModal({ type: 'create', name: '' })}
+                    className="h-11 sm:h-12 px-4 sm:px-5 rounded-full bg-blue-600 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-blue-500 active:scale-95 transition-all shadow-xl shadow-black/40 cursor-pointer"
+                  >
+                    <FolderPlus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                    <span>{t('home.newFolder')}</span>
+                  </button>
+                  <button
+                    onClick={() => setShowImportCodeModal(true)}
+                    className="h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-500 active:scale-95 transition-all shadow-xl shadow-black/40 shrink-0 cursor-pointer"
+                    title={t('home.importBtnTitle')}
+                  >
+                    <Download className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                  </button>
+                </>
+              )}
+            </div>
 
             {activeSearch && activeSearch.matchedSessionIds.size === 0 && activeSearch.matchedGroupIds.size === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in">
@@ -5722,6 +5735,13 @@ export default function App() {
     ) : selectedSession && (
           <SessionDetail
             session={selectedSession}
+            onBack={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigateTo('list', null, selectedSession.groupId || null);
+              }
+            }}
             initialAction={pendingSessionAction}
             onClearInitialAction={() => setPendingSessionAction(null)}
             entries={Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp)}
@@ -5788,6 +5808,7 @@ export default function App() {
 
 function SessionDetail({
   session,
+  onBack,
   initialAction,
   onClearInitialAction,
   entries,
@@ -5813,6 +5834,7 @@ function SessionDetail({
   existingTopics = []
 }: {
   session: Session;
+  onBack?: () => void;
   initialAction?: 'record' | 'upload_audio' | 'upload_video' | null;
   onClearInitialAction?: () => void;
   entries: AudioEntry[];
@@ -5852,7 +5874,7 @@ function SessionDetail({
   const [lightboxItem, setLightboxItem] = useState<SessionMedia | null>(null);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [mediaToDelete, setMediaToDelete] = useState<SessionMedia | null>(null);
-  const [isMediaSectionExpanded, setIsMediaSectionExpanded] = useState(true);
+  const [isMediaSectionExpanded, setIsMediaSectionExpanded] = useState(false);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
@@ -6372,15 +6394,24 @@ function SessionDetail({
       {/* Session Header: date (white) + optional editable subtitle */}
       <div>
         <div className="flex items-center justify-between flex-wrap gap-2 mb-2.5">
-          {parentGroup ? (
-            <div className="flex items-center gap-1.5 text-xs text-white/40">
-              <Folder className="w-3.5 h-3.5 text-brand" />
-              <span className="text-white/60">{parentGroup.name}</span>
-              <span className="text-white/20">/</span>
-            </div>
-          ) : (
-            <div />
-          )}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <button
+              type="button"
+              onClick={onBack || (() => window.history.back())}
+              className="p-1.5 -ml-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center justify-center shrink-0 group print-hide-icon"
+              title={t('back')}
+              aria-label={t('back')}
+            >
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:-translate-x-0.5" />
+            </button>
+            {parentGroup && (
+              <div className="flex items-center gap-1.5 text-xs text-white/40 min-w-0">
+                <Folder className="w-3.5 h-3.5 text-brand shrink-0" />
+                <span className="text-white/60 truncate">{parentGroup.name}</span>
+                <span className="text-white/20 shrink-0">/</span>
+              </div>
+            )}
+          </div>
 
           {/* Active Dance Style / Glossary Badge */}
           <button
@@ -7566,7 +7597,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
     return `${day}-${month}-${year} ${hours}:${minutes}`;
   };
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
-  const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(false);
+  const [isConsolidatedOpen, setIsConsolidatedOpen] = useState(true);
   const [isNoteVisible, setIsNoteVisible] = useState(false);
   const [newNoteText, setNewNoteText] = useState('');
 
@@ -7668,31 +7699,47 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
 
   if (hasConsolidated) {
     availableItems.set(reportId, (
-      <div className="border-b border-brand/20 transition-colors">
+      <div className="my-3 rounded-2xl border border-brand/35 bg-gradient-to-br from-brand/10 via-brand/[0.03] to-transparent shadow-lg shadow-brand/5 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-brand/50">
         <div
-          className="py-2.5 px-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 cursor-pointer select-none transition-colors hover:bg-white/[0.02] group"
+          className="px-4 py-3 sm:px-5 sm:py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 cursor-pointer select-none transition-colors hover:bg-brand/[0.07] group"
           onClick={() => {
             if (!isReordering) setIsConsolidatedOpen(o => !o);
           }}
         >
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-brand drop-shadow-[0_0_8px_rgba(45,212,191,0.5)]" />
-            <span className="text-sm sm:text-base font-medium text-brand/90 group-hover:text-brand transition-colors">{t('session.consolidatedReport')}</span>
-          </div>
           <div className="flex items-center gap-3">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand/20 border border-brand/40 flex items-center justify-center text-brand shrink-0 shadow-sm shadow-brand/20 group-hover:scale-105 transition-transform">
+              <Sparkles className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-brand drop-shadow-[0_0_8px_rgba(45,212,191,0.6)]" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm sm:text-base font-semibold text-white tracking-wide group-hover:text-brand transition-colors">
+                {t('session.consolidatedReport')}
+              </span>
+              {report?.timestamp && (
+                <span className="text-[11px] font-sans text-brand/70 sm:hidden">
+                  {t('session.consolidatedOn', { date: formatClipDate(report.timestamp) })}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 self-end sm:self-center">
             {report?.timestamp && (
-              <span className="text-[11px] font-sans text-white/40 sm:self-center">
+              <span className="text-[11px] font-sans text-brand/70 hidden sm:inline-block bg-brand/10 px-2.5 py-0.5 rounded-full border border-brand/20">
                 {t('session.consolidatedOn', { date: formatClipDate(report.timestamp) })}
               </span>
             )}
-            <ChevronUp className={`w-4 h-4 text-white/40 group-hover:text-white transition-transform ${isConsolidatedOpen ? '' : 'rotate-180'} print-hide-icon`} />
+            <div className="p-1 rounded-md text-white/40 group-hover:text-white transition-colors">
+              <ChevronUp className={`w-4 h-4 transition-transform duration-200 ${isConsolidatedOpen ? '' : 'rotate-180'} print-hide-icon`} />
+            </div>
           </div>
         </div>
-        <div className={`py-3 px-1 border-l-2 border-brand/40 pl-4 ml-1 space-y-4 ${!isReordering && isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
+        <div className={`p-4 sm:p-5 border-t border-brand/20 bg-black/25 space-y-4 ${!isReordering && isConsolidatedOpen ? 'block' : 'hidden'} print-expand`}>
           {consolidatedStrictSummary && (
             <>
               <div>
-                <p className="text-xs uppercase tracking-widest text-brand mb-2">{t('session.strictSummary')}</p>
+                <p className="text-xs uppercase tracking-widest text-brand font-medium mb-2.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>
+                  {t('session.strictSummary')}
+                </p>
                 <StrictSummaryBlock data={consolidatedStrictSummary} onChange={(s) => handleUpdateConsolidated('strictSummary', s)} onIntercept={interceptProp} />
               </div>
               {consolidatedExpanded && <ExpandedInsightsBlock data={consolidatedExpanded} onChange={(ei) => handleUpdateConsolidated('expandedInsights', ei)} onIntercept={interceptProp} />}
