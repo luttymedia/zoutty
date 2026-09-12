@@ -1,23 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Sparkles,
   Plus,
   ChevronDown,
   Search,
   X,
   Calendar,
-  Tag,
   BookOpen,
   Loader2,
   Download
 } from 'lucide-react';
 import { Session } from '../types';
 import { useTranslation } from '../i18n/TranslationContext';
+import { HistoryCalendarView } from './HistoryCalendarView';
+import { HistorySessionRow } from './HistorySessionRow';
 
 interface HistoryViewProps {
   sessions: Session[];
   onSelectSession: (sessionId: string, groupId: string | null) => void;
-  onAddLesson: () => void;
+  onAddLesson: (targetDate?: Date) => void;
   onImportSession?: () => void;
   activeSearch: {
     query: string;
@@ -45,6 +45,27 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   isLoading = false,
 }) => {
   const { t, uiLanguage } = useTranslation();
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>(() => {
+    try {
+      const saved = localStorage.getItem('zoutty_history_view_mode');
+      return saved === 'calendar' ? 'calendar' : 'list';
+    } catch {
+      return 'list';
+    }
+  });
+
+  const handleToggleViewMode = () => {
+    setViewMode((prev) => {
+      const next = prev === 'list' ? 'calendar' : 'list';
+      try {
+        localStorage.setItem('zoutty_history_view_mode', next);
+      } catch (e) {
+        console.error('Failed to save history view mode', e);
+      }
+      return next;
+    });
+  };
+
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('zoutty_collapsed_months');
@@ -122,21 +143,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     });
   };
 
-  // Format month (e.g. "Sep")
-  const formatMonth = (timestamp: number) => {
-    const locale = uiLanguage === 'es' ? 'es-ES' : 'en-US';
-    const formatter = new Intl.DateTimeFormat(locale, {
-      month: 'short',
-    });
-    return formatter.format(new Date(timestamp));
-  };
-
-  // Format day number with leading zero (e.g. "08")
-  const formatDayNumber = (timestamp: number) => {
-    const d = new Date(timestamp);
-    return String(d.getDate()).padStart(2, '0');
-  };
-
   return (
     <div className="space-y-6">
       {/* Action Bar / Search Header */}
@@ -173,7 +179,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
       >
         <button
           id="onboarding-new-session-btn"
-          onClick={onAddLesson}
+          onClick={() => onAddLesson()}
           className="h-11 sm:h-12 px-5 sm:px-6 rounded-full bg-brand text-bg-dark font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-brand/90 active:scale-95 transition-all shadow-xl shadow-black/40 cursor-pointer"
         >
           <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
@@ -220,7 +226,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             {t('history.emptyDesc')}
           </p>
           <button
-            onClick={onAddLesson}
+            onClick={() => onAddLesson()}
             className="px-6 py-3.5 bg-brand text-bg-dark font-semibold rounded-full flex items-center gap-2 shadow-xl shadow-black/30 hover:scale-105 active:scale-95 transition-all text-sm cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -229,106 +235,78 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         </div>
       )}
 
-      {/* Chronological Month Sections */}
-      {monthGroups.map((group) => {
-        const isCollapsed = collapsedMonths.has(group.key);
-        const count = group.sessions.length;
+      {/* Text-only View Mode Toggle above the list/calendar */}
+      {!isLoading && sessions.length > 0 && (
+        <div className={`flex items-center justify-end px-1 ${activeSearch ? 'mt-0 mb-2' : '-mt-3 mb-2.5'}`}>
+          <button
+            type="button"
+            onClick={handleToggleViewMode}
+            className="text-xs font-medium uppercase tracking-wider text-white/50 hover:text-brand transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-white/5"
+          >
+            {viewMode === 'list' ? t('history.toggleCalendar') : t('history.toggleList')}
+          </button>
+        </div>
+      )}
 
-        return (
-          <div key={group.key} className="space-y-3 animate-in fade-in">
-            {/* Collapsible Month Header */}
-            <button
-              type="button"
-              onClick={() => toggleMonthCollapse(group.key)}
-              title={isCollapsed ? t('history.expandMonth') : t('history.collapseMonth')}
-              className="w-full flex items-center justify-between py-2.5 px-1 transition-colors group cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-brand/70 group-hover:text-brand transition-colors shrink-0" />
-                <span className="text-xs sm:text-sm font-medium tracking-wider uppercase text-brand/90 group-hover:text-brand transition-colors">
-                  {group.label}
-                </span>
-                <span className="text-white/30 text-xs">|</span>
-                <span className="text-white/40 text-xs font-normal lowercase">
-                  {count === 1
-                    ? t('history.sessionCountSingular')
-                    : t('history.sessionCountPlural', { count })}
-                </span>
-              </div>
+      {/* Calendar View Mode */}
+      {viewMode === 'calendar' ? (
+        <HistoryCalendarView
+          sessions={filteredSessions}
+          onSelectSession={onSelectSession}
+          onAddLesson={onAddLesson}
+        />
+      ) : (
+        /* Chronological Month Sections */
+        monthGroups.map((group) => {
+          const isCollapsed = collapsedMonths.has(group.key);
+          const count = group.sessions.length;
 
-              <ChevronDown
-                className={`w-4 h-4 text-white/40 group-hover:text-white transition-transform duration-200 ${
-                  isCollapsed ? '-rotate-90' : 'rotate-0'
-                }`}
-              />
-            </button>
+          return (
+            <div key={group.key} className="space-y-3 animate-in fade-in">
+              {/* Collapsible Month Header */}
+              <button
+                type="button"
+                onClick={() => toggleMonthCollapse(group.key)}
+                title={isCollapsed ? t('history.expandMonth') : t('history.collapseMonth')}
+                className="w-full flex items-center justify-between py-2.5 px-1 transition-colors group cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-brand/70 group-hover:text-brand transition-colors shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium tracking-wider uppercase text-brand/90 group-hover:text-brand transition-colors">
+                    {group.label}
+                  </span>
+                  <span className="text-white/30 text-xs">|</span>
+                  <span className="text-white/40 text-xs font-normal lowercase">
+                    {count === 1
+                      ? t('history.sessionCountSingular')
+                      : t('history.sessionCountPlural', { count })}
+                  </span>
+                </div>
 
-            {/* Session Rows in Month */}
-            {!isCollapsed && (
-              <div className="flex flex-col">
-                {group.sessions.map((session) => {
-                  const hasReport = Boolean(session.summary);
-                  const sessionTags = session.tags || [];
+                <ChevronDown
+                  className={`w-4 h-4 text-white/40 group-hover:text-white transition-transform duration-200 ${
+                    isCollapsed ? '-rotate-90' : 'rotate-0'
+                  }`}
+                />
+              </button>
 
-                  return (
-                    <div
+              {/* Session Rows in Month */}
+              {!isCollapsed && (
+                <div className="flex flex-col">
+                  {group.sessions.map((session) => (
+                    <HistorySessionRow
                       key={session.id}
-                      onClick={() => onSelectSession(session.id, session.groupId || null)}
-                      className={`flex items-center gap-4 py-3.5 px-1 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group ${
-                        session.isDemo && sessions.length === 1
-                          ? 'border-brand/40 shadow-[0_0_15px_rgba(45,212,191,0.15)] animate-pulse'
-                          : ''
-                      }`}
-                    >
-                      {/* Left stacked date column */}
-                      <div className="w-14 shrink-0 text-left flex flex-col justify-center">
-                        <span className="text-[11px] text-white/40 leading-none truncate">
-                          {formatMonth(session.date)}
-                        </span>
-                        <span className="text-base sm:text-lg text-white/80 font-medium leading-tight mt-0.5">
-                          {formatDayNumber(session.date)}
-                        </span>
-                      </div>
-
-                      {/* Main Title & Topics Column */}
-                      <div className="flex-1 min-w-0 flex flex-col gap-1">
-                        <h3 className="text-sm sm:text-base text-white/90 truncate group-hover:text-brand transition-colors">
-                          {session.title}
-                        </h3>
-
-                        {/* Subtitle */}
-                        {session.subtitle && (
-                          <p className="text-xs text-white/40 truncate">
-                            {session.subtitle}
-                          </p>
-                        )}
-
-                        {/* Topics Row */}
-                        {sessionTags.length > 0 && (
-                          <div className="flex items-center gap-1.5 text-xs text-white/40 truncate">
-                            <Tag className="w-3.5 h-3.5 text-white/30 shrink-0" />
-                            <span className="truncate">{sessionTags.join(', ')}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Right AI Sparkles Indicator */}
-                      {hasReport && (
-                        <div
-                          className="shrink-0 pl-1"
-                          title={t('history.hasReportBadge')}
-                        >
-                          <Sparkles className="w-4 h-4 text-brand/70 group-hover:text-brand transition-colors" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                      session={session}
+                      isSingleDemoSession={session.isDemo && sessions.length === 1}
+                      onSelectSession={onSelectSession}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 };

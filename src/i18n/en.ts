@@ -97,6 +97,15 @@ const en = {
     sessionCountPlural: '{count} lessons',
     collapseMonth: 'Collapse month',
     expandMonth: 'Expand month',
+    toggleCalendar: 'Calendar',
+    toggleList: 'List',
+    calendarToday: 'Today',
+    prevMonth: 'Previous month',
+    nextMonth: 'Next month',
+    noLessonsOnDate: 'No lessons logged on this date',
+    logLessonOnDate: 'Log Lesson',
+    lessonsOnDateCount: '{count} lessons',
+    lessonsOnDateSingular: '1 lesson',
   },
 
   entry: {
@@ -258,6 +267,7 @@ const en = {
   // ─── Session Settings Drawer ────────────────────────────────────────────────
   sessionSettings: {
     drawerTitle: 'Session Settings',
+    dateLabel: 'Session Date',
     folderLabel: 'Folder',
     folderNone: 'None (Root)',
     glossaryLabel: 'Dance Style Glossary',

@@ -6,6 +6,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.11.0',
+    date: '2026-09-12',
+    changes: [
+      'Lesson History Calendar View: Added a custom, dark glassmorphic monthly calendar view with activity indicators to the Lesson History tab, toggled with a clean text button',
+      'Locale-Aware Calendar Week Start: Calendar starts on Sunday in English and Monday (Lunes) in Spanish, with localized weekday and month headers',
+      'Selected Date Lesson Creation: Clicking "+ Log Lesson" on a selected calendar day automatically pre-dates the new lesson to that date',
+      'Editable Session Date: Added session date editing in DD/MM/YYYY format with visual date picker in the Session Settings Drawer',
+      'Dynamic Default Title Translation: Auto-generated default lesson titles now reactively translate between English and Spanish when changing app language'
+    ]
+  },
+  {
     version: '3.10.6',
     date: '2026-09-12',
     changes: [

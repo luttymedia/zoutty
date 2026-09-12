@@ -99,6 +99,15 @@ const es: Translations = {
     sessionCountPlural: '{count} clases',
     collapseMonth: 'Plegar mes',
     expandMonth: 'Desplegar mes',
+    toggleCalendar: 'Calendario',
+    toggleList: 'Lista',
+    calendarToday: 'Hoy',
+    prevMonth: 'Mes anterior',
+    nextMonth: 'Mes siguiente',
+    noLessonsOnDate: 'No hay clases registradas en esta fecha',
+    logLessonOnDate: 'Registrar clase',
+    lessonsOnDateCount: '{count} clases',
+    lessonsOnDateSingular: '1 clase',
   },
 
   entry: {
@@ -260,6 +269,7 @@ const es: Translations = {
   // ─── Session Settings Drawer ────────────────────────────────────────────────
   sessionSettings: {
     drawerTitle: 'Ajustes de sesión',
+    dateLabel: 'Fecha de la clase',
     folderLabel: 'Carpeta',
     folderNone: 'Ninguna (Raíz)',
     glossaryLabel: 'Glosario de estilo de baile',
