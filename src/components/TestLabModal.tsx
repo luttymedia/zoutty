@@ -251,7 +251,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                 type="button"
                 onClick={() =>
                   applyPreset({
-                    tier: 'student',
+                    tier: 'plus',
                     subscription_status: 'active',
                     lifetime_sessions: 3,
                     lifetime_clips: 15,
@@ -261,29 +261,13 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                 }
                 className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-left transition-all text-xs text-amber-300"
               >
-                {t('billing.dev.presetStudent')}
+                {t('billing.dev.presetPlus')}
               </button>
               <button
                 type="button"
                 onClick={() =>
                   applyPreset({
-                    tier: 'teacher',
-                    subscription_status: 'active',
-                    lifetime_sessions: 3,
-                    lifetime_clips: 15,
-                    period_sessions: 15,
-                    period_clips: 80,
-                  })
-                }
-                className="p-2.5 rounded-xl border border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/15 text-left transition-all text-xs text-sky-300"
-              >
-                {t('billing.dev.presetTeacher')}
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  applyPreset({
-                    tier: 'student',
+                    tier: 'plus',
                     subscription_status: 'past_due',
                     lifetime_sessions: 5,
                     lifetime_clips: 25,
@@ -329,8 +313,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
                 className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-hidden focus:border-brand"
               >
                 <option value="free">Free (Lifetime Capped)</option>
-                <option value="student">Student (€2.99 / mo - 20 sessions)</option>
-                <option value="teacher">Teacher (€12.99 / mo - 100 sessions)</option>
+                <option value="plus">Zoutty Plus (€2.99 / mo - 20 sessions)</option>
               </select>
             </div>
 

@@ -186,11 +186,14 @@ export async function redeemReferralCode(userId, inputCode) {
                 .eq('referred_user_id', userId)
                 .maybeSingle();
             if (!existingLog) {
-                const rewardType = referrer.tier === 'teacher'
-                    ? 'teacher_credit'
-                    : referrer.tier === 'student'
-                        ? 'student_credit'
-                        : 'free_boost';
+                const rewardType = 
+                /* [TEACHER PLAN - DISABLED FOR STUDENT PIVOT; Reactivate with new nomenclature if needed]
+                referrer.tier === 'teacher'
+                  ? 'teacher_credit'
+                  : */
+                referrer.tier === 'plus' || referrer.tier === 'student'
+                    ? 'plus_credit'
+                    : 'free_boost';
                 await supabase.from('referral_logs').insert({
                     referrer_id: referrer.id,
                     referred_user_id: userId,
@@ -272,31 +275,32 @@ export async function processMaturedReferrals(userId) {
                 })
                     .eq('id', log.id);
             }
-            else if (profile.tier === 'student') {
-                // Student gets €1 discount credit per paid referral
+            else if (profile.tier === 'plus' || profile.tier === 'student') {
+                // Zoutty Plus gets €1 discount credit per paid referral
                 currentCredits += 1;
                 await supabase
                     .from('referral_logs')
                     .update({
                     status: 'active',
-                    reward_type: 'student_credit',
+                    reward_type: 'plus_credit',
                     reward_value: 1,
                     activated_at: new Date().toISOString(),
                 })
                     .eq('id', log.id);
-            }
-            else if (profile.tier === 'teacher') {
-                // Teacher gets €2 discount credit per paid referral
-                currentCredits += 2;
-                await supabase
+                /* [TEACHER PLAN - DISABLED FOR STUDENT PIVOT; Reactivate with new nomenclature if needed]
+                } else if (profile.tier === 'teacher') {
+                  // Teacher gets €2 discount credit per paid referral
+                  currentCredits += 2;
+                  await supabase
                     .from('referral_logs')
                     .update({
-                    status: 'active',
-                    reward_type: 'teacher_credit',
-                    reward_value: 2,
-                    activated_at: new Date().toISOString(),
-                })
+                      status: 'active',
+                      reward_type: 'teacher_credit',
+                      reward_value: 2,
+                      activated_at: new Date().toISOString(),
+                    })
                     .eq('id', log.id);
+                */
             }
         }
         // Save updated profile state

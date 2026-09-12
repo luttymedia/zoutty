@@ -84,7 +84,7 @@ async function getUserProfile(userId: string) {
 }
 
 export interface CreateCheckoutParams {
-  targetTier: 'student' | 'teacher';
+  targetTier: 'plus'; // 'teacher' is disabled for student-centric pivot
   referralCode?: string;
   successUrl?: string;
   cancelUrl?: string;
@@ -98,6 +98,14 @@ export interface CreateCheckoutParams {
  */
 export async function createCheckoutSession(params: CreateCheckoutParams) {
   const { targetTier, referralCode, successUrl, cancelUrl, baseUrl = 'http://localhost:8181', authHeader, devOverride } = params;
+
+  // TEACHER PLAN (COMMENTED/DISABLED for student-centric pivot; reactivate with new nomenclature if needed)
+  if ((targetTier as string) === 'teacher') {
+    throw {
+      statusCode: 400,
+      error: 'Teacher plan is currently disabled.'
+    };
+  }
 
   const stripe = getStripe();
   const isMockOverride = Boolean(
@@ -115,16 +123,19 @@ export async function createCheckoutSession(params: CreateCheckoutParams) {
     };
   }
 
-  // 1. Resolve price ID
-  const studentPriceId = process.env.STRIPE_STUDENT_PRICE_ID || '';
+  // 1. Resolve price ID (STRIPE_PLUS_PRICE_ID with fallback to STRIPE_STUDENT_PRICE_ID)
+  const plusPriceId = process.env.STRIPE_PLUS_PRICE_ID || process.env.STRIPE_STUDENT_PRICE_ID || '';
+  /* [TEACHER PLAN - DISABLED FOR STUDENT PIVOT; Reactivate with new nomenclature if needed]
   const teacherPriceId = process.env.STRIPE_TEACHER_PRICE_ID || '';
-  const priceId = targetTier === 'teacher' ? teacherPriceId : studentPriceId;
+  const priceId = targetTier === 'teacher' ? teacherPriceId : plusPriceId;
+  */
+  const priceId = plusPriceId;
 
   if (!priceId) {
     console.error(`[stripe] Missing price ID for tier=${targetTier}.`);
     throw {
       statusCode: 500,
-      error: `Stripe price ID not configured for ${targetTier} plan. Please set STRIPE_${targetTier.toUpperCase()}_PRICE_ID in .env.`
+      error: `Stripe price ID not configured for Zoutty Plus. Please set STRIPE_PLUS_PRICE_ID in .env.`
     };
   }
 
@@ -483,7 +494,7 @@ export async function handleStripeWebhook(req: any, res: any) {
           break;
         }
 
-        const targetTier = (session.metadata?.target_tier as 'student' | 'teacher') || 'student';
+        const targetTier = (session.metadata?.target_tier as 'plus' | 'teacher') || 'plus';
         const referralCode = session.metadata?.referral_code;
 
         let resolvedUserId = userId;
@@ -585,8 +596,8 @@ export async function handleStripeWebhook(req: any, res: any) {
                 const rewardType =
                   referrer.tier === 'teacher'
                     ? 'teacher_credit'
-                    : referrer.tier === 'student'
-                    ? 'student_credit'
+                    : referrer.tier === 'plus' || (referrer.tier as string) === 'student'
+                    ? 'plus_credit'
                     : 'free_boost';
 
                 await supabase.from('referral_logs').insert({
@@ -635,17 +646,17 @@ export async function handleStripeWebhook(req: any, res: any) {
         const priceId = subscription.items?.data?.[0]?.price?.id;
 
         const teacherPriceId = process.env.STRIPE_TEACHER_PRICE_ID;
-        const studentPriceId = process.env.STRIPE_STUDENT_PRICE_ID;
+        const plusPriceId = process.env.STRIPE_PLUS_PRICE_ID || process.env.STRIPE_STUDENT_PRICE_ID;
 
-        let tier: 'free' | 'student' | 'teacher' = 'student';
+        let tier: 'free' | 'plus' | 'teacher' = 'plus';
         if (priceId === teacherPriceId) {
           tier = 'teacher';
-        } else if (priceId === studentPriceId) {
-          tier = 'student';
+        } else if (priceId === plusPriceId) {
+          tier = 'plus';
         } else if (subscription.metadata?.target_tier === 'teacher') {
           tier = 'teacher';
-        } else if (subscription.metadata?.target_tier === 'student') {
-          tier = 'student';
+        } else if (subscription.metadata?.target_tier === 'plus' || subscription.metadata?.target_tier === 'student') {
+          tier = 'plus';
         } else if (status !== 'active' && status !== 'trialing') {
           tier = 'free';
         }
@@ -842,7 +853,7 @@ export async function handleStripeWebhook(req: any, res: any) {
                     .eq('id', l.referrer_id)
                     .maybeSingle();
 
-                  if (refProfile && (l.reward_type === 'student_credit' || l.reward_type === 'teacher_credit')) {
+                  if (refProfile && (l.reward_type === 'plus_credit' || (l.reward_type as string) === 'student_credit' || l.reward_type === 'teacher_credit')) {
                     const newBal = Math.max(0, (refProfile.referral_credits_balance || 0) - Number(l.reward_value));
                     await supabase
                       .from('profiles')
@@ -903,7 +914,7 @@ export async function confirmCheckoutSession({
   authHeader,
 }: {
   sessionId?: string;
-  targetTier?: 'student' | 'teacher';
+  targetTier?: 'plus' | 'teacher';
   authHeader?: string;
 }) {
   const user = await getAuthenticatedUser(authHeader);
@@ -915,7 +926,7 @@ export async function confirmCheckoutSession({
     auth: { persistSession: false },
   });
 
-  const tier = targetTier || 'student';
+  const tier = targetTier || 'plus';
   const nowIso = new Date().toISOString();
   const stripe = getStripe();
   let currentPeriodEnd: string | null = null;
@@ -1029,8 +1040,8 @@ export async function confirmCheckoutSession({
           const rewardType =
             referrer.tier === 'teacher'
               ? 'teacher_credit'
-              : referrer.tier === 'student'
-              ? 'student_credit'
+              : referrer.tier === 'plus' || (referrer.tier as string) === 'student'
+              ? 'plus_credit'
               : 'free_boost';
 
           await supabase.from('referral_logs').insert({
@@ -1056,7 +1067,12 @@ export async function confirmCheckoutSession({
 
 
 
-export async function updateSubscription(targetTier: 'student' | 'teacher' | 'free', authHeader?: string) {
+export async function updateSubscription(targetTier: 'plus' | 'free' /* | 'teacher' (disabled) */, authHeader?: string) {
+  // TEACHER PLAN (COMMENTED/DISABLED for student-centric pivot; reactivate with new nomenclature if needed)
+  if ((targetTier as string) === 'teacher') {
+    throw { statusCode: 400, error: 'Teacher plan is currently disabled.' };
+  }
+
   const stripe = getStripe();
   if (!stripe) {
     const user = await getAuthenticatedUser(authHeader);
@@ -1088,8 +1104,8 @@ export async function updateSubscription(targetTier: 'student' | 'teacher' | 'fr
     return cancelSubscription(authHeader);
   }
 
-  const priceId = targetTier === 'teacher' ? process.env.STRIPE_TEACHER_PRICE_ID : process.env.STRIPE_STUDENT_PRICE_ID;
-  if (!priceId) throw { statusCode: 500, error: "Missing STRIPE_TEACHER_PRICE_ID or STRIPE_STUDENT_PRICE_ID" };
+  const priceId = process.env.STRIPE_PLUS_PRICE_ID || process.env.STRIPE_STUDENT_PRICE_ID;
+  if (!priceId) throw { statusCode: 500, error: "Missing STRIPE_PLUS_PRICE_ID in environment." };
 
   const subscriptions = await stripe.subscriptions.list({
     customer: profile.stripe_customer_id,
@@ -1105,71 +1121,35 @@ export async function updateSubscription(targetTier: 'student' | 'teacher' | 'fr
   const itemId = subscription.items.data[0].id;
   const currentPriceId = subscription.items.data[0].price.id;
 
+  /* [TEACHER PLAN - DISABLED FOR STUDENT PIVOT; Reactivate with new nomenclature if needed]
   // Determine if it's an upgrade or downgrade
-  const isDowngrade = (targetTier === 'student' && currentPriceId === process.env.STRIPE_TEACHER_PRICE_ID);
+  const isDowngrade = (targetTier === 'plus' && currentPriceId === process.env.STRIPE_TEACHER_PRICE_ID);
 
   if (isDowngrade) {
-    console.log(`[stripe] Scheduling downgrade to student at period end for sub=${subscription.id}`);
-    let scheduleId = subscription.schedule as string;
-    if (!scheduleId) {
-      const schedule = await stripe.subscriptionSchedules.create({
-        from_subscription: subscription.id,
-      });
-      scheduleId = schedule.id;
-    }
-
-    const schedule = await stripe.subscriptionSchedules.retrieve(scheduleId);
-    const currentPhase = schedule.phases[0];
-
-    await stripe.subscriptionSchedules.update(scheduleId, {
-      end_behavior: 'release',
-      phases: [
-        {
-          start_date: currentPhase.start_date,
-          end_date: currentPhase.end_date,
-          items: [{ price: currentPriceId, quantity: 1 }],
-        },
-        {
-          start_date: currentPhase.end_date,
-          items: [{ price: priceId, quantity: 1 }],
-        }
-      ],
-    });
-
-    // Also update metadata on the subscription so we know a downgrade is pending
-    await stripe.subscriptions.update(subscription.id, {
-      metadata: { pending_downgrade: targetTier }
-    });
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
-    await supabase.from('profiles').update({
-      pending_downgrade: targetTier,
-      updated_at: new Date().toISOString()
-    }).eq('id', user.id);
-
-    return { success: true, message: 'Downgrade scheduled for end of billing period.' };
-  } else {
-    console.log(`[stripe] Upgrading subscription ${subscription.id} to ${targetTier} directly via API.`);
-    
-    const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
-      items: [{
-        id: itemId,
-        price: priceId,
-      }],
-      proration_behavior: 'always_invoice',
-    });
-
-    // Synchronously update the Supabase profile so the UI doesn't revert before the webhook arrives
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
-    await supabase.from('profiles').update({
-      tier: targetTier,
-      subscription_status: 'active',
-      pending_downgrade: null,
-      updated_at: new Date().toISOString()
-    }).eq('id', user.id);
-
-    return { success: true, message: `Successfully upgraded to ${targetTier}.`, subscription: updatedSubscription };
+    console.log(`[stripe] Scheduling downgrade at period end for sub=${subscription.id}`);
+    ...
   }
+  */
+
+  console.log(`[stripe] Upgrading subscription ${subscription.id} to ${targetTier} directly via API.`);
+  
+  const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
+    items: [{
+      id: itemId,
+      price: priceId,
+    }],
+    proration_behavior: 'always_invoice',
+  });
+
+  // Synchronously update the Supabase profile so the UI doesn't revert before the webhook arrives
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+  await supabase.from('profiles').update({
+    tier: targetTier,
+    subscription_status: 'active',
+    pending_downgrade: null,
+    updated_at: new Date().toISOString()
+  }).eq('id', user.id);
+
 }
 
 export async function cancelSubscription(authHeader?: string) {

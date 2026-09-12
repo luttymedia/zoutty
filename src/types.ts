@@ -107,7 +107,7 @@ export interface SessionMedia {
 
 // ─── Monetization, Tiers & Billing Types ─────────────────────────────────────
 
-export type UserTier = 'free' | 'student' | 'teacher';
+export type UserTier = 'free' | 'plus' | 'teacher'; // 'teacher' is disabled for future reactivation
 
 export type SubscriptionStatus =
   | 'none'
@@ -151,7 +151,7 @@ export interface ReferralLog {
   id: string;
   referrer_id?: string | null;
   referred_user_id: string;
-  reward_type: 'free_boost' | 'student_credit' | 'teacher_credit';
+  reward_type: 'free_boost' | 'plus_credit' | 'teacher_credit';
   reward_value: number;
   status: 'pending' | 'pending_refund_period' | 'active' | 'revoked';
   stripe_invoice_id?: string | null;
@@ -169,12 +169,13 @@ export const TIER_LIMITS = {
     lifetime_sessions: 3,
     lifetime_clips: 15,
   },
-  student: {
+  plus: {
     monthly_sessions: 20,
     monthly_clips: 200,
     price_eur: 2.99,
     referral_discount_per_month_eur: 1.0,
   },
+  // TEACHER PLAN (COMMENTED/DISABLED for student-centric pivot; reactivate with new nomenclature if needed)
   teacher: {
     monthly_sessions: 100,
     monthly_clips: Infinity,

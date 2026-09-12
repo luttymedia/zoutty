@@ -103,8 +103,8 @@ export const callZoukAudioProcessor = async (payload: {
 
     if (isMock) {
         const isFree = dev.tier === 'free';
-        const isStudent = dev.tier === 'student';
-        const baseClipLimit = isStudent ? 200 : 15;
+        const isPlus = dev.tier === 'plus';
+        const baseClipLimit = isPlus ? 200 : 15;
         const isBeyondBaseClips = isFree
             ? (dev.lifetime_clips || 0) >= baseClipLimit
             : (dev.period_clips || 0) >= baseClipLimit;

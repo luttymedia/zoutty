@@ -49,17 +49,9 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
 
   const renderDiscountBreakdown = () => {
     if (creditsBalance <= 0) return null;
-    if (tier === 'student') {
-      return creditsBalance === 1
-        ? t('billing.referrals.studentDeductionSingle')
-        : t('billing.referrals.studentDeductionMulti', { months: creditsBalance });
-    }
-    if (tier === 'teacher') {
-      return creditsBalance <= 8
-        ? t('billing.referrals.teacherDeductionSingle', { amount: creditsBalance })
-        : t('billing.referrals.teacherDeductionMulti');
-    }
-    return t('billing.referrals.autoAppliedDiscount');
+    return creditsBalance === 1
+      ? t('billing.referrals.plusDeductionSingle')
+      : t('billing.referrals.plusDeductionMulti', { months: creditsBalance });
   };
 
   const handleCopy = () => {
@@ -188,13 +180,9 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
             <p className="leading-relaxed">
               {t('billing.referrals.rewardDescFree')}
             </p>
-          ) : tier === 'student' ? (
-            <p className="leading-relaxed">
-              {t('billing.referrals.rewardDescStudent')}
-            </p>
           ) : (
             <p className="leading-relaxed">
-              {t('billing.referrals.rewardDescTeacher')}
+              {t('billing.referrals.rewardDescPlus')}
             </p>
           )}
         </div>

@@ -10,7 +10,7 @@ create extension if not exists "pgcrypto";
 create table if not exists public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
   display_name text,
-  tier text check (tier in ('free', 'student', 'teacher')) default 'free' not null,
+  tier text check (tier in ('free', 'plus', 'teacher')) default 'free' not null,
   subscription_status text check (subscription_status in ('none', 'active', 'trialing', 'past_due', 'canceled', 'unpaid')) default 'none' not null,
   stripe_customer_id text,
   stripe_subscription_id text,
@@ -46,7 +46,7 @@ create table if not exists public.referral_logs (
   id uuid primary key default gen_random_uuid(),
   referrer_id uuid references auth.users(id) on delete set null,
   referred_user_id uuid references auth.users(id) on delete cascade not null,
-  reward_type text check (reward_type in ('free_boost', 'student_credit', 'teacher_credit')) not null,
+  reward_type text check (reward_type in ('free_boost', 'plus_credit', 'teacher_credit')) not null,
   reward_value numeric default 0 not null,
   status text check (status in ('pending', 'pending_refund_period', 'active', 'revoked')) default 'pending' not null,
   stripe_invoice_id text,

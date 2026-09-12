@@ -6,6 +6,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.12.0',
+    date: '2026-09-13',
+    changes: [
+      'Student-Centric Pivot: Renamed Student tier to Zoutty Plus across checkout, manage subscription, pricing, and quota modals',
+      'Retired Teacher Tier: Disabled teacher tier frontend visibility and backend processing for student focus while maintaining clean future reactivation pathways',
+      'AI Quota Reached Modal Overhaul: Matched Zoutty Plus pricing and referral card layouts with the Manage Subscription modal, removing clutter on the free tier view',
+      'Manage Subscription UX: Closing the resistance modal via "Keep My Subscription" now dismisses the modal directly',
+      'Spanish Toast Translations: Added full bilingual localization for subscription cancellation, reactivation, and audio download toasts',
+      'DOM Accessibility Fix: Resolved nested interactive button hydration warnings in the settings drawer'
+    ]
+  },
+  {
     version: '3.11.0',
     date: '2026-09-12',
     changes: [

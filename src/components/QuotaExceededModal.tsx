@@ -5,12 +5,11 @@ import {
   Gift,
   X,
   ArrowRight,
-  CheckCircle2,
-  GraduationCap,
   Sparkle,
   Calendar,
   AlertTriangle,
   CreditCard,
+  CheckCircle2,
 } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { UserTier, TIER_LIMITS } from '../types';
@@ -24,11 +23,10 @@ interface QuotaExceededModalProps {
   reason?: 'sessions' | 'clips';
   canBoost?: boolean;
   resetDate?: string | null;
-  onUpgradeClick: (targetTier?: 'student' | 'teacher') => void;
+  onUpgradeClick: (targetTier?: 'plus') => void;
   onReferralClick: () => void;
   onTopupClick?: () => void;
   onOpenBillingPortal?: () => void;
-  onStudentUpgradeClick?: () => void;
 }
 
 export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
@@ -43,13 +41,11 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
   onReferralClick,
   onTopupClick,
   onOpenBillingPortal,
-  onStudentUpgradeClick,
 }) => {
   const { t, uiLanguage } = useTranslation();
 
   const isPaymentIssue = subscriptionStatus === 'past_due' || subscriptionStatus === 'unpaid';
   const isFree = tier === 'free' && !isPaymentIssue;
-  const isStudent = tier === 'student' && !isPaymentIssue;
 
   const formattedResetDate = React.useMemo(() => {
     return formatSafeDate(resetDate, uiLanguage);
@@ -78,33 +74,31 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header Icon */}
+        {/* Header Icon (shown for payment issues or for Plus plan users, hidden for free tier) */}
         {isPaymentIssue ? (
           <div className="w-16 h-16 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mx-auto shadow-lg shadow-red-500/20 mb-4 animate-bounce duration-1000">
             <AlertTriangle className="w-8 h-8" />
           </div>
-        ) : (
+        ) : !isFree ? (
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand/20 to-brand/40 border border-brand/50 flex items-center justify-center text-brand mx-auto shadow-lg shadow-brand/10 mb-4 animate-bounce duration-1000">
             <Sparkles className="w-8 h-8" />
           </div>
-        )}
+        ) : null}
 
         {/* Title & Badge */}
         <div className="space-y-1 mb-3">
-          <span className={`text-[10px] px-3 py-1 rounded-full uppercase tracking-widest font-mono border ${
-            isPaymentIssue
-              ? 'bg-red-500/20 text-red-300 border-red-500/40'
-              : isFree
-              ? 'bg-brand/20 text-brand border-brand/30'
-              : 'bg-brand/20 text-brand border-brand/30'
-          }`}>
-            {isPaymentIssue
-              ? t('billing.limits.paymentIssueBadge')
-              : isFree
-              ? t('billing.limits.freeLimitBadge')
-              : t('billing.limits.monthlyLimitBadge')}
-          </span>
-          <h3 className="text-xl text-white tracking-tight mt-2">
+          {(isPaymentIssue || !isFree) && (
+            <span className={`text-[10px] px-3 py-1 rounded-full uppercase tracking-widest font-mono border ${
+              isPaymentIssue
+                ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                : 'bg-brand/20 text-brand border-brand/30'
+            }`}>
+              {isPaymentIssue
+                ? t('billing.limits.paymentIssueBadge')
+                : t('billing.limits.monthlyLimitBadge')}
+            </span>
+          )}
+          <h3 className={`text-xl text-white tracking-tight ${!isFree || isPaymentIssue ? 'mt-2' : ''}`}>
             {isPaymentIssue
               ? t('billing.limits.paymentIssueTitle')
               : t('billing.limits.quotaExceededTitle')}
@@ -122,128 +116,88 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
 
         {/* Reset Date Notice for Active Paid Users */}
         {!isFree && !isPaymentIssue && (
-          <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-sky-200 text-xs mb-5 flex items-center justify-center gap-2">
+          <div className="p-3.5 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-sky-200 text-xs mb-5 flex items-center justify-center gap-2">
             <Calendar className="w-4 h-4 text-sky-400 shrink-0" />
             <span>{t('billing.usage.resetDate', { date: formattedResetDate })}</span>
           </div>
         )}
 
-        {/* Subscription Plan Options for Free Tier (Non-Payment Issue) */}
-        {isFree ? (
-          <div className="space-y-2.5 mb-5 text-left">
-            {/* Student Plan Card / Button (Warm Amber) */}
-            <button
-              onClick={() => {
-                onClose();
-                onUpgradeClick('student');
-              }}
-              className="w-full p-3.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all flex items-center justify-between group cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
-                  <GraduationCap className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-white group-hover:text-amber-300 transition-colors">
-                      {t('billing.plans.studentName')}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase font-mono">
-                      {t('billing.plans.studentPrice')}
-                    </span>
+        {/* Subscription Plan Option for Free Tier (Non-Payment Issue) */}
+        {isFree && (
+          <div className="space-y-4 mb-5 text-left">
+            {/* Zoutty Plus Plan Card */}
+            <div className="p-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/50 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+                      <Sparkle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg text-white font-medium">
+                        {t('billing.plans.plusName')}
+                      </h4>
+                      <span className="text-xs text-amber-300 font-mono">
+                        {t('billing.plans.plusPrice')}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-white/60 mt-0.5">
-                    {t('billing.limits.studentFeature')}
-                  </p>
                 </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-amber-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
-            </button>
 
-            {/* Teacher Plan Card / Button (Styled in Sky/Cyan) */}
-            <button
-              onClick={() => {
-                onClose();
-                onUpgradeClick('teacher');
-              }}
-              className="w-full p-3.5 rounded-2xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition-all flex items-center justify-between group cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center text-sky-400 shrink-0">
-                  <Sparkle className="w-5 h-5 text-sky-400" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-white group-hover:text-sky-300 transition-colors">
-                      {t('billing.plans.teacherName')}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 uppercase font-mono">
-                      {t('billing.plans.teacherPrice')}
-                    </span>
+                {/* Feature Highlights */}
+                <div className="space-y-3 my-5 text-xs text-white/80">
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>{t('billing.limits.featurePlusSessions')}</span>
                   </div>
-                  <p className="text-[11px] text-white/60 mt-0.5">
-                    {t('billing.limits.teacherFeature')}
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>{t('billing.limits.featureSmartOrganization')}</span>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>{t('billing.limits.featureReferralDiscount')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <button
+                onClick={() => {
+                  onClose();
+                  onUpgradeClick('plus');
+                }}
+                className="w-full py-3.5 px-4 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md shadow-amber-500/20 active:scale-[0.99]"
+              >
+                <Zap className="w-4 h-4 fill-zinc-950" />
+                <span>{t('billing.plans.selectPlan', { plan: t('billing.plans.plusName') })}</span>
+              </button>
+            </div>
+
+            {/* Footer Referral Banner */}
+            <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+              <div className="flex items-center gap-2.5">
+                <Gift className="w-5 h-5 text-purple-400 shrink-0" />
+                <div className="text-xs">
+                  <span className="text-white font-medium">{t('billing.referrals.title')}</span>
+                  <p className="text-white/60 text-[11px]">
+                    {t('billing.referrals.subtitle')}
                   </p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-sky-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
-            </button>
-          </div>
-        ) : !isPaymentIssue ? (
-          /* Plan Highlights for Active Paid Users */
-          isStudent ? (
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                if (onStudentUpgradeClick) {
-                  onStudentUpgradeClick();
-                } else {
-                  onUpgradeClick('teacher');
-                }
-              }}
-              className="w-full p-4 rounded-2xl bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/30 hover:border-sky-500/50 text-left space-y-2.5 mb-5 transition-all group cursor-pointer block"
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-[11px] uppercase tracking-wider text-sky-400 group-hover:text-sky-300 transition-colors flex items-center gap-1.5">
-                  <Sparkle className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                  <span>{t('billing.limits.unlockTeacherHeading', { price: t('billing.plans.teacherPrice') })}</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-sky-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
-              </div>
-              <div className="flex items-center gap-2 text-xs text-white/90">
-                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-                <span>{t('billing.limits.featureTeacherSessions')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-white/90">
-                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-                <span>{t('billing.limits.featureSmartOrganization')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-white/90">
-                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-                <span>{t('billing.limits.featureTeacherReferralDiscount')}</span>
-              </div>
-            </button>
-          ) : (
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2.5 mb-5">
-              <div className="text-[11px] uppercase tracking-wider text-white/40 mb-2">
-                {t('billing.usage.unlimitedStorage')}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-white/90">
-                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-                <span>{t('billing.usage.unlimitedStorage')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-white/90">
-                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-                <span>{t('billing.limits.featureSmartOrganization')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-white/90">
-                <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-                <span>{t('billing.limits.featureTeacherReferralDiscount')}</span>
-              </div>
+              <button
+                onClick={() => {
+                  onClose();
+                  onReferralClick();
+                }}
+                className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+              >
+                <span>{t('billing.referrals.shareAction')}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-          )
-        ) : null}
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="space-y-2.5">
@@ -261,7 +215,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
             </button>
           )}
 
-          {/* For Paid Users (Student & Teacher), offer one-time Top-Up Pack */}
+          {/* For Paid Users (Plus), offer one-time Top-Up Pack */}
           {!isFree && !isPaymentIssue && onTopupClick && (
             <button
               onClick={() => {
@@ -285,8 +239,8 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
             </button>
           )}
 
-          {/* Referral Button (shown for active free/paid plans) */}
-          {!isPaymentIssue && (
+          {/* Referral Button (shown for active paid plans, since free now has the bottom referral card) */}
+          {!isFree && !isPaymentIssue && (
             <button
               onClick={() => {
                 onClose();
@@ -295,11 +249,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
               className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
             >
               <Gift className="w-4 h-4 text-purple-400" />
-              <span>
-                {isFree
-                  ? t('billing.limits.referralAction')
-                  : t('billing.limits.referralActionPaid')}
-              </span>
+              <span>{t('billing.limits.referralActionPaid')}</span>
             </button>
           )}
 

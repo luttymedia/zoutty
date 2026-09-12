@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   CheckCircle2,
-  GraduationCap,
   Sparkle,
   Zap,
   AudioLines,
@@ -14,51 +13,29 @@ import { UserTier, TIER_LIMITS } from '../types';
 interface SubscriptionSuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tier: UserTier;
+  tier?: UserTier;
 }
 
 export const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
   isOpen,
   onClose,
-  tier,
 }) => {
   const { t } = useTranslation();
 
   if (!isOpen) return null;
 
-  // A paid subscription is either 'teacher' or 'student'
-  const isTeacher = tier === 'teacher';
-  const effectiveTier: 'student' | 'teacher' = isTeacher ? 'teacher' : 'student';
+  const planName = t('billing.plans.plusName');
+  const monthlySessions = TIER_LIMITS.plus.monthly_sessions;
+  const monthlyClips = TIER_LIMITS.plus.monthly_clips;
 
-  const planName = isTeacher
-    ? t('billing.plans.teacherName')
-    : t('billing.plans.studentName');
-
-  const monthlySessions = isTeacher
-    ? TIER_LIMITS.teacher.monthly_sessions
-    : TIER_LIMITS.student.monthly_sessions;
-
-  const monthlyClips = isTeacher
-    ? t('billing.usage.infiniteUppercase')
-    : TIER_LIMITS.student.monthly_clips;
-
-  const themeColor = isTeacher
-    ? {
-        border: 'border-sky-400/80',
-        bgGlow: 'bg-sky-500/20',
-        badgeBg: 'bg-sky-500/30 text-sky-200 border-sky-400/40',
-        iconBg: 'bg-sky-500/20 text-sky-400',
-        btnBg: 'bg-sky-500 hover:bg-sky-400 shadow-sky-500/25',
-        textColor: 'text-sky-300',
-      }
-    : {
-        border: 'border-amber-400/80',
-        bgGlow: 'bg-amber-500/20',
-        badgeBg: 'bg-amber-500/30 text-amber-200 border-amber-400/40',
-        iconBg: 'bg-amber-500/20 text-amber-400',
-        btnBg: 'bg-amber-500 hover:bg-amber-400 shadow-amber-500/25',
-        textColor: 'text-amber-300',
-      };
+  const themeColor = {
+    border: 'border-amber-400/80',
+    bgGlow: 'bg-amber-500/20',
+    badgeBg: 'bg-amber-500/30 text-amber-200 border-amber-400/40',
+    iconBg: 'bg-amber-500/20 text-amber-400',
+    btnBg: 'bg-amber-500 hover:bg-amber-400 shadow-amber-500/25',
+    textColor: 'text-amber-300',
+  };
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center z-[90] p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
@@ -76,11 +53,7 @@ export const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> =
           <div
             className={`w-16 h-16 rounded-2xl ${themeColor.iconBg} border border-white/20 flex items-center justify-center shadow-lg mx-auto animate-bounce-short`}
           >
-            {isTeacher ? (
-              <Sparkle className="w-8 h-8 text-sky-300" />
-            ) : (
-              <GraduationCap className="w-8 h-8 text-amber-300" />
-            )}
+            <Sparkle className="w-8 h-8 text-amber-300" />
           </div>
           <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-zinc-900 flex items-center justify-center text-white">
             <CheckCircle2 className="w-4 h-4" />
@@ -132,9 +105,7 @@ export const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> =
                 <Gift className="w-3.5 h-3.5 text-purple-300" />
               </div>
               <span className="text-white/80">
-                {isTeacher
-                  ? t('billing.limits.featureTeacherReferralDiscount')
-                  : t('billing.limits.featureReferralDiscount')}
+                {t('billing.limits.featureReferralDiscount')}
               </span>
             </div>
           </div>

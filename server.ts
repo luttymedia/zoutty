@@ -749,29 +749,18 @@ app.post('/api/stripe/cancel-subscription', async (req, res) => {
     }
 });
 
-// Stripe Cancel Downgrade Route (Keep Teacher Plan)
+// Stripe Cancel Downgrade Route (TEACHER PLAN - DISABLED FOR STUDENT PIVOT; Reactivate with new nomenclature if needed)
 app.post('/api/stripe/cancel-downgrade', async (req, res) => {
     try {
         console.log('[/api/stripe/cancel-downgrade] Request received');
+        /* [DISABLED FOR STUDENT PIVOT]
         const authHeader = req.headers.authorization;
         const result = await cancelDowngrade(authHeader);
         return res.json(result);
+        */
+        return res.status(400).json({ error: 'Plan downgrades are currently disabled.' });
     } catch (error: any) {
         console.error('[/api/stripe/cancel-downgrade] Error:', error);
-        const status = error.statusCode || 500;
-        return res.status(status).json({ error: error.error || error.message });
-    }
-});
-
-// Stripe Reactivate Subscription Route
-app.post('/api/stripe/reactivate-subscription', async (req, res) => {
-    try {
-        console.log('[/api/stripe/reactivate-subscription] Request received');
-        const authHeader = req.headers.authorization;
-        const result = await reactivateSubscription(authHeader);
-        return res.json(result);
-    } catch (error: any) {
-        console.error('[/api/stripe/reactivate-subscription] Error:', error);
         const status = error.statusCode || 500;
         return res.status(status).json({ error: error.error || error.message });
     }
@@ -785,16 +774,19 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
         const authHeader = req.headers.authorization;
         const devOverride = (req.headers['x-dev-override'] as string) || (req.body.devState ? JSON.stringify(req.body.devState) : undefined);
 
-        if (!targetTier || (targetTier !== 'student' && targetTier !== 'teacher')) {
-            return res.status(400).json({ error: 'Invalid targetTier: "student" or "teacher" is required.' });
+        // Teacher plan is disabled; accept 'plus' (with 'student' legacy alias for safety)
+        if (!targetTier || (targetTier !== 'plus' && targetTier !== 'student')) {
+            return res.status(400).json({ error: 'Invalid targetTier: "plus" is required.' });
         }
+
+        const effectiveTier: 'plus' = 'plus';
 
         const host = req.get('host') || 'localhost:8181';
         const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
         const baseUrl = `${protocol}://${host}`;
 
         const result = await createCheckoutSession({
-            targetTier,
+            targetTier: effectiveTier,
             referralCode,
             successUrl,
             cancelUrl,

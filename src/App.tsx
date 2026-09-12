@@ -80,7 +80,7 @@ import { ManageSubscriptionModal, ModalView as ManageSubscriptionView } from './
 import { getMediaDuration } from './lib/audioDuration';
 import { isVideoFile, extractAudioFromVideo, ExtractedAudioResult } from './lib/audioExtractor';
 import { formatSafeDate } from './lib/dateUtils';
-import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout, updateStripeSubscription, cancelStripeSubscription, reactivateStripeSubscription, cancelStripeDowngrade } from './lib/stripe';
+import { openStripeCustomerPortal, startStripeCheckout, startTopupCheckout, cancelStripeSubscription, reactivateStripeSubscription } from './lib/stripe';
 
 import { ZouttyIcon } from './components/ZouttyIcon';
 import { LoaderIcon } from './components/LoaderIcon';
@@ -269,10 +269,17 @@ function AppSettingsCollapsible({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="py-1">
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between py-2.5 text-left group cursor-pointer transition-colors"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setOpen(o => !o);
+          }
+        }}
+        className="w-full flex items-center justify-between py-2.5 text-left group cursor-pointer transition-colors select-none"
       >
         <span className="flex items-center gap-2 text-xs uppercase tracking-wider text-white/50 group-hover:text-white/80 transition-colors">
           {icon}
@@ -282,7 +289,7 @@ function AppSettingsCollapsible({
           {badge}
           <ChevronDown className={`w-4 h-4 text-white/30 group-hover:text-white/60 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
-      </button>
+      </div>
       {open && (
         <div className="pt-1.5 pb-2 animate-in fade-in duration-150">
           {children}
@@ -405,14 +412,13 @@ export default function App() {
   const [showAutoStoppedModal, setShowAutoStoppedModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
-  const [showSubscriptionSuccessModal, setShowSubscriptionSuccessModal] = useState<{ isOpen: boolean; tier: UserTier }>({ isOpen: false, tier: 'student' });
+  const [showSubscriptionSuccessModal, setShowSubscriptionSuccessModal] = useState<{ isOpen: boolean; tier: UserTier }>({ isOpen: false, tier: 'plus' });
   const [showTopupSuccessModal, setShowTopupSuccessModal] = useState(false);
   const [showTopupConfirmModal, setShowTopupConfirmModal] = useState(false);
   const [isTopupLoading, setIsTopupLoading] = useState(false);
   const [showManageSubscriptionModal, setShowManageSubscriptionModal] = useState(false);
   const [manageSubscriptionInitialView, setManageSubscriptionInitialView] = useState<ManageSubscriptionView>('overview');
   const [isPortalLoading, setIsPortalLoading] = useState(false);
-  const [isCancelingDowngrade, setIsCancelingDowngrade] = useState(false);
   const [paymentBannerDismissed, setPaymentBannerDismissed] = useState(false);
   const [showGlossaryModal, setShowGlossaryModal] = useState(false);
   const [editingGlossary, setEditingGlossary] = useState<DanceGlossary | null>(null);
@@ -614,11 +620,8 @@ export default function App() {
         showToast(t('billing.topup.canceledToast'), false, undefined, undefined, undefined, 'warning');
         window.history.replaceState({}, '', window.location.pathname);
       } else if (urlParams.get('checkout_success') === 'true') {
-        const rawTier = urlParams.get('tier') || '';
         const sessionId = urlParams.get('session_id') || '';
-        // If Stripe appended duplicate query strings (e.g. "student/?checkout_success..."),
-        // use .includes() to safely extract the correct tier.
-        const targetTier: 'student' | 'teacher' = rawTier.includes('teacher') ? 'teacher' : 'student';
+        const targetTier: UserTier = 'plus';
         const updated = saveDevState({
           tier: targetTier,
           subscription_status: 'active',
@@ -2427,7 +2430,7 @@ export default function App() {
           return;
         }
         console.error("Failed to download audio blob:", e);
-        showToast("Failed to download audio for transcription", true);
+        showToast(t('toast.failedDownloadAudio'), true);
         hideSpinner();
         return;
       }
@@ -2650,12 +2653,11 @@ export default function App() {
 
       if (currentDev.mockGemini) {
         const isFree = currentDev.tier === 'free';
-        const isStudent = currentDev.tier === 'student';
-        const isTeacher = currentDev.tier === 'teacher';
+        const isPlus = currentDev.tier === 'plus';
         const clipsCount = sessionAudios.length;
 
         // 1. Session deduction (1 consolidation = 1 session)
-        const baseSessionLimit = isStudent ? TIER_LIMITS.student.monthly_sessions : isTeacher ? TIER_LIMITS.teacher.monthly_sessions : TIER_LIMITS.free.lifetime_sessions;
+        const baseSessionLimit = isPlus ? TIER_LIMITS.plus.monthly_sessions : TIER_LIMITS.free.lifetime_sessions;
         const isBeyondBaseSessions = isFree
           ? (currentDev.lifetime_sessions || 0) >= baseSessionLimit
           : (currentDev.period_sessions || 0) >= baseSessionLimit;
@@ -2673,7 +2675,7 @@ export default function App() {
         // 2. Clips deduction (clipsCount clips are processed during consolidation)
         let nextTopupClips = currentDev.topup_extra_clips || 0;
         let nextPeriodClips = currentDev.period_clips || 0;
-        const baseClipLimit = isStudent ? TIER_LIMITS.student.monthly_clips : TIER_LIMITS.free.lifetime_clips;
+        const baseClipLimit = isPlus ? TIER_LIMITS.plus.monthly_clips : TIER_LIMITS.free.lifetime_clips;
 
         if (isFree) {
           const currentLifetimeClips = currentDev.lifetime_clips || 0;
@@ -2682,7 +2684,7 @@ export default function App() {
             const overflowClips = clipsCount - spaceInBase;
             nextTopupClips = Math.max(0, nextTopupClips - Math.max(0, overflowClips));
           }
-        } else if (isStudent) {
+        } else if (isPlus) {
           const currentPeriodClips = currentDev.period_clips || 0;
           const spaceInBase = Math.max(0, baseClipLimit - currentPeriodClips);
 
@@ -2693,8 +2695,6 @@ export default function App() {
             const overflowClips = clipsCount - spaceInBase;
             nextTopupClips = Math.max(0, nextTopupClips - overflowClips);
           }
-        } else if (isTeacher) {
-          nextPeriodClips = (currentDev.period_clips || 0) + clipsCount;
         }
 
         saveDevState({
@@ -3467,7 +3467,28 @@ export default function App() {
                       <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
                         {t('guestModeBadge')}
                       </span>
-                    ) : null
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (devState.tier === 'plus') {
+                            setManageSubscriptionInitialView('overview');
+                            setShowManageSubscriptionModal(true);
+                          } else {
+                            setShowPricingModal(true);
+                          }
+                        }}
+                        className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full transition-all cursor-pointer hover:opacity-80 active:scale-95 ${
+                          devState.tier === 'plus'
+                            ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-medium'
+                            : 'bg-white/10 hover:bg-white/20 text-white/70 hover:text-white border border-white/10'
+                        }`}
+                        title={devState.tier === 'plus' ? t('billing.plans.manageSubscription') : t('billing.limits.upgradeAction')}
+                      >
+                        {devState.tier === 'plus' ? t('plusPlanBadge') : t('freePlanBadge')}
+                      </button>
+                    )
                   }
                 >
                   <div className="space-y-3 pt-1">
@@ -3685,10 +3706,9 @@ export default function App() {
                     </div>
                   </AppSettingsCollapsible>
                 ) : (() => {
-                  const currentTier: UserTier = (devState.tier === 'student' || devState.tier === 'teacher') ? devState.tier : 'free';
+                  const currentTier: UserTier = devState.tier === 'plus' ? 'plus' : 'free';
                   const isFree = currentTier === 'free';
-                  const isStudent = currentTier === 'student';
-                  const isTeacher = currentTier === 'teacher';
+                  const isPlus = currentTier === 'plus';
 
                   const isBoost = Boolean(
                     isFree &&
@@ -3704,28 +3724,22 @@ export default function App() {
 
                   const maxSessions = isFree
                     ? (TIER_LIMITS.free.lifetime_sessions + boostSessions)
-                    : isStudent
-                    ? TIER_LIMITS.student.monthly_sessions + topupSessions
-                    : TIER_LIMITS.teacher.monthly_sessions + topupSessions;
+                    : TIER_LIMITS.plus.monthly_sessions + topupSessions;
                   const currentSessions = isFree ? (devState.lifetime_sessions || 0) : (devState.period_sessions || 0);
 
                   const maxClips = isFree
                     ? (TIER_LIMITS.free.lifetime_clips + boostClips)
-                    : isStudent
-                    ? TIER_LIMITS.student.monthly_clips + topupClips
-                    : Infinity;
+                    : TIER_LIMITS.plus.monthly_clips + topupClips;
                   const currentClips = isFree ? (devState.lifetime_clips || 0) : (devState.period_clips || 0);
                   const nextResetDate = formatSafeDate(devState.current_period_end, uiLanguage);
 
                   const planBadge = (
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono uppercase ${
-                      isStudent
+                      isPlus
                         ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : isTeacher
-                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
                         : 'bg-white/10 text-white/70 border border-white/10'
                     }`}>
-                      {isStudent ? t('billing.plans.studentName') : isTeacher ? t('billing.plans.teacherName') : t('billing.plans.freeName')}
+                      {isPlus ? t('billing.plans.plusName') : t('billing.plans.freeName')}
                     </span>
                   );
 
@@ -3772,9 +3786,7 @@ export default function App() {
                               <span className="text-white/70 flex items-center gap-1.5">
                                 <AudioLines className="w-3.5 h-3.5 text-brand" />
                                 <span>
-                                  {isTeacher || maxClips === Infinity
-                                    ? t('billing.usage.unlimitedClips')
-                                    : isFree
+                                  {isFree
                                     ? t('billing.usage.lifetimeClipsUsed', { used: currentClips, total: maxClips })
                                     : t('billing.usage.monthlyClipsUsed', { used: currentClips, total: maxClips })}
                                 </span>
@@ -4128,7 +4140,7 @@ export default function App() {
       />
 
       {/* Manage Subscription In-App Hub */}
-      {(devState.tier === 'student' || devState.tier === 'teacher') && (
+      {devState.tier === 'plus' && (
         <ManageSubscriptionModal
           isOpen={showManageSubscriptionModal}
           onClose={() => {
@@ -4136,9 +4148,8 @@ export default function App() {
             setManageSubscriptionInitialView('overview');
           }}
           initialView={manageSubscriptionInitialView}
-          currentTier={devState.tier as 'student' | 'teacher'}
+          currentTier={devState.tier}
           renewalDate={formatSafeDate(devState.current_period_end, uiLanguage)}
-          pendingDowngrade={devState.pending_downgrade}
           isCanceling={devState.cancel_at_period_end}
           onReactivate={async () => {
             const result = await reactivateStripeSubscription();
@@ -4149,62 +4160,9 @@ export default function App() {
                 cancel_at_period_end: false,
               });
               setDevState(updated);
-              showToast('Subscription reactivated successfully!');
+              showToast(t('billing.manage.reactivateSuccessToast'));
             } else {
-              showToast(result.error || 'Failed to reactivate subscription.', true);
-            }
-          }}
-          onUpgrade={async () => {
-            const result = await updateStripeSubscription('teacher');
-            if (result.url) {
-              window.location.href = result.url;
-              return;
-            }
-            if (result.success) {
-              setShowManageSubscriptionModal(false);
-              const updated = saveDevState({
-                tier: 'teacher',
-                subscription_status: 'active',
-                period_sessions: 0,
-                period_clips: 0,
-              });
-              setDevState(updated);
-              showToast('Upgraded to Teacher Plan successfully!');
-            } else {
-              showToast(result.error || t('billing.plans.checkoutError'), true);
-            }
-          }}
-          onDowngrade={async () => {
-            const result = await updateStripeSubscription('student');
-            if (result.success) {
-              setShowManageSubscriptionModal(false);
-              // Do NOT downgrade tier immediately. It remains active until end of period.
-              const updated = saveDevState({
-                ...devState,
-                pending_downgrade: 'student',
-              });
-              setDevState(updated);
-              showToast('Downgrade scheduled! You will keep Teacher benefits until the end of your billing cycle.');
-            } else {
-              showToast(result.error || 'Failed to downgrade plan.', true);
-            }
-          }}
-          isCancelingDowngrade={isCancelingDowngrade}
-          onCancelDowngrade={async () => {
-            setIsCancelingDowngrade(true);
-            const result = await cancelStripeDowngrade();
-            setIsCancelingDowngrade(false);
-            if (result.success) {
-              setShowManageSubscriptionModal(false);
-              const updated = saveDevState({
-                ...devState,
-                pending_downgrade: null,
-              });
-              setDevState(updated);
-              fetchCloudProfileAndUsage();
-              showToast(t('billing.manage.cancelDowngradeSuccess'));
-            } else {
-              showToast(result.error || t('billing.manage.cancelDowngradeError'), true);
+              showToast(result.error || t('billing.manage.reactivateErrorToast'), true);
             }
           }}
           onCancelSubscription={async () => {
@@ -4215,9 +4173,9 @@ export default function App() {
                 cancel_at_period_end: true,
               });
               setDevState(updated);
-              showToast('Subscription will cancel at the end of the billing period.');
+              showToast(t('billing.manage.cancelPendingToast'));
             } else {
-              showToast(result.error || 'Failed to cancel subscription.', true);
+              showToast(result.error || t('billing.manage.cancelErrorToast'), true);
             }
           }}
           isPortalLoading={isPortalLoading}
@@ -4234,33 +4192,23 @@ export default function App() {
         reason={showQuotaModal.reason}
         canBoost={!devState.referral_boost_active}
         resetDate={devState.current_period_end}
-        onStudentUpgradeClick={() => {
-          setShowQuotaModal(prev => ({ ...prev, isOpen: false }));
-          setManageSubscriptionInitialView('upgrade_confirm');
-          setShowManageSubscriptionModal(true);
-        }}
         onUpgradeClick={async (targetTier) => {
           setShowQuotaModal({ isOpen: false, reason: 'sessions' });
           if (!targetTier) {
             setShowPricingModal(true);
             return;
           }
-          if (devState.tier === 'student' && targetTier === 'teacher') {
-            setManageSubscriptionInitialView('upgrade_confirm');
-            setShowManageSubscriptionModal(true);
-            return;
-          }
           
-          const result = await startStripeCheckout(targetTier);
+          const result = await startStripeCheckout('plus');
           if (result.mock) {
             const updated = saveDevState({
-              tier: targetTier,
+              tier: 'plus',
               subscription_status: 'active',
               period_sessions: 0,
               period_clips: 0,
             });
             setDevState(updated);
-            setShowSubscriptionSuccessModal({ isOpen: true, tier: targetTier });
+            setShowSubscriptionSuccessModal({ isOpen: true, tier: 'plus' });
           } else if (!result.success) {
             showToast(result.error || t('billing.plans.checkoutError'), true);
           }
@@ -5255,10 +5203,30 @@ export default function App() {
               <p className="hidden sm:block text-[10px] tracking-[0.04em] text-white/50 leading-none truncate">
                 {t('appSubtitle')}
               </p>
-              {isGuestMode && (
+              {isGuestMode ? (
                 <span className="px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] uppercase tracking-wider bg-white/10 text-white/70 border border-white/10 leading-none">
                   {t('guestModeBadge')}
                 </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (devState.tier === 'plus') {
+                      setManageSubscriptionInitialView('overview');
+                      setShowManageSubscriptionModal(true);
+                    } else {
+                      setShowPricingModal(true);
+                    }
+                  }}
+                  className={`px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] uppercase tracking-wider leading-none transition-all cursor-pointer hover:opacity-80 active:scale-95 focus:outline-none focus-visible:ring-1 focus-visible:ring-brand ${
+                    devState.tier === 'plus'
+                      ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-medium'
+                      : 'bg-white/10 hover:bg-white/20 text-white/70 hover:text-white border border-white/10'
+                  }`}
+                  title={devState.tier === 'plus' ? t('billing.plans.manageSubscription') : t('billing.limits.upgradeAction')}
+                >
+                  {devState.tier === 'plus' ? t('plusPlanBadge') : t('freePlanBadge')}
+                </button>
               )}
             </div>
           </div>

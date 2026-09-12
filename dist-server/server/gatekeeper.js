@@ -8,10 +8,11 @@ export const TIER_CONFIG = {
         lifetime_sessions: 3,
         lifetime_clips: 15,
     },
-    student: {
+    plus: {
         monthly_sessions: 20,
         monthly_clips: 200,
     },
+    // TEACHER PLAN (COMMENTED/DISABLED for student-centric pivot; reactivate with new nomenclature if needed)
     teacher: {
         monthly_sessions: 100,
         monthly_clips: Infinity,
@@ -59,13 +60,13 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                 const topupClips = Number(dev.topup_extra_clips) || 0;
                 const maxSessions = tier === 'free'
                     ? TIER_CONFIG.free.lifetime_sessions + (isBoostActive ? (Number(dev.referral_boost_extra_sessions) || TIER_CONFIG.boost.extra_sessions) : 0) + topupSessions
-                    : tier === 'student'
-                        ? TIER_CONFIG.student.monthly_sessions + topupSessions
+                    : tier === 'plus'
+                        ? TIER_CONFIG.plus.monthly_sessions + topupSessions
                         : TIER_CONFIG.teacher.monthly_sessions + topupSessions;
                 const maxClips = tier === 'free'
                     ? TIER_CONFIG.free.lifetime_clips + (isBoostActive ? (Number(dev.referral_boost_extra_clips) || TIER_CONFIG.boost.extra_clips) : 0) + topupClips
-                    : tier === 'student'
-                        ? TIER_CONFIG.student.monthly_clips + topupClips
+                    : tier === 'plus'
+                        ? TIER_CONFIG.plus.monthly_clips + topupClips
                         : Infinity;
                 if (tier === 'free') {
                     if (type === 'consolidation' && lifetimeSessions >= maxSessions) {
@@ -93,16 +94,16 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                         };
                     }
                 }
-                else if (tier === 'student') {
+                else if (tier === 'plus') {
                     if (type === 'consolidation' && periodSessions >= maxSessions) {
                         return {
                             allowed: false,
                             statusCode: 403,
                             code: 'QUOTA_EXCEEDED',
-                            tier: 'student',
+                            tier: 'plus',
                             limits: { sessions: maxSessions, clips: maxClips },
                             usage: { period_sessions: periodSessions, period_clips: periodClips },
-                            error: 'You have reached your monthly Student plan AI limit.',
+                            error: 'You have reached your monthly Zoutty Plus AI limit.',
                         };
                     }
                     if (type === 'single_clip' && periodClips >= maxClips) {
@@ -110,25 +111,26 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                             allowed: false,
                             statusCode: 403,
                             code: 'QUOTA_EXCEEDED',
-                            tier: 'student',
+                            tier: 'plus',
                             limits: { sessions: maxSessions, clips: maxClips },
                             usage: { period_sessions: periodSessions, period_clips: periodClips },
-                            error: 'You have reached your monthly Student plan AI limit.',
+                            error: 'You have reached your monthly Zoutty Plus AI limit.',
                         };
                     }
-                }
-                else if (tier === 'teacher') {
-                    if (type === 'consolidation' && periodSessions >= maxSessions) {
+                    /* [TEACHER PLAN - DISABLED FOR STUDENT PIVOT; Reactivate with new nomenclature if needed]
+                    } else if (tier === 'teacher') {
+                      if (type === 'consolidation' && periodSessions >= maxSessions) {
                         return {
-                            allowed: false,
-                            statusCode: 403,
-                            code: 'QUOTA_EXCEEDED',
-                            tier: 'teacher',
-                            limits: { sessions: maxSessions, clips: Infinity },
-                            usage: { period_sessions: periodSessions },
-                            error: 'You have reached your monthly Teacher plan AI limit.',
+                          allowed: false,
+                          statusCode: 403,
+                          code: 'QUOTA_EXCEEDED',
+                          tier: 'teacher',
+                          limits: { sessions: maxSessions, clips: Infinity },
+                          usage: { period_sessions: periodSessions },
+                          error: 'You have reached your monthly Teacher plan AI limit.',
                         };
-                    }
+                      }
+                    */
                 }
                 return {
                     allowed: true,
@@ -180,13 +182,13 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
             const topupClips = Number(profile?.topup_extra_clips) || 0;
             const maxSessions = tier === 'free'
                 ? TIER_CONFIG.free.lifetime_sessions + extraSessions + topupSessions
-                : tier === 'student'
-                    ? TIER_CONFIG.student.monthly_sessions + topupSessions
+                : tier === 'plus'
+                    ? TIER_CONFIG.plus.monthly_sessions + topupSessions
                     : TIER_CONFIG.teacher.monthly_sessions + topupSessions;
             const maxClips = tier === 'free'
                 ? TIER_CONFIG.free.lifetime_clips + extraClips + topupClips
-                : tier === 'student'
-                    ? TIER_CONFIG.student.monthly_clips + topupClips
+                : tier === 'plus'
+                    ? TIER_CONFIG.plus.monthly_clips + topupClips
                     : Infinity;
             if (tier === 'free') {
                 if (type === 'consolidation' && lifetimeSessions >= maxSessions) {
@@ -216,16 +218,16 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                     };
                 }
             }
-            else if (tier === 'student') {
+            else if (tier === 'plus') {
                 if (type === 'consolidation' && periodSessions >= maxSessions) {
                     return {
                         allowed: false,
                         statusCode: 403,
                         code: 'QUOTA_EXCEEDED',
-                        tier: 'student',
+                        tier: 'plus',
                         limits: { sessions: maxSessions, clips: maxClips },
                         usage: { period_sessions: periodSessions, period_clips: periodClips },
-                        error: 'You have reached your monthly Student plan AI limit.',
+                        error: 'You have reached your monthly Zoutty Plus AI limit.',
                         userId,
                     };
                 }
@@ -234,16 +236,16 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                         allowed: false,
                         statusCode: 403,
                         code: 'QUOTA_EXCEEDED',
-                        tier: 'student',
+                        tier: 'plus',
                         limits: { sessions: maxSessions, clips: maxClips },
                         usage: { period_sessions: periodSessions, period_clips: periodClips },
-                        error: 'You have reached your monthly Student plan AI limit.',
+                        error: 'You have reached your monthly Zoutty Plus AI limit.',
                         userId,
                     };
                 }
-            }
-            else if (tier === 'teacher' && type === 'consolidation' && periodSessions >= maxSessions) {
-                return {
+                /* [TEACHER PLAN - DISABLED FOR STUDENT PIVOT; Reactivate with new nomenclature if needed]
+                } else if (tier === 'teacher' && type === 'consolidation' && periodSessions >= maxSessions) {
+                  return {
                     allowed: false,
                     statusCode: 403,
                     code: 'QUOTA_EXCEEDED',
@@ -252,7 +254,8 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                     usage: { period_sessions: periodSessions },
                     error: 'You have reached your monthly Teacher plan AI limit.',
                     userId,
-                };
+                  };
+                */
             }
             return {
                 allowed: true,
@@ -305,7 +308,7 @@ export async function recordUsageIncrement(authHeader, type) {
         ]);
         if (profile) {
             if (type === 'consolidation' && (profile.topup_extra_sessions || 0) > 0) {
-                const baseLimit = profile.tier === 'teacher' ? TIER_CONFIG.teacher.monthly_sessions : profile.tier === 'student' ? TIER_CONFIG.student.monthly_sessions : TIER_CONFIG.free.lifetime_sessions;
+                const baseLimit = profile.tier === 'plus' ? TIER_CONFIG.plus.monthly_sessions : TIER_CONFIG.free.lifetime_sessions;
                 const currentUsage = profile.tier === 'free' ? (usage?.lifetime_sessions || 0) : (usage?.period_sessions || 0);
                 if (currentUsage > baseLimit) {
                     const newTopup = Math.max(0, profile.topup_extra_sessions - 1);
@@ -314,7 +317,7 @@ export async function recordUsageIncrement(authHeader, type) {
                 }
             }
             else if (type === 'single_clip' && (profile.topup_extra_clips || 0) > 0) {
-                const baseClipLimit = profile.tier === 'student' ? TIER_CONFIG.student.monthly_clips : TIER_CONFIG.free.lifetime_clips;
+                const baseClipLimit = profile.tier === 'plus' ? TIER_CONFIG.plus.monthly_clips : TIER_CONFIG.free.lifetime_clips;
                 const currentClips = profile.tier === 'free' ? (usage?.lifetime_clips || 0) : (usage?.period_clips || 0);
                 if (currentClips > baseClipLimit) {
                     const newTopupClips = Math.max(0, profile.topup_extra_clips - 1);
