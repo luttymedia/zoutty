@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.10.6',
+    date: '2026-09-12',
+    changes: [
+      'Bandwidth & Caching Optimization: Configured granular Cache-Control headers across Express and Render Blueprint (1-year immutable hashed bundles, Service Worker bypass, and media caching)',
+      'Response Compression Middleware: Integrated gzip/deflate compression for static and API responses, reducing JavaScript transfer size by 72% and CSS by 85%',
+      'Lazy Demo Video Streaming: Switched onboarding sample lesson video to lazy streaming on demand instead of eager upfront download',
+      'PWA Cache Pruning: Excluded legacy and sandbox HTML templates from Workbox precache to reduce offline cache overhead'
+    ]
+  },
+  {
     version: '3.10.5',
     date: '2026-09-08',
     changes: [

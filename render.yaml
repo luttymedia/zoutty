@@ -1,0 +1,46 @@
+﻿services:
+  - type: web
+    name: zoutty
+    runtime: node
+    plan: starter
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+    headers:
+      # Immutable cache for Vite hashed production assets (JS bundles, CSS, processed images)
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+
+      # Prevent caching for Service Worker scripts to ensure instant updates
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /registerSW.js
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+
+      # Prevent caching of root HTML so users always receive latest bundle references
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+
+      # Cache heavy demo media (30 days) with revalidation
+      - path: /inline_lesson_video.mp4
+        name: Cache-Control
+        value: public, max-age=2592000, stale-while-revalidate=86400
+
+      # Cache icons and manifest (7 days)
+      - path: /manifest.webmanifest
+        name: Cache-Control
+        value: public, max-age=604800, stale-while-revalidate=86400
+      - path: /icons/*
+        name: Cache-Control
+        value: public, max-age=604800, stale-while-revalidate=86400
+      - path: /zouttyLogoHoriz.png
+        name: Cache-Control
+        value: public, max-age=604800, stale-while-revalidate=86400

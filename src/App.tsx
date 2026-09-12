@@ -2862,26 +2862,19 @@ export default function App() {
       loadedAudios.forEach(a => audioRecord[a.id] = a);
       setAudioEntries(audioRecord);
 
-      // Fetch and save the placeholder lesson video as a SessionMedia blob
-      try {
-        const res = await fetch('/inline_lesson_video.mp4');
-        const blob = await res.blob();
-        const demoMediaItem: SessionMedia = {
-          id: 'demo-media-1',
-          sessionId: 'demo-session',
-          timestamp: Date.now(),
-          filename: 'inline_lesson_video.mp4',
-          mimeType: 'video/mp4',
-          size: blob.size,
-          storageMode: 'blob',
-          blob,
-          isLessonVideo: true,
-        };
-        await db.saveMediaItem(demoMediaItem);
-        setSessionMedia(prev => [...prev, demoMediaItem]);
-      } catch (e) {
-        console.warn('[Demo] Could not load placeholder lesson video:', e);
-      }
+      // Register placeholder lesson video metadata lazily without an upfront 1.86MB download
+      const demoMediaItem: SessionMedia = {
+        id: 'demo-media-1',
+        sessionId: 'demo-session',
+        timestamp: Date.now(),
+        filename: 'inline_lesson_video.mp4',
+        mimeType: 'video/mp4',
+        size: 1951316,
+        storageMode: 'blob',
+        isLessonVideo: true,
+      };
+      await db.saveMediaItem(demoMediaItem);
+      setSessionMedia(prev => [...prev, demoMediaItem]);
 
       navigateTo('detail', demoSessionId, null, 'push');
       setOnboardingTourStep(3);
@@ -5869,7 +5862,9 @@ function SessionDetail({
   // Revoke object URLs on cleanup
   useEffect(() => {
     return () => {
-      Object.values(mediaObjectUrls).forEach(url => URL.revokeObjectURL(url));
+      Object.values(mediaObjectUrls).forEach(url => {
+        if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
+      });
     };
   }, []);
 
@@ -5899,6 +5894,8 @@ function SessionDetail({
           } else if (item.media_storage_path) {
             const { data } = supabase.storage.from('sessionMedia').getPublicUrl(item.media_storage_path);
             newUrls[item.id] = data.publicUrl;
+          } else if (item.id === 'demo-media-1' || item.filename === 'inline_lesson_video.mp4') {
+            newUrls[item.id] = '/inline_lesson_video.mp4';
           } else {
             newBroken.add(item.id);
           }
@@ -6060,9 +6057,11 @@ function SessionDetail({
   };
 
   const handleDeleteMediaItem = async (item: SessionMedia) => {
-    // Revoke object URL if any
+    // Revoke object URL if any blob URL
     if (mediaObjectUrls[item.id]) {
-      URL.revokeObjectURL(mediaObjectUrls[item.id]);
+      if (mediaObjectUrls[item.id].startsWith('blob:')) {
+        URL.revokeObjectURL(mediaObjectUrls[item.id]);
+      }
       setMediaObjectUrls(prev => { const c = { ...prev }; delete c[item.id]; return c; });
     }
     setBrokenMediaIds(prev => { const n = new Set(prev); n.delete(item.id); return n; });

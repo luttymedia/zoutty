@@ -29,3 +29,6 @@ dist-ssr
 
 # Design Assets
 design-assets/
+
+# Binaries
+*.exe

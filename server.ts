@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -46,10 +47,63 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve frontend assets (Production only)
+// Response compression (gzip/deflate) to dramatically reduce transferred payload
+app.use(compression({
+    threshold: 1024, // Only compress responses > 1KB
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) return false;
+        return compression.filter(req, res);
+    }
+}));
+
+// Serve frontend assets with production caching headers
 if (process.env.NODE_ENV === 'production') {
-    console.log('[server] Running in production mode. Serving static files from dist...');
-    app.use(express.static(path.join(__dirname, '../dist')));
+    const distPath = path.join(__dirname, '../dist');
+    console.log(`[server] Running in production mode. Serving static files from ${distPath} with caching headers...`);
+    app.use(express.static(distPath, {
+        etag: true,
+        lastModified: true,
+        setHeaders: (res, filePath) => {
+            const normalizedPath = filePath.replace(/\\/g, '/');
+
+            // 1. Immutable Hashed Assets (Vite outputs /assets/* with unique hash)
+            // Caches for 1 year; saves re-downloads on every repeat visit
+            if (normalizedPath.includes('/assets/')) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            }
+            // 2. Service Worker & PWA lifecycle scripts (Never cache so client picks up updates immediately)
+            else if (
+                normalizedPath.endsWith('/sw.js') ||
+                normalizedPath.endsWith('/registerSW.js') ||
+                normalizedPath.includes('workbox')
+            ) {
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
+            // 3. HTML pages (Always revalidate so client never uses stale index.html)
+            else if (normalizedPath.endsWith('.html')) {
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
+            // 4. Large media files (lesson videos / audio) - Cache 30 days with revalidation
+            else if (normalizedPath.endsWith('.mp4') || normalizedPath.endsWith('.webm')) {
+                res.setHeader('Cache-Control', 'public, max-age=2592000, stale-while-revalidate=86400');
+            }
+            // 5. Static images, manifest, and icons - Cache for 7 days
+            else if (
+                normalizedPath.endsWith('.webmanifest') ||
+                normalizedPath.match(/\.(png|jpg|jpeg|gif|webp|svg|ico)$/i)
+            ) {
+                res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+            }
+            // 6. Default fallback for other static assets
+            else {
+                res.setHeader('Cache-Control', 'public, max-age=86400');
+            }
+        }
+    }));
 }
 
 // Basic health route
@@ -1051,6 +1105,8 @@ if (process.env.NODE_ENV === 'production') {
             return res.status(404).type('text/plain').send('Not found');
         }
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         res.sendFile(path.join(__dirname, '../dist/index.html'));
     });
 }

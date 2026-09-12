@@ -43,6 +43,7 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          globIgnores: ['**/onboarding.obsolete.html', '**/sandbox*.html'],
           cleanupOutdatedCaches: true,
           skipWaiting: true,
           clientsClaim: true,
