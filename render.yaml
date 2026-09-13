@@ -60,7 +60,7 @@ services:
     name: zoutty-staging
     runtime: node
     plan: starter
-    buildCommand: npm run build:server
+    buildCommand: npm install --include=dev && npm run build:server
     startCommand: npm start
     envVars:
       - key: NODE_ENV
