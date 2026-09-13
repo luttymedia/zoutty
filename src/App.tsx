@@ -108,6 +108,7 @@ import { syncEngine } from './lib/syncEngine';
 import { AuthScreen } from './components/AuthScreen';
 import { apiUrl, apiState } from './lib/api';
 import { ApiWakingToast } from './components/ApiWakingToast';
+import { ApiWakingModal } from './components/ApiWakingModal';
 import { dbStart } from './lib/db';
 import {
   DndContext,
@@ -2626,6 +2627,9 @@ export default function App() {
         }
       } catch (_) {}
 
+      // Ensure API is awake; displays full-screen waking modal if spinning up
+      await apiState.ensureReady();
+
       const response = await fetch(apiUrl('/api/gemini/process-audio'), {
         method: 'POST',
         headers,
@@ -3138,7 +3142,7 @@ export default function App() {
       )}
       {spinnerConfig && <Spinner text={spinnerConfig.text} onCancel={spinnerConfig.onCancel} />}
       {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.actionText ? toastMessage.onAction : undefined} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
-      <ApiWakingToast />
+      <ApiWakingModal />
 
       <div className="sticky top-0 z-40 w-full flex flex-col">
         {/* Payment Failed / Past Due Banner */}

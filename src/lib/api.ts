@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Central API Client and Configuration
  * 
  * Environment handling:
@@ -28,6 +28,8 @@ class ApiStateManager {
   private status: ApiStatus = 'idle';
   private listeners: Set<StatusListener> = new Set();
   private checkPromise: Promise<boolean> | null = null;
+  private isAwaitingApi = false;
+  private awaitingListeners: Set<(isAwaiting: boolean) => void> = new Set();
 
   public getStatus(): ApiStatus {
     return this.status;
@@ -41,10 +43,55 @@ class ApiStateManager {
     };
   }
 
+  public subscribeAwaiting(listener: (isAwaiting: boolean) => void): () => void {
+    this.awaitingListeners.add(listener);
+    listener(this.isAwaitingApi);
+    return () => {
+      this.awaitingListeners.delete(listener);
+    };
+  }
+
   private setStatus(newStatus: ApiStatus) {
     if (this.status === newStatus) return;
     this.status = newStatus;
     this.listeners.forEach((l) => l(newStatus));
+  }
+
+  public setAwaitingApi(awaiting: boolean) {
+    if (this.isAwaitingApi === awaiting) return;
+    this.isAwaitingApi = awaiting;
+    this.awaitingListeners.forEach((l) => l(awaiting));
+  }
+
+  public isAwaiting(): boolean {
+    return this.isAwaitingApi;
+  }
+
+  /**
+   * Waits for the API to become ready. If currently waking or idle, triggers wake
+   * and blocks until ready or timeout.
+   */
+  public async ensureReady(timeoutMs = 60000): Promise<boolean> {
+    if (this.status === 'ready') return true;
+
+    this.setAwaitingApi(true);
+    try {
+      const startTime = Date.now();
+      this.pingAndWake({ timeoutMs: 3000, maxRetries: 20 });
+
+      while (Date.now() - startTime < timeoutMs) {
+        if (this.getStatus() === 'ready') {
+          return true;
+        }
+        if (this.getStatus() === 'unavailable') {
+          return false;
+        }
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      return this.getStatus() === 'ready';
+    } finally {
+      this.setAwaitingApi(false);
+    }
   }
 
   /**

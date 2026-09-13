@@ -1,6 +1,6 @@
 import { getDevState, saveDevState } from './devLab';
 import { supabase } from './supabase';
-import { apiUrl } from './api';
+import { apiUrl, apiState } from './api';
 
 const blobToBase64 = (blob?: Blob): Promise<string> => {
     return new Promise((resolve) => {
@@ -58,6 +58,9 @@ export const callZoukAudioProcessor = async (payload: {
             headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
         }
     } catch (_) {}
+
+    // Ensure API is awake; displays full-screen waking modal if spinning up
+    await apiState.ensureReady();
 
     const response = await fetch(apiUrl('/api/gemini/process-single-audio'), {
         method: 'POST',
