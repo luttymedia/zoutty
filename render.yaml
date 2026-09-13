@@ -57,7 +57,7 @@ services:
   # 2. Backend: Render Web Service (Node/Express API, Gatekeeper, Gemini, Stripe)
   # ============================================================================
   - type: web
-    name: zoutty-api
+    name: zoutty-staging
     runtime: node
     plan: starter
     buildCommand: npm run build:server
