@@ -1,5 +1,6 @@
 import { getDevState, saveDevState } from './devLab';
 import { supabase } from './supabase';
+import { apiUrl } from './api';
 
 const blobToBase64 = (blob?: Blob): Promise<string> => {
     return new Promise((resolve) => {
@@ -58,7 +59,7 @@ export const callZoukAudioProcessor = async (payload: {
         }
     } catch (_) {}
 
-    const response = await fetch('/api/gemini/process-single-audio', {
+    const response = await fetch(apiUrl('/api/gemini/process-single-audio'), {
         method: 'POST',
         headers,
         body: JSON.stringify({

@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { getDevState, saveDevState } from './devLab';
 import { UserTier } from '../types';
+import { apiUrl } from './api';
 
 export interface CheckoutResult {
   success: boolean;
@@ -34,7 +35,7 @@ export async function startStripeCheckout(
       headers['x-dev-override'] = JSON.stringify(devState);
     }
 
-    const response = await fetch('/api/stripe/create-checkout-session', {
+    const response = await fetch(apiUrl('/api/stripe/create-checkout-session'), {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -48,60 +49,53 @@ export async function startStripeCheckout(
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('[stripe] Checkout session creation failed:', data);
+      console.error('[stripe] Checkout creation failed:', data);
       return {
         success: false,
         error: data?.error || 'Failed to start checkout. Please try again.',
       };
     }
 
-    // Mock Mode fallback simulation
+    // In mock mode, the server returns mock: true
     if (data.mock) {
-      console.log('[stripe] Mock checkout simulated successfully for tier:', targetTier);
-      saveDevState({
-        tier: targetTier,
-        subscription_status: 'active',
-        period_sessions: 0,
-        period_clips: 0,
-      });
+      console.log('[stripe] Mock checkout session received, bypassing Stripe redirect.');
       return {
         success: true,
         mock: true,
-        targetTier,
+        targetTier: data.targetTier || targetTier,
         url: data.url,
       };
     }
 
-    // Real Stripe Checkout redirect
     if (data.url) {
-      window.location.href = data.url;
       return {
         success: true,
-        mock: false,
         url: data.url,
+        targetTier,
       };
     }
 
     return {
       success: false,
-      error: 'Invalid response from checkout server.',
+      error: 'No checkout URL returned from server.',
     };
   } catch (err: any) {
-    console.error('[stripe] Error during startStripeCheckout:', err);
+    console.error('[stripe] Unexpected error during checkout creation:', err);
     return {
       success: false,
-      error: err?.message || 'Network error occurred while contacting billing server.',
+      error: err?.message || 'An unexpected error occurred. Please try again.',
     };
   }
 }
 
 /**
- * Opens Stripe Customer Billing Portal for managing subscription
+ * Creates a Stripe Customer Billing Portal session and returns the portal URL
  */
-export async function openStripeCustomerPortal(): Promise<{ success: boolean; url?: string; mock?: boolean; error?: string }> {
+export async function openBillingPortal(): Promise<{ success: boolean; url?: string; mock?: boolean; error?: string }> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
+    const devState = getDevState();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -111,7 +105,7 @@ export async function openStripeCustomerPortal(): Promise<{ success: boolean; ur
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch('/api/stripe/create-portal-session', {
+    const response = await fetch(apiUrl('/api/stripe/create-portal-session'), {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -143,6 +137,8 @@ export async function openStripeCustomerPortal(): Promise<{ success: boolean; ur
   }
 }
 
+export const openStripeCustomerPortal = openBillingPortal;
+
 /**
  * Initiates Stripe Checkout for one-time Top-Up Pack (+10 sessions, +100 clips for €3.99)
  */
@@ -164,7 +160,7 @@ export async function startTopupCheckout(): Promise<CheckoutResult> {
       headers['x-dev-override'] = JSON.stringify(devState);
     }
 
-    const response = await fetch('/api/stripe/create-topup-checkout', {
+    const response = await fetch(apiUrl('/api/stripe/create-topup-checkout'), {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -238,7 +234,7 @@ export async function updateStripeSubscription(targetTier: 'plus'): Promise<{ su
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch('/api/stripe/update-subscription', {
+    const response = await fetch(apiUrl('/api/stripe/update-subscription'), {
       method: 'POST',
       headers,
       body: JSON.stringify({ targetTier }),
@@ -273,7 +269,7 @@ export async function cancelStripeSubscription(): Promise<{ success: boolean; mo
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch('/api/stripe/cancel-subscription', {
+    const response = await fetch(apiUrl('/api/stripe/cancel-subscription'), {
       method: 'POST',
       headers,
     });
@@ -297,7 +293,7 @@ export async function reactivateStripeSubscription(): Promise<{ success: boolean
     const token = data.session?.access_token;
     if (!token) return { success: false, error: 'User must be authenticated.' };
 
-    const response = await fetch('/api/stripe/reactivate-subscription', {
+    const response = await fetch(apiUrl('/api/stripe/reactivate-subscription'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -324,7 +320,7 @@ export async function cancelStripeDowngrade(): Promise<{ success: boolean; mock?
     const token = data.session?.access_token;
     if (!token) return { success: false, error: 'User must be authenticated.' };
 
-    const response = await fetch('/api/stripe/cancel-downgrade', {
+    const response = await fetch(apiUrl('/api/stripe/cancel-downgrade'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

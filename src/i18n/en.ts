@@ -1040,6 +1040,16 @@ const en = {
     deleteSuccess: 'Deleted successfully',
     processing: 'Processing...',
   },
+  apiStatus: {
+    warmingUp: 'Warming up the brain… 🧠',
+    wakingAi: 'Waking AI up… ☕',
+    gettingReady: "Getting Zoutty's brain ready…",
+    ready: 'AI is ready to dance! 💃',
+    unavailable: 'AI service is temporarily resting. Tap to retry.',
+    wakingNotice: 'Waking up the server (takes ~30s after inactivity)...',
+    retryBtn: 'Retry Connection',
+    connecting: 'Connecting...',
+  },
 };
 
 export default en;

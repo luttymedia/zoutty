@@ -1,15 +1,15 @@
 ﻿services:
-  - type: web
-    name: zoutty
-    runtime: node
-    plan: starter
-    buildCommand: npm run build
-    startCommand: npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3000
+  # ============================================================================
+  # 1. Frontend: Render Static Site (React 19 / Vite SPA on global CDN)
+  # ============================================================================
+  - type: static
+    name: zoutty-web
+    buildCommand: npm run build:client
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     headers:
       # Immutable cache for Vite hashed production assets (JS bundles, CSS, processed images)
       - path: /assets/*
@@ -44,3 +44,49 @@
       - path: /zouttyLogoHoriz.png
         name: Cache-Control
         value: public, max-age=604800, stale-while-revalidate=86400
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: zoutty-api
+          property: host
+
+  # ============================================================================
+  # 2. Backend: Render Web Service (Node/Express API, Gatekeeper, Gemini, Stripe)
+  # ============================================================================
+  - type: web
+    name: zoutty-api
+    runtime: node
+    plan: starter
+    buildCommand: npm run build:server
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_URL
+        fromService:
+          type: static
+          name: zoutty-web
+          property: host
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PLUS_PRICE_ID
+        sync: false
+      - key: STRIPE_TOPUP_PRICE_ID
+        sync: false

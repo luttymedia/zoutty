@@ -106,6 +106,8 @@ import { UI_LANGUAGE_NAMES } from './i18n';
 import { supabase } from './lib/supabase';
 import { syncEngine } from './lib/syncEngine';
 import { AuthScreen } from './components/AuthScreen';
+import { apiUrl, apiState } from './lib/api';
+import { ApiWakingToast } from './components/ApiWakingToast';
 import { dbStart } from './lib/db';
 import {
   DndContext,
@@ -478,7 +480,7 @@ export default function App() {
       const token = currentSession?.access_token;
       if (!token) return;
 
-      const res = await fetch('/api/referrals/stats', {
+      const res = await fetch(apiUrl('/api/referrals/stats'), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -568,7 +570,7 @@ export default function App() {
     if (!pendingCode) return;
 
     try {
-      const res = await fetch('/api/referrals/redeem', {
+      const res = await fetch(apiUrl('/api/referrals/redeem'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -590,6 +592,11 @@ export default function App() {
   }, [fetchReferralStats, t]);
 
   useEffect(() => {
+    // Proactive background ping: wakes up sleeping Node API instance on cold start
+    apiState.pingAndWake().catch((err) => {
+      console.debug('[API] Initial wake-up probe:', err);
+    });
+
     const handleDevChange = (e: any) => {
       setDevState(e.detail || getDevState());
     };
@@ -637,7 +644,7 @@ export default function App() {
         // Confirm session on backend to immediately update DB & transition referral rewards
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (session?.access_token) {
-            fetch('/api/stripe/confirm-session', {
+            fetch(apiUrl('/api/stripe/confirm-session'), {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1347,7 +1354,7 @@ export default function App() {
     showSpinner(t('common.processing'));
     try {
       const token = session?.access_token;
-      const res = await fetch('/api/user/delete-account', {
+      const res = await fetch(apiUrl('/api/user/delete-account'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2619,7 +2626,7 @@ export default function App() {
         }
       } catch (_) {}
 
-      const response = await fetch('/api/gemini/process-audio', {
+      const response = await fetch(apiUrl('/api/gemini/process-audio'), {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -3131,6 +3138,7 @@ export default function App() {
       )}
       {spinnerConfig && <Spinner text={spinnerConfig.text} onCancel={spinnerConfig.onCancel} />}
       {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.actionText ? toastMessage.onAction : undefined} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
+      <ApiWakingToast />
 
       <div className="sticky top-0 z-40 w-full flex flex-col">
         {/* Payment Failed / Past Due Banner */}
@@ -5131,7 +5139,7 @@ export default function App() {
                     try {
                       let sharedData: any = null;
                       try {
-                        const resp = await fetch(`/api/sessions/shared/${codeToFetch}`);
+                        const resp = await fetch(apiUrl(`/api/sessions/shared/${codeToFetch}`));
                         if (resp.ok) {
                           sharedData = await resp.json();
                         }

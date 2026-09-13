@@ -1042,6 +1042,16 @@ const es: Translations = {
     deleteSuccess: 'Eliminado exitosamente',
     processing: 'Procesando...',
   },
+  apiStatus: {
+    warmingUp: 'Calentando el cerebro… 🧠',
+    wakingAi: 'Despertando a la IA… ☕',
+    gettingReady: 'Preparando el cerebro de Zoutty…',
+    ready: '¡La IA está lista para bailar! 💃',
+    unavailable: 'El servicio de IA está descansando. Toca para reintentar.',
+    wakingNotice: 'Iniciando el servidor (toma unos ~30s tras inactividad)...',
+    retryBtn: 'Reintentar conexión',
+    connecting: 'Conectando...',
+  },
 };
 
 export default es;

@@ -1,8 +1,10 @@
 import express from 'express';
+import cors from 'cors';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import { checkGatekeeper, recordUsageIncrement } from './server/gatekeeper.js';
@@ -17,6 +19,32 @@ const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY || '' });
 const app = express();
 app.set('trust proxy', 1); // Trust the reverse proxy (e.g. Render) to correctly set req.ip, req.protocol, etc.
 const PORT = process.env.PORT || 3000;
+// Configure CORS for Render Static Site frontend and local development
+const rawClientUrls = process.env.CLIENT_URL || '';
+const configuredOrigins = rawClientUrls.split(',').map(u => u.trim()).filter(Boolean);
+const allowedOrigins = [
+    ...configuredOrigins,
+    'http://localhost:5173',
+    'http://localhost:8181',
+    'http://localhost:3000',
+];
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (e.g. curl, mobile, server-to-server, Stripe webhooks)
+        if (!origin)
+            return callback(null, true);
+        if (process.env.NODE_ENV !== 'production' ||
+            allowedOrigins.includes(origin) ||
+            allowedOrigins.some(allowed => origin.endsWith('.onrender.com'))) {
+            return callback(null, true);
+        }
+        console.warn(`[CORS] Request origin "${origin}" not in allowedOrigins:`, allowedOrigins);
+        return callback(new Error('Blocked by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-dev-override']
+}));
 // Rate limiter state for audio requests
 const audioRequestTimestamps = [];
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -44,49 +72,54 @@ app.use(compression({
         return compression.filter(req, res);
     }
 }));
-// Serve frontend assets with production caching headers
+// Serve frontend assets with production caching headers if dist folder exists
 if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(__dirname, '../dist');
-    console.log(`[server] Running in production mode. Serving static files from ${distPath} with caching headers...`);
-    app.use(express.static(distPath, {
-        etag: true,
-        lastModified: true,
-        setHeaders: (res, filePath) => {
-            const normalizedPath = filePath.replace(/\\/g, '/');
-            // 1. Immutable Hashed Assets (Vite outputs /assets/* with unique hash)
-            // Caches for 1 year; saves re-downloads on every repeat visit
-            if (normalizedPath.includes('/assets/')) {
-                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    if (fs.existsSync(distPath)) {
+        console.log(`[server] Dist folder found. Serving static files from ${distPath} with caching headers...`);
+        app.use(express.static(distPath, {
+            etag: true,
+            lastModified: true,
+            setHeaders: (res, filePath) => {
+                const normalizedPath = filePath.replace(/\\/g, '/');
+                // 1. Immutable Hashed Assets (Vite outputs /assets/* with unique hash)
+                // Caches for 1 year; saves re-downloads on every repeat visit
+                if (normalizedPath.includes('/assets/')) {
+                    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                }
+                // 2. Service Worker & PWA lifecycle scripts (Never cache so client picks up updates immediately)
+                else if (normalizedPath.endsWith('/sw.js') ||
+                    normalizedPath.endsWith('/registerSW.js') ||
+                    normalizedPath.includes('workbox')) {
+                    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                    res.setHeader('Pragma', 'no-cache');
+                    res.setHeader('Expires', '0');
+                }
+                // 3. HTML pages (Always revalidate so client never uses stale index.html)
+                else if (normalizedPath.endsWith('.html')) {
+                    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                    res.setHeader('Pragma', 'no-cache');
+                    res.setHeader('Expires', '0');
+                }
+                // 4. Large media files (lesson videos / audio) - Cache 30 days with revalidation
+                else if (normalizedPath.endsWith('.mp4') || normalizedPath.endsWith('.webm')) {
+                    res.setHeader('Cache-Control', 'public, max-age=2592000, stale-while-revalidate=86400');
+                }
+                // 5. Static images, manifest, and icons - Cache for 7 days
+                else if (normalizedPath.endsWith('.webmanifest') ||
+                    normalizedPath.match(/\.(png|jpg|jpeg|gif|webp|svg|ico)$/i)) {
+                    res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+                }
+                // 6. Default fallback for other static assets
+                else {
+                    res.setHeader('Cache-Control', 'public, max-age=86400');
+                }
             }
-            // 2. Service Worker & PWA lifecycle scripts (Never cache so client picks up updates immediately)
-            else if (normalizedPath.endsWith('/sw.js') ||
-                normalizedPath.endsWith('/registerSW.js') ||
-                normalizedPath.includes('workbox')) {
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-            }
-            // 3. HTML pages (Always revalidate so client never uses stale index.html)
-            else if (normalizedPath.endsWith('.html')) {
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-            }
-            // 4. Large media files (lesson videos / audio) - Cache 30 days with revalidation
-            else if (normalizedPath.endsWith('.mp4') || normalizedPath.endsWith('.webm')) {
-                res.setHeader('Cache-Control', 'public, max-age=2592000, stale-while-revalidate=86400');
-            }
-            // 5. Static images, manifest, and icons - Cache for 7 days
-            else if (normalizedPath.endsWith('.webmanifest') ||
-                normalizedPath.match(/\.(png|jpg|jpeg|gif|webp|svg|ico)$/i)) {
-                res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
-            }
-            // 6. Default fallback for other static assets
-            else {
-                res.setHeader('Cache-Control', 'public, max-age=86400');
-            }
-        }
-    }));
+        }));
+    }
+    else {
+        console.log('[server] No dist folder found. Operating as pure API service.');
+    }
 }
 // Basic health route
 app.get('/api/health', (req, res) => {
@@ -976,16 +1009,28 @@ if (process.env.NODE_ENV !== 'production') {
     });
     app.use(vite.middlewares);
 }
-// Fallback route: in production, all non-API routes return dist/index.html
+// Fallback route: in production, return dist/index.html if frontend is present, else API 404
 if (process.env.NODE_ENV === 'production') {
     app.get('*', (req, res) => {
+        if (req.path.startsWith('/api/')) {
+            return res.status(404).json({ error: 'Endpoint not found' });
+        }
         if (req.path.startsWith('/src/') || req.path.endsWith('.tsx') || req.path.endsWith('.ts')) {
             return res.status(404).type('text/plain').send('Not found');
         }
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        res.sendFile(path.join(__dirname, '../dist/index.html'));
+        const indexPath = path.join(__dirname, '../dist/index.html');
+        if (fs.existsSync(indexPath)) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            return res.sendFile(indexPath);
+        }
+        return res.status(200).json({
+            service: 'Zoutty API',
+            status: 'online',
+            health: '/api/health',
+            timestamp: new Date().toISOString()
+        });
     });
 }
 app.listen(PORT, () => {

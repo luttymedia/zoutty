@@ -53,9 +53,6 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ""),
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -66,7 +63,7 @@ export default defineConfig(({ mode }) => {
       allowedHosts: true,
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          target: process.env.API_URL || 'http://localhost:8181',
           changeOrigin: true
         }
       },
