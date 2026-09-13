@@ -1,9 +1,10 @@
-﻿services:
+services:
   # ============================================================================
   # 1. Frontend: Render Static Site (React 19 / Vite SPA on global CDN)
   # ============================================================================
-  - type: static
+  - type: web
     name: zoutty-web
+    runtime: static
     buildCommand: npm run build:client
     staticPublishPath: dist
     routes:
@@ -50,10 +51,7 @@
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: zoutty-api
-          property: host
+        sync: false
 
   # ============================================================================
   # 2. Backend: Render Web Service (Node/Express API, Gatekeeper, Gemini, Stripe)
@@ -70,10 +68,7 @@
       - key: PORT
         value: 10000
       - key: CLIENT_URL
-        fromService:
-          type: static
-          name: zoutty-web
-          property: host
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: SUPABASE_URL
