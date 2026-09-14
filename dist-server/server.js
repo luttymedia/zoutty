@@ -123,6 +123,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 // Basic health route
 app.get('/api/health', (req, res) => {
+    console.log(`[server] /api/health probe received from ${req.ip} at ${new Date().toISOString()}`);
     res.json({
         status: 'ok',
         geminiKeyPresent: !!GEMINI_API_KEY,

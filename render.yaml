@@ -59,7 +59,7 @@ services:
   - type: web
     name: zoutty-staging
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install --include=dev && npm run build:server
     startCommand: npm start
     envVars:
