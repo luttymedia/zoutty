@@ -4588,7 +4588,6 @@ export default function App() {
               </label>
               <input
                 type="text"
-                autoFocus
                 value={deleteAccountConfirmInput}
                 onChange={(e) => setDeleteAccountConfirmInput(e.target.value)}
                 placeholder={t('appSettings.deleteAccountConfirmPlaceholder')}
@@ -4637,7 +4636,6 @@ export default function App() {
             <div className="space-y-2">
               <label className="text-xs text-white/50 uppercase tracking-wider">{t('modals.folderNameLabel')}</label>
               <input
-                autoFocus
                 type="text"
                 placeholder={t('modals.folderNamePlaceholder')}
                 value={folderModal.name}

@@ -107,7 +107,6 @@ export function SearchModal({
             onKeyDown={handleKeyDown}
             className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 pl-11 text-white placeholder-white/40 focus:outline-none focus:border-brand/50 transition-colors"
             placeholder={t('search.placeholder')}
-            autoFocus
           />
           <Search className="w-5 h-5 text-white/40 absolute left-3 top-3.5" />
         </div>
