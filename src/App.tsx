@@ -101,6 +101,7 @@ import { TopicsView } from './components/TopicsView';
 import { InteractiveOnboardingOverlay, OnboardingStepConfig } from './components/InteractiveOnboardingOverlay';
 import { SearchModal } from './components/SearchModal';
 import { BottomSheet } from './components/BottomSheet';
+import { DemoGuidePopover, DemoGuideData, DemoGuideIconType } from './components/DemoGuidePopover';
 import { SearchFilters, performSearch, normalizeSearchText } from './lib/search';
 import Markdown from 'react-markdown';
 import { useTranslation } from './i18n/TranslationContext';
@@ -441,6 +442,44 @@ export default function App() {
   const [sessionMedia, setSessionMedia] = useState<SessionMedia[]>([]);
 
   const [toastMessage, setToastMessage] = useState<{ text: string; isError?: boolean; variant?: 'success' | 'error' | 'warning' | 'info'; actionText?: string; onAction?: () => void; duration?: number } | null>(null);
+  const [demoGuide, setDemoGuide] = useState<DemoGuideData | null>(null);
+
+  const triggerDemoGuide = (
+    target: React.MouseEvent | HTMLElement | DOMRect | null,
+    tag: string,
+    message: string,
+    icon?: DemoGuideIconType
+  ) => {
+    let rect: { top: number; left: number; width: number; height: number; bottom: number; right: number } | null = null;
+    if (target) {
+      if ('currentTarget' in target) {
+        rect = (target.currentTarget as HTMLElement).getBoundingClientRect();
+      } else if ('getBoundingClientRect' in target) {
+        rect = target.getBoundingClientRect();
+      } else if ('top' in target && 'left' in target) {
+        rect = target as any;
+      }
+    }
+    if (!rect) {
+      const w = typeof window !== 'undefined' ? window.innerWidth : 390;
+      const h = typeof window !== 'undefined' ? window.innerHeight : 844;
+      rect = {
+        top: h / 2,
+        bottom: h / 2,
+        left: w / 2,
+        right: w / 2,
+        width: 0,
+        height: 0
+      };
+    }
+    setDemoGuide({
+      targetRect: rect,
+      tag,
+      message,
+      icon: icon || 'default'
+    });
+  };
+
   const [spinnerConfig, setSpinnerConfig] = useState<{ text: string; onCancel?: () => void } | null>(null);
   const [logoAnimationType, setLogoAnimationType] = useState<'onboarding' | 'restore' | null>(null);
 
@@ -3170,6 +3209,7 @@ export default function App() {
           onClose={() => setToastMessage(null)}
         />
       )}
+      <DemoGuidePopover guide={demoGuide} onClose={() => setDemoGuide(null)} />
       <ApiWakingModal />
 
       <div className="sticky top-0 z-40 w-full flex flex-col">
@@ -5414,9 +5454,9 @@ export default function App() {
             <>
               <button
                 id="onboarding-share-btn"
-                onClick={async () => {
+                onClick={async (e) => {
                   if (selectedSession.isDemo) {
-                    showToast(t('onboarding.demoTooltipShare'), false);
+                    triggerDemoGuide(e, t('onboarding.guideTagShare'), t('onboarding.demoTooltipShare'), 'share');
                   } else {
                     const report = await db.getSessionFinalReport(selectedSession.id);
                     const hasReport = !!selectedSession.summary && !!report;
@@ -5480,9 +5520,9 @@ export default function App() {
               <button
                 id="onboarding-export-btn"
                 disabled={!hasExportableContent && !selectedSession.isDemo}
-                onClick={() => {
+                onClick={(e) => {
                   if (selectedSession.isDemo) {
-                    showToast(t('onboarding.demoTooltipExport'), false);
+                    triggerDemoGuide(e, t('onboarding.guideTagExport'), t('onboarding.demoTooltipExport'), 'download');
                   } else {
                     setShowExportConfirm(true);
                   }
@@ -5877,37 +5917,86 @@ export default function App() {
             onClearInitialAction={() => setPendingSessionAction(null)}
             entries={Object.values(audioEntries).filter(e => e.sessionId === selectedSession.id).sort((a, b) => b.timestamp - a.timestamp)}
             processingIds={processingIds}
-            onRecording={(blob, lang, silent) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipRecord'), false) : addAudioEntry(selectedSession.id, blob, lang, 'recording', undefined, silent)}
+            onRecording={(blob, lang, silent) => {
+              if (selectedSession.isDemo) {
+                const el = document.getElementById('recordBtn');
+                triggerDemoGuide(el, t('onboarding.guideTagRecord'), t('onboarding.demoTooltipRecord'), 'mic');
+              } else {
+                addAudioEntry(selectedSession.id, blob, lang, 'recording', undefined, silent);
+              }
+            }}
             onAutoStoppedLimit={() => setShowAutoStoppedModal(true)}
-            onUpload={(e, lang) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipUpload'), false) : handleFileUpload(e, lang)}
-            onProcessVideo={(file, lang) => selectedSession.isDemo ? (showToast(t('onboarding.demoTooltipUpload'), false), Promise.resolve(false)) : processAndSaveVideo(file, selectedSession.id, lang)}
+            onUpload={(e, lang) => {
+              if (selectedSession.isDemo) {
+                const el = document.getElementById('uploadLabelBtn');
+                triggerDemoGuide(el, t('onboarding.guideTagUpload'), t('onboarding.demoTooltipUpload'), 'upload');
+              } else {
+                handleFileUpload(e, lang);
+              }
+            }}
+            onProcessVideo={(file, lang) => {
+              if (selectedSession.isDemo) {
+                const el = document.getElementById('uploadLabelBtn');
+                triggerDemoGuide(el, t('onboarding.guideTagUpload'), t('onboarding.demoTooltipUpload'), 'upload');
+                return Promise.resolve(false);
+              } else {
+                return processAndSaveVideo(file, selectedSession.id, lang);
+              }
+            }}
             onConsolidate={
-              activeGlossaryIds.length === 0 
+              selectedSession.isDemo 
+                ? () => {
+                    const el = document.getElementById('consolidateBtn');
+                    triggerDemoGuide(el, t('onboarding.guideTagConsolidate'), t('onboarding.demoTooltipConsolidate'), 'wand');
+                  }
+                : activeGlossaryIds.length === 0 
                 ? () => setShowMandatoryGlossaryModal(true)
                 : isGuestMode 
                 ? () => setShowGuestLockModal(true) 
-                : selectedSession.isDemo 
-                ? () => showToast(t('onboarding.demoTooltipConsolidate'), false) 
                 : handleConsolidate
             }
             onUpdateSession={(changes) => updateSession(selectedSession.id, changes)}
-            onUpdateEntry={(id, changes) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipEdit'), false) : updateAudioEntry(id, changes)}
-            onDeleteEntry={(id) => selectedSession.isDemo ? showToast(t('onboarding.demoTooltipDelete'), false) : requestDeleteAudio(id, 'Audio Entry')}
+            onUpdateEntry={(id, changes) => {
+              if (selectedSession.isDemo) {
+                triggerDemoGuide(null, t('onboarding.guideTagEditing'), t('onboarding.demoTooltipEdit'), 'edit');
+              } else {
+                updateAudioEntry(id, changes);
+              }
+            }}
+            onDeleteEntry={(id) => {
+              if (selectedSession.isDemo) {
+                const el = document.getElementById(`delete-btn-${id}`) || document.querySelector(`[data-delete-id="${id}"]`);
+                triggerDemoGuide(el, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
+              } else {
+                requestDeleteAudio(id, 'Audio Entry');
+              }
+            }}
             onProcessEntry={async (id) => {
-              if (activeGlossaryIds.length === 0) {
+              if (selectedSession.isDemo) {
+                const el = document.getElementById(`process-btn-${id}`) || document.getElementById('consolidateBtn');
+                triggerDemoGuide(el, t('onboarding.guideTagProcess'), t('onboarding.demoTooltipProcess'), 'zap');
+              } else if (activeGlossaryIds.length === 0) {
                 setShowMandatoryGlossaryModal(true);
               } else if (isGuestMode) {
                 setShowGuestLockModal(true);
-              } else if (selectedSession.isDemo) {
-                showToast(t('onboarding.demoTooltipConsolidate'), false);
               } else {
                 await handleProcessEntry(id);
               }
             }}
-            onRequestReprocess={(id) => isGuestMode ? setShowGuestLockModal(true) : selectedSession.isDemo ? showToast(t('onboarding.demoTooltipReprocess'), false) : setReprocessModal(id)}
+            onRequestReprocess={(id) => {
+              if (selectedSession.isDemo) {
+                const el = document.getElementById(`reprocess-btn-${id}`) || document.getElementById('consolidateBtn');
+                triggerDemoGuide(el, t('onboarding.guideTagReprocess'), t('onboarding.demoTooltipReprocess'), 'zap');
+              } else if (isGuestMode) {
+                setShowGuestLockModal(true);
+              } else {
+                setReprocessModal(id);
+              }
+            }}
             activeGlossaryIds={activeGlossaryIds}
             onUpdateActiveGlossaryIds={updateActiveGlossaryIds}
             showToast={showToast}
+            onTriggerDemoGuide={triggerDemoGuide}
             groups={groups}
             glossaries={glossaries}
             onDeleteSession={() => requestDeleteSession(selectedSession.id, selectedSession.title)}
@@ -5955,6 +6044,7 @@ function SessionDetail({
   onProcessEntry,
   onRequestReprocess,
   showToast,
+  onTriggerDemoGuide,
   groups,
   glossaries,
   onDeleteSession,
@@ -5981,6 +6071,7 @@ function SessionDetail({
   onProcessEntry: (entryId: string) => Promise<void>;
   onRequestReprocess: (id: string) => void;
   showToast: (msg: string, isError?: boolean, actionText?: string, onAction?: () => void, duration?: number, variant?: 'success' | 'error' | 'warning' | 'info') => void;
+  onTriggerDemoGuide?: (target: React.MouseEvent | HTMLElement | DOMRect | null, tag: string, msg: string, icon?: DemoGuideIconType) => void;
   groups: SessionGroup[];
   glossaries: DanceGlossary[];
   onDeleteSession: () => void;
@@ -5991,6 +6082,7 @@ function SessionDetail({
   existingTopics?: string[];
 }) {
   const { t, uiLanguage } = useTranslation();
+  const [isSandboxBannerDismissed, setIsSandboxBannerDismissed] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [micLevel, setMicLevel] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -6071,7 +6163,15 @@ function SessionDetail({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const handleAddMedia = async () => {
+  const handleAddMedia = async (e?: React.MouseEvent) => {
+    if (session.isDemo) {
+      if (e) {
+        onTriggerDemoGuide?.(e, t('onboarding.guideTagGallery'), t('onboarding.demoTooltipGallery'), 'gallery');
+      } else {
+        showToast(t('onboarding.demoTooltipGallery'), false);
+      }
+      return;
+    }
     if (isFileAccessSupported) {
       // Reference Mode: use File System Access API
       try {
@@ -6210,6 +6310,10 @@ function SessionDetail({
   };
 
   const handleDeleteMediaItem = async (item: SessionMedia) => {
+    if (session.isDemo || item.sessionId === 'demo-session') {
+      showToast(t('onboarding.demoTooltipDelete'), false);
+      return;
+    }
     // Revoke object URL if any blob URL
     if (mediaObjectUrls[item.id]) {
       if (mediaObjectUrls[item.id].startsWith('blob:')) {
@@ -6340,7 +6444,12 @@ function SessionDetail({
 
   const startRecording = async () => {
     if (session.isDemo) {
-      showToast(t('onboarding.demoTooltipRecord'), false);
+      const el = document.getElementById('recordBtn');
+      if (onTriggerDemoGuide) {
+        onTriggerDemoGuide(el, t('onboarding.guideTagRecord'), t('onboarding.demoTooltipRecord'), 'mic');
+      } else {
+        showToast(t('onboarding.demoTooltipRecord'), false);
+      }
       return;
     }
     try {
@@ -6541,7 +6650,12 @@ function SessionDetail({
     const timer = setTimeout(() => {
       if (initialAction === 'record') {
         if (session.isDemo) {
-          showToast(t('onboarding.demoTooltipRecord'), false);
+          const el = document.getElementById('recordBtn');
+          if (onTriggerDemoGuide) {
+            onTriggerDemoGuide(el, t('onboarding.guideTagRecord'), t('onboarding.demoTooltipRecord'), 'mic');
+          } else {
+            showToast(t('onboarding.demoTooltipRecord'), false);
+          }
         } else {
           setShowRecordCountdown(true);
         }
@@ -6571,6 +6685,35 @@ function SessionDetail({
       <div className="hidden print:block text-center pb-4 border-b border-gray-200">
         <img src="/zouttyLogoHoriz.png" alt="Zoutty" className="h-10 mx-auto" />
       </div>
+      {/* Demo Sandbox Guide Banner */}
+      {session.isDemo && !isSandboxBannerDismissed && (
+        <div className="mb-4 rounded-2xl bg-gradient-to-r from-brand/15 via-brand/5 to-purple-500/10 border border-brand/30 p-3.5 sm:p-4 backdrop-blur-md shadow-lg shadow-brand/5 relative animate-in fade-in slide-in-from-top-3 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand/20 border border-brand/40 flex items-center justify-center text-brand shrink-0 shadow-sm shadow-brand/20 mt-0.5">
+                <Sparkles className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-brand drop-shadow-[0_0_8px_rgba(45,212,191,0.6)]" />
+              </div>
+              <div className="min-w-0">
+                  <h3 className="text-xs sm:text-sm font-semibold text-white tracking-wide">
+                    {t('onboarding.sandboxBannerTitle')}
+                  </h3>
+                <p className="text-xs text-white/70 mt-1 leading-relaxed font-sans">
+                  {t('onboarding.sandboxBannerDesc')}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSandboxBannerDismissed(true)}
+              className="p-1 text-white/40 hover:text-white rounded-lg hover:bg-white/5 transition-colors cursor-pointer shrink-0 -mr-1"
+              title={t('onboarding.sandboxDismiss')}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Session Header: date (white) + optional editable subtitle */}
       <div>
         <div className="flex items-center justify-between flex-wrap gap-2 mb-2.5">
@@ -6595,9 +6738,9 @@ function SessionDetail({
 
           {/* Active Dance Style / Glossary Badge */}
           <button
-            onClick={() => {
+            onClick={(e) => {
               if (session.isDemo) {
-                showToast(t('onboarding.demoTooltipGlossary'), false);
+                onTriggerDemoGuide?.(e, t('onboarding.guideTagGlossary'), t('onboarding.demoTooltipGlossary'), 'glossary');
               } else {
                 setTempGroupId(session.groupId || '');
                 setTempGlossaryId(session.glossaryId || 'auto');
@@ -6627,9 +6770,9 @@ function SessionDetail({
         ) : (
           <p
             className="text-xl text-white cursor-text hover:text-white/80 transition-colors flex items-center gap-2 group w-max"
-            onClick={() => {
+            onClick={(e) => {
               if (session.isDemo) {
-                showToast(t('onboarding.demoTooltipEdit'), false);
+                onTriggerDemoGuide?.(e, t('onboarding.guideTagEditing'), t('onboarding.demoTooltipEdit'), 'edit');
               } else {
                 setTempTitle(session.title);
                 setIsEditingTitle(true);
@@ -6658,9 +6801,9 @@ function SessionDetail({
         ) : (
           <div className="flex items-center justify-between mt-1.5">
             <button
-              onClick={() => {
+              onClick={(e) => {
                 if (session.isDemo) {
-                  showToast(t('onboarding.demoTooltipEdit'), false);
+                  onTriggerDemoGuide?.(e, t('onboarding.guideTagEditing'), t('onboarding.demoTooltipEdit'), 'edit');
                 } else {
                   setIsEditingSubtitle(true);
                 }
@@ -6676,9 +6819,9 @@ function SessionDetail({
             </button>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
+                onClick={(e) => {
                   if (session.isDemo) {
-                    showToast(t('onboarding.demoTooltipReorder'), false);
+                    onTriggerDemoGuide?.(e, t('onboarding.guideTagReorder'), t('onboarding.demoTooltipReorder'), 'reorder');
                   } else {
                     setIsReordering(!isReordering);
                   }
@@ -6689,9 +6832,9 @@ function SessionDetail({
                 <GripHorizontal className="w-4 h-4" />
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
                   if (session.isDemo) {
-                    showToast(t('onboarding.demoTooltipGallery'), false);
+                    onTriggerDemoGuide?.(e, t('onboarding.guideTagGallery'), t('onboarding.demoTooltipGallery'), 'gallery');
                   } else {
                     setIsGalleryOpen(true);
                   }
@@ -6705,9 +6848,9 @@ function SessionDetail({
                 <Images className={`w-4 h-4 ${mediaItems.length > 0 ? '' : 'text-brand'}`} />
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
                   if (session.isDemo) {
-                    showToast(t('onboarding.demoTooltipSettings'), false);
+                    onTriggerDemoGuide?.(e, t('onboarding.guideTagSettings'), t('onboarding.demoTooltipSettings'), 'settings');
                   } else {
                     setTempGroupId(session.groupId || '');
                     setTempGlossaryId(session.glossaryId || 'auto');
@@ -6744,7 +6887,7 @@ function SessionDetail({
                 onClick={(e) => {
                   e.stopPropagation();
                   if (session.isDemo) {
-                    showToast(t('onboarding.demoTooltipEdit'), false);
+                    onTriggerDemoGuide?.(e, t('onboarding.guideTagTopics'), t('onboarding.demoTooltipTopics'), 'tag');
                   } else {
                     handleRemoveTopic(idx);
                   }
@@ -6856,9 +6999,9 @@ function SessionDetail({
           ) : (
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
                 if (session.isDemo) {
-                  showToast(t('onboarding.demoTooltipTopics'), false);
+                  onTriggerDemoGuide?.(e, t('onboarding.guideTagTopics'), t('onboarding.demoTooltipTopics'), 'tag');
                 } else {
                   setIsAddingTopic(true);
                 }
@@ -6908,9 +7051,9 @@ function SessionDetail({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
                     if (session.isDemo) {
-                      showToast(t('onboarding.demoTooltipGallery'), false);
+                      onTriggerDemoGuide?.(e, t('onboarding.guideTagGallery'), t('onboarding.demoTooltipGallery'), 'gallery');
                     } else {
                       lessonVideoInputRef.current?.click();
                     }
@@ -6923,9 +7066,9 @@ function SessionDetail({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
                     if (session.isDemo) {
-                      showToast(t('onboarding.demoTooltipGallery'), false);
+                      onTriggerDemoGuide?.(e, t('onboarding.guideTagGallery'), t('onboarding.demoTooltipGallery'), 'gallery');
                     } else {
                       setIsGalleryOpen(true);
                     }
@@ -7035,6 +7178,7 @@ function SessionDetail({
           onUpdateNotes={(newNotes) => onUpdateSession({ notes: newNotes })}
           onTouchSession={() => onUpdateSession({ lastModified: Date.now() })}
           showToast={showToast}
+          onTriggerDemoGuide={onTriggerDemoGuide}
         />
       </div>
 
@@ -7067,13 +7211,13 @@ function SessionDetail({
           onClick={(e) => {
             if (session.isDemo) {
               e.preventDefault();
-              showToast(t('onboarding.demoTooltipUpload'), false);
+              onTriggerDemoGuide?.(e, t('onboarding.guideTagUpload'), t('onboarding.demoTooltipUpload'), 'upload');
             } else {
               const uploadEl = document.getElementById('uploadBtn') as HTMLInputElement | null;
               if (uploadEl) uploadEl.accept = 'audio/*,video/*';
             }
           }}
-          className="cursor-pointer flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-full transition-colors shadow-sm"
+          className="cursor-pointer flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-full transition-all shadow-sm"
         >
           <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
           <input id="uploadBtn" type="file" accept="audio/*,video/*" multiple className="hidden" onChange={(e) => {
@@ -7093,7 +7237,11 @@ function SessionDetail({
 
         <button
           id="recordBtn"
-          onClick={isRecording ? () => stopRecording(false) : startRecording}
+          onClick={
+            session.isDemo
+              ? (e) => onTriggerDemoGuide?.(e, t('onboarding.guideTagRecord'), t('onboarding.demoTooltipRecord'), 'mic')
+              : (isRecording ? () => stopRecording(false) : startRecording)
+          }
           style={isRecording ? {
             boxShadow: `0 0 0 ${4 + micLevel * 16}px rgba(${recordingDuration >= TIER_LIMITS.CLIP_WARNING_SECONDS ? '245,158,11' : '239,68,68'},${0.3 + micLevel * 0.6})`
           } : {}}
@@ -7108,9 +7256,15 @@ function SessionDetail({
 
         <button
           id="consolidateBtn"
-          onClick={onConsolidate}
+          onClick={(e) => {
+            if (session.isDemo) {
+              onTriggerDemoGuide?.(e, t('onboarding.guideTagConsolidate'), t('onboarding.demoTooltipConsolidate'), 'wand');
+            } else {
+              onConsolidate();
+            }
+          }}
           disabled={entries.length === 0}
-          className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 disabled:opacity-20 transition-colors rounded-full shadow-sm disabled:cursor-not-allowed"
+          className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 disabled:opacity-20 transition-all rounded-full shadow-sm disabled:cursor-not-allowed"
         >
           <Wand2 className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
@@ -7371,7 +7525,11 @@ function SessionDetail({
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isDeleteMode) {
-                                setMediaToDelete(item);
+                                if (session.isDemo) {
+                                  onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
+                                } else {
+                                  setMediaToDelete(item);
+                                }
                               }
                             }}
                           >
@@ -7384,7 +7542,11 @@ function SessionDetail({
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isDeleteMode) {
-                                setMediaToDelete(item);
+                                if (session.isDemo) {
+                                  onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
+                                } else {
+                                  setMediaToDelete(item);
+                                }
                               } else {
                                 setLightboxItem(item);
                               }
@@ -7412,7 +7574,11 @@ function SessionDetail({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setMediaToDelete(item);
+                            if (session.isDemo) {
+                              onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
+                            } else {
+                              setMediaToDelete(item);
+                            }
                           }}
                           className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-600 border border-red-500 text-white transition-all flex items-center justify-center z-10 ${isDeleteMode ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'
                             }`}
@@ -7435,7 +7601,7 @@ function SessionDetail({
             {/* Add Media Button */}
             <div className="shrink-0 border-t border-white/5 pt-4">
               <button
-                onClick={handleAddMedia}
+                onClick={(e) => handleAddMedia(e)}
                 disabled={isAddingMedia}
                 className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400/60 transition-all text-xs shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -7464,7 +7630,11 @@ function SessionDetail({
               className="absolute top-4 left-4 p-2.5 rounded-full bg-red-600/80 hover:bg-red-600 text-white transition-colors z-30 flex items-center justify-center min-h-[40px] min-w-[40px]"
               onClick={(e) => {
                 e.stopPropagation();
-                setMediaToDelete(lightboxItem);
+                if (session.isDemo) {
+                  onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
+                } else {
+                  setMediaToDelete(lightboxItem);
+                }
               }}
               title={t('session.galleryDeleteItem')}
             >
@@ -7571,7 +7741,7 @@ function SessionDetail({
 
 // ─── New display helpers ───────────────────────────────────────────────────
 
-function EditableText({ value, onChange, className, multiline = false, onIntercept }: { value: string, onChange: (v: string) => void, className?: string, multiline?: boolean, onIntercept?: () => void }) {
+function EditableText({ value, onChange, className, multiline = false, onIntercept }: { value: string, onChange: (v: string) => void, className?: string, multiline?: boolean, onIntercept?: (e?: React.MouseEvent) => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempValue, setTempValue] = useState(value);
 
@@ -7614,7 +7784,7 @@ function EditableText({ value, onChange, className, multiline = false, onInterce
       onClick={(e) => {
         e.stopPropagation();
         if (onIntercept) {
-          onIntercept();
+          onIntercept(e);
         } else {
           setTempValue(value);
           setIsEditing(true);
@@ -7645,7 +7815,7 @@ function CollapsiblePanel({ title, children, defaultOpen = true, accent = false 
   );
 }
 
-function BulletList({ items, onChange, onIntercept }: { items: string[], onChange?: (newItems: string[]) => void, onIntercept?: () => void }) {
+function BulletList({ items, onChange, onIntercept }: { items: string[], onChange?: (newItems: string[]) => void, onIntercept?: (e?: React.MouseEvent) => void }) {
   if (!items || items.length === 0) return null;
   return (
     <ul className="space-y-2 mt-1">
@@ -7680,12 +7850,12 @@ function BulletList({ items, onChange, onIntercept }: { items: string[], onChang
   );
 }
 
-function StrictSummaryBlock({ data, onChange, onIntercept }: { data: string[], onChange?: (newItems: string[]) => void, onIntercept?: () => void }) {
+function StrictSummaryBlock({ data, onChange, onIntercept }: { data: string[], onChange?: (newItems: string[]) => void, onIntercept?: (e?: React.MouseEvent) => void }) {
   if (!data || data.length === 0) return <p className="text-white/30 italic text-sm">No strict summary content extracted.</p>;
   return <BulletList items={data} onChange={onChange} onIntercept={onIntercept} />;
 }
 
-function ExpandedInsightsBlock({ data, onChange, onIntercept }: { data: ExpandedInsights, onChange?: (newData: ExpandedInsights) => void, onIntercept?: () => void }) {
+function ExpandedInsightsBlock({ data, onChange, onIntercept }: { data: ExpandedInsights, onChange?: (newData: ExpandedInsights) => void, onIntercept?: (e?: React.MouseEvent) => void }) {
   const { t } = useTranslation();
   const allEmpty =
     (data.drills?.length ?? 0) === 0 &&
@@ -7724,7 +7894,7 @@ function ExpandedInsightsBlock({ data, onChange, onIntercept }: { data: Expanded
   );
 }
 
-function TranscriptBlock({ text, onChange, onIntercept }: { text: string, onChange?: (newText: string) => void, onIntercept?: () => void }) {
+function TranscriptBlock({ text, onChange, onIntercept }: { text: string, onChange?: (newText: string) => void, onIntercept?: (e?: React.MouseEvent) => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   if (!text) return null;
@@ -7800,14 +7970,18 @@ function SortableCard({ id, children, isDraggable = true, isReordering = false }
 
 // ─── Session Structured Data ────────────────────────────────────────────────
 
-function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onToggleReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes, onTouchSession, showToast }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onToggleReordering?: () => void; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void; onTouchSession?: () => void; showToast?: (msg: string, isError?: boolean) => void }) {
+function SessionStructuredData({ sessionId, entries, processingIds, isReordering, onToggleReordering, onUpdateEntry, onDeleteEntry, onProcessEntry, onRequestReprocess, cardOrder, onUpdateOrder, sessionNotes, onUpdateNotes, onTouchSession, showToast, onTriggerDemoGuide }: { sessionId: string; entries: AudioEntry[]; processingIds: Set<string>; isReordering: boolean; onToggleReordering?: () => void; onUpdateEntry: (id: string, changes: Partial<AudioEntry>) => void; onDeleteEntry: (id: string) => void; onProcessEntry: (id: string) => Promise<void>; onRequestReprocess: (id: string) => void; cardOrder?: string[]; onUpdateOrder: (newOrder: string[]) => void; sessionNotes?: string; onUpdateNotes: (newNotes: string) => void; onTouchSession?: () => void; showToast?: (msg: string, isError?: boolean) => void; onTriggerDemoGuide?: (target: HTMLElement | React.MouseEvent | null, tag: string, text: string, icon?: DemoGuideIconType) => void }) {
   const [report, setReport] = useState<any | null>(null);
 
   const { t, uiLanguage } = useTranslation();
 
-  const handleIntercept = () => {
-    if (sessionId === 'demo-session' && showToast) {
-      showToast(t('onboarding.demoTooltipEdit'), false);
+  const handleIntercept = (e?: React.MouseEvent | HTMLElement) => {
+    if (sessionId === 'demo-session') {
+      if (onTriggerDemoGuide && e) {
+        onTriggerDemoGuide(e, t('onboarding.guideTagEditing'), t('onboarding.demoTooltipEdit'), 'edit');
+      } else if (showToast) {
+        showToast(t('onboarding.demoTooltipEdit'), false);
+      }
     }
   };
   const interceptProp = sessionId === 'demo-session' ? handleIntercept : undefined;
@@ -8027,6 +8201,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
         onRequestReprocess={() => onRequestReprocess(audio.id)}
         onUpdateContent={(changes) => onUpdateEntry(audio.id, changes)}
         showToast={showToast}
+        onTriggerDemoGuide={onTriggerDemoGuide}
       />
     ));
   });
@@ -8041,9 +8216,9 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
         <h3 className="text-xs uppercase tracking-widest text-brand/90 font-medium">{t('session.notesHeading')}</h3>
         {!isNoteVisible && !isReordering && (
           <button
-            onClick={() => {
-              if (sessionId === 'demo-session' && showToast) {
-                showToast(t('onboarding.demoTooltipNotes'), false);
+            onClick={(e) => {
+              if (sessionId === 'demo-session') {
+                onTriggerDemoGuide?.(e, t('onboarding.guideTagNotes'), t('onboarding.demoTooltipNotes'), 'notes');
               } else {
                 setIsNoteVisible(true);
               }
@@ -8073,9 +8248,9 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
             placeholder={t('session.notesPlaceholder')}
             value={newNoteText}
             onClick={(e) => {
-              if (sessionId === 'demo-session' && showToast) {
+              if (sessionId === 'demo-session') {
                 e.preventDefault();
-                showToast(t('onboarding.demoTooltipNotes'), false);
+                onTriggerDemoGuide?.(e, t('onboarding.guideTagNotes'), t('onboarding.demoTooltipNotes'), 'notes');
               }
             }}
             readOnly={sessionId === 'demo-session'}
@@ -8193,7 +8368,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
   );
 }
 
-function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onUpdateTitle, onDelete, onProcess, onRequestReprocess, onUpdateContent, showToast }: {
+function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNewShape, legacyContent, onToggle, onUpdateTitle, onDelete, onProcess, onRequestReprocess, onUpdateContent, showToast, onTriggerDemoGuide }: {
   displayTitle: string;
   time: string;
   audio: AudioEntry;
@@ -8208,15 +8383,20 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
   onRequestReprocess: () => void;
   onUpdateContent: (changes: Partial<AudioEntry>) => void;
   showToast?: (msg: string, isError?: boolean) => void;
+  onTriggerDemoGuide?: (target: HTMLElement | React.MouseEvent | null, tag: string, text: string, icon?: DemoGuideIconType) => void;
 }) {
   const { t } = useTranslation();
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(displayTitle);
 
-  const handleIntercept = () => {
-    if (audio.sessionId === 'demo-session' && showToast) {
-      showToast(t('onboarding.demoTooltipEdit'), false);
+  const handleIntercept = (e?: React.MouseEvent | HTMLElement) => {
+    if (audio.sessionId === 'demo-session') {
+      if (onTriggerDemoGuide && e) {
+        onTriggerDemoGuide(e, t('onboarding.guideTagEditing'), t('onboarding.demoTooltipEdit'), 'edit');
+      } else if (showToast) {
+        showToast(t('onboarding.demoTooltipEdit'), false);
+      }
     }
   };
   const interceptProp = audio.sessionId === 'demo-session' ? handleIntercept : undefined;
@@ -8267,8 +8447,8 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                 onClick={(e) => {
                   if (isOpen) {
                     e.stopPropagation();
-                    if (audio.sessionId === 'demo-session' && showToast) {
-                      showToast(t('onboarding.demoTooltipEdit'), false);
+                    if (audio.sessionId === 'demo-session') {
+                      onTriggerDemoGuide?.(e, t('onboarding.guideTagEditing'), t('onboarding.demoTooltipEdit'), 'edit');
                     } else {
                       setTempTitle(displayTitle);
                       setIsEditingTitle(true);
@@ -8291,7 +8471,14 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
         </div>
         <div className="flex items-center gap-2.5">
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (audio.sessionId === 'demo-session') {
+                onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
+              } else {
+                onDelete();
+              }
+            }}
             className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors cursor-pointer min-h-[34px] min-w-[34px] flex items-center justify-center"
             title={t('common.delete')}
           >
@@ -8318,12 +8505,18 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
             }}
             className="w-full h-9 opacity-85 print-hide my-1" />
         ) : audio.sessionId === 'demo-session' ? (
-          <div className="w-full h-10 flex items-center gap-3 bg-white/5 rounded-xl px-4 overflow-hidden relative cursor-not-allowed print-hide">
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onTriggerDemoGuide?.(e, t('onboarding.guideTagAudioPlayer'), t('onboarding.demoTooltipAudioPlayer'), 'play');
+            }}
+            className="w-full h-10 flex items-center gap-3 bg-white/5 hover:bg-white/10 rounded-xl px-4 overflow-hidden relative cursor-pointer transition-all print-hide group"
+          >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse-slow"></div>
-            <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
+            <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center shrink-0 shadow-lg shadow-brand/20 group-hover:scale-105 transition-transform">
               <Play className="w-3 h-3 text-black fill-black ml-[1.5px]" />
             </div>
-            <div className="flex-1 flex items-center justify-between gap-[3px] opacity-50 overflow-hidden px-2">
+            <div className="flex-1 flex items-center justify-between gap-[3px] opacity-50 group-hover:opacity-75 overflow-hidden px-2 transition-opacity">
               {[12, 24, 18, 10, 14, 22, 20, 12, 10, 16, 24, 18, 12, 14, 20, 24, 16, 10, 14, 22, 18, 12, 14, 20, 16, 10, 12, 22, 18, 14].map((h, i) => (
                 <div key={i} className="w-1.5 rounded-full bg-brand/60" style={{ height: `${h}px` }}></div>
               ))}
@@ -8377,7 +8570,11 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRequestReprocess();
+                  if (audio.sessionId === 'demo-session') {
+                    onTriggerDemoGuide?.(e, t('onboarding.guideTagReprocess'), t('onboarding.demoTooltipReprocess'), 'zap');
+                  } else {
+                    onRequestReprocess();
+                  }
                 }}
                 className="flex items-center gap-1.5 h-9 px-4 bg-brand/10 hover:bg-brand/20 text-brand rounded-full border border-brand/20 transition-all text-xs font-semibold shadow-sm active:scale-95 cursor-pointer"
                 title={t('session.reprocessClip')}
@@ -8389,7 +8586,11 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onProcess();
+                  if (audio.sessionId === 'demo-session') {
+                    onTriggerDemoGuide?.(e, t('onboarding.guideTagProcess'), t('onboarding.demoTooltipProcess'), 'zap');
+                  } else {
+                    onProcess();
+                  }
                 }}
                 className="flex items-center gap-2 h-9 px-4 bg-brand/10 hover:bg-brand/20 text-brand rounded-full border border-brand/20 transition-all text-xs font-semibold shadow-sm active:scale-95 cursor-pointer"
                 title={t('session.processClip')}
@@ -8492,7 +8693,7 @@ function CollapsibleSection({ title, contentObj, isReport = false, isOpen, onTog
   );
 }
 
-function StructuredBullets({ contentObj, isReport, onChange, onIntercept }: { contentObj: any, isReport?: boolean, onChange?: (newObj: any) => void, onIntercept?: () => void }) {
+function StructuredBullets({ contentObj, isReport, onChange, onIntercept }: { contentObj: any, isReport?: boolean, onChange?: (newObj: any) => void, onIntercept?: (e?: React.MouseEvent) => void }) {
   if (!contentObj || typeof contentObj !== 'object') return null;
 
   const processBulletItem = (origItem: any, key: React.Key, path?: (string | number)[]) => {
