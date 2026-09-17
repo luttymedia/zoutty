@@ -755,6 +755,7 @@ const es: Translations = {
     resultsCount_multiSession_oneFolder: '{sessionCount} sesiones, 1 carpeta',
     resultsCount_multiSession_multiFolder: '{sessionCount} sesiones, {folderCount} carpetas',
     clearSearch: 'Limpiar Búsqueda',
+    error: 'Error al realizar la búsqueda',
   },
   // ─── Billing, Tiers & Limits ──────────────────────────────────────────────
   billing: {
@@ -1027,6 +1028,17 @@ const es: Translations = {
       resetCounters: 'Reiniciar Contadores',
       resetAll: 'Reiniciar a Valores por Defecto',
       close: 'Cerrar',
+      toastTestingHeading: 'Vista Previa de Notificaciones (Toast)',
+      toastTestingDesc: 'Previsualiza el diseño actualizado para cada variante de toast (Éxito, Error, Advertencia, Info):',
+      toastBtnSuccess: 'Toast de Éxito',
+      toastBtnError: 'Toast de Error',
+      toastBtnWarning: 'Toast de Advertencia',
+      toastBtnInfo: 'Toast de Información',
+      toastSampleSuccess: '¡Copia descargada con éxito! Cambios sincronizados.',
+      toastSampleError: 'Error al extraer el audio del vídeo.',
+      toastSampleWarning: 'Cerca del límite de grabación de 3 minutos.',
+      toastSampleInfo: 'Abriendo el portal de clientes de Stripe...',
+      toastSampleUndo: 'Deshacer',
     },
   },
   common: {

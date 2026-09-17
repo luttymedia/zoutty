@@ -35,6 +35,7 @@ import {
   Music,
   Images,
   AlertTriangle,
+  AlertCircle,
   LinkIcon,
   AudioLines,
   Play,
@@ -201,12 +202,39 @@ function Toast({
 
   const isDragging = touchStart.current !== null;
 
-  const bgStyle =
-    variant === 'warning'
-      ? 'bg-amber-600 border border-amber-400 text-amber-50 shadow-amber-900/40'
-      : isError || variant === 'error'
-      ? 'bg-red-600'
-      : 'bg-green-600';
+  const resolvedVariant: 'success' | 'error' | 'warning' | 'info' =
+    variant || (isError ? 'error' : 'success');
+
+  const variantConfig = {
+    success: {
+      border: 'border-emerald-500/30',
+      shadow: 'shadow-emerald-950/25',
+      textColor: 'text-stone-100',
+      icon: <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />,
+      actionBtn: 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30',
+    },
+    error: {
+      border: 'border-rose-500/40',
+      shadow: 'shadow-rose-950/30',
+      textColor: 'text-rose-100',
+      icon: <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />,
+      actionBtn: 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30',
+    },
+    warning: {
+      border: 'border-amber-500/35',
+      shadow: 'shadow-amber-950/30',
+      textColor: 'text-amber-100',
+      icon: <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />,
+      actionBtn: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30',
+    },
+    info: {
+      border: 'border-stone-700/80',
+      shadow: 'shadow-black/40',
+      textColor: 'text-stone-200',
+      icon: <Info className="w-5 h-5 text-teal-400 shrink-0" />,
+      actionBtn: 'bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-600',
+    },
+  }[resolvedVariant];
 
   return (
     <div
@@ -218,20 +246,28 @@ function Toast({
         opacity: 1 - Math.abs(offset) / 200,
         transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.2s ease-out',
       }}
-      className={`fixed bottom-6 left-1/2 w-[90%] md:w-auto max-w-md md:max-w-lg px-5 py-3.5 rounded-2xl text-white text-sm z-[60] shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 ${bgStyle}`}
+      className={`fixed bottom-6 left-1/2 w-[92%] sm:w-auto max-w-md md:max-w-lg px-4 py-3 sm:px-5 sm:py-3.5 rounded-2xl bg-stone-900/95 backdrop-blur-md border ${variantConfig.border} shadow-2xl ${variantConfig.shadow} ${variantConfig.textColor} text-sm z-[2000] flex items-center gap-3 animate-in slide-in-from-bottom-5`}
     >
-      <span className="flex-1">{message}</span>
+      {variantConfig.icon}
+      <span className="flex-1 font-normal text-stone-200 leading-snug antialiased">{message}</span>
       {actionText && onAction && (
         <button
           onClick={() => {
             onAction();
             onClose();
           }}
-          className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs uppercase tracking-wider transition-colors shrink-0"
+          className={`px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors shrink-0 cursor-pointer active:scale-95 ${variantConfig.actionBtn}`}
         >
           {actionText}
         </button>
       )}
+      <button
+        onClick={onClose}
+        className="p-1 -mr-1 text-stone-400 hover:text-stone-200 transition-colors rounded-lg cursor-pointer shrink-0"
+        aria-label="Close"
+      >
+        <X className="w-4 h-4" />
+      </button>
     </div>
   );
 }
@@ -559,11 +595,11 @@ export default function App() {
 
   const handleOpenBillingPortal = useCallback(async () => {
     setIsPortalLoading(true);
-    showToast(t('billing.plans.portalRedirecting'));
+    showToast(t('billing.plans.portalRedirecting'), false, undefined, undefined, undefined, 'info');
     const portalRes = await openStripeCustomerPortal();
     setIsPortalLoading(false);
     if (portalRes.mock) {
-      showToast(t('billing.plans.portalSimulated'));
+      showToast(t('billing.plans.portalSimulated'), false, undefined, undefined, undefined, 'info');
     }
   }, [t]);
 
@@ -628,7 +664,7 @@ export default function App() {
         setShowTopupSuccessModal(true);
         window.history.replaceState({}, '', window.location.pathname);
       } else if (urlParams.get('topup_canceled') === 'true') {
-        showToast(t('billing.topup.canceledToast'), false, undefined, undefined, undefined, 'warning');
+        showToast(t('billing.topup.canceledToast'), false, undefined, undefined, undefined, 'info');
         window.history.replaceState({}, '', window.location.pathname);
       } else if (urlParams.get('checkout_success') === 'true') {
         const sessionId = urlParams.get('session_id') || '';
@@ -659,10 +695,10 @@ export default function App() {
           }
         });
       } else if (urlParams.get('checkout_canceled') === 'true') {
-        showToast(t('billing.plans.checkoutCanceledToast'), false, undefined, undefined, undefined, 'warning');
+        showToast(t('billing.plans.checkoutCanceledToast'), false, undefined, undefined, undefined, 'info');
         window.history.replaceState({}, '', window.location.pathname);
       } else if (urlParams.get('portal_simulated') === 'true') {
-        showToast(t('billing.plans.portalSimulated'));
+        showToast(t('billing.plans.portalSimulated'), false, undefined, undefined, undefined, 'info');
         window.history.replaceState({}, '', window.location.pathname);
       }
     } catch (e) {
@@ -889,7 +925,7 @@ export default function App() {
       setActiveSearch({ query, filters, matchedSessionIds, matchedGroupIds });
     } catch (e) {
       console.error(e);
-      setToastMessage({ text: 'Error performing search', isError: true });
+      setToastMessage({ text: t('search.error'), isError: true, variant: 'error' });
     } finally {
       setIsSearching(false);
     }
@@ -1191,7 +1227,11 @@ export default function App() {
     onAction?: () => void,
     duration?: number,
     variant?: 'success' | 'error' | 'warning' | 'info'
-  ) => setToastMessage({ text, isError, actionText, onAction, duration, variant });
+  ) => {
+    const resolvedVariant: 'success' | 'error' | 'warning' | 'info' =
+      variant || (isError ? 'error' : 'success');
+    setToastMessage({ text, isError, actionText, onAction, duration, variant: resolvedVariant });
+  };
   const showSpinner = (text: string, onCancel?: () => void) => setSpinnerConfig({ text, onCancel });
   const hideSpinner = () => setSpinnerConfig(null);
 
@@ -1553,14 +1593,6 @@ export default function App() {
       await db.saveAudioEntry(newEntry);
       setAudioEntries(prev => ({ ...prev, [entryId]: newEntry }));
       if (silent) return;
-      const sessionEntries = Object.values(audioEntries).filter(e => e.sessionId === sessionId);
-      if (sessionEntries.length === 1 && !localStorage.getItem('hasShownConsolidationHint')) {
-        localStorage.setItem('hasShownConsolidationHint', 'true');
-        // Show the hint instead of the default toast
-        showToast(t('onboarding.hintConsolidation'), false, undefined, undefined, 10000);
-      } else {
-        showToast(filename ? t('toast.fileAdded', { filename }) : t('toast.audioAdded'));
-      }
     } catch (err) {
       console.error('Failed to save audio to database:', err);
       showToast(t('toast.failedSaveAudio'), true);
@@ -1961,7 +1993,6 @@ export default function App() {
         const updated = { ...group, name: folderModal.name.trim() };
         await db.saveGroup(updated);
         setGroups(prev => prev.map(g => g.id === folderModal.id ? updated : g));
-        showToast(t('toast.folderRenamed', { name: updated.name }));
       }
     }
     setFolderModal(null);
@@ -2420,7 +2451,6 @@ export default function App() {
         return next;
       });
       hideSpinner();
-      showToast(t('toast.processingCancelled'));
     };
 
     let blobToProcess = entry.audioBlob;
@@ -2489,13 +2519,9 @@ export default function App() {
         const matched = glossaries.find(g => g.name.toLowerCase() === result.detectedStyle.toLowerCase());
         if (matched) {
           await updateSession(selectedSession.id, { glossaryId: matched.id });
-          showToast(t('toast.aiDetectedStyle', { style: result.detectedStyle, glossary: matched.name }));
-        } else {
-          showToast(t('toast.aiDetectedStyleOnly', { style: result.detectedStyle }));
         }
-      } else {
-        showToast(entry.filename ? t('toast.processed', { filename: entry.filename }) : t('toast.audioProcessed'));
       }
+      showToast(entry.filename ? t('toast.processed', { filename: entry.filename }) : t('toast.audioProcessed'));
 
       if (!getDevState().mockGemini) {
         fetchCloudProfileAndUsage();
@@ -2564,7 +2590,6 @@ export default function App() {
     const handleCancel = () => {
       controller.abort();
       hideSpinner();
-      showToast(t('toast.consolidationCancelled'));
     };
 
     showSpinner(t('toast.consolidating'), handleCancel);
@@ -2771,14 +2796,7 @@ export default function App() {
 
       await updateSession(selectedSession.id, sessionChanges);
 
-      if (gotStyleMatch) {
-        const matched = glossaries.find(g => g.name.toLowerCase() === detectedStyle.toLowerCase());
-        showToast(t('toast.aiDetectedStyle', { style: detectedStyle, glossary: matched!.name }));
-      } else if (detectedStyle && selectedSession.glossaryId === 'auto') {
-        showToast(t('toast.aiDetectedStyleOnly', { style: detectedStyle }));
-      } else {
-        showToast(t('toast.consolidated'));
-      }
+      showToast(t('toast.consolidated'));
 
       if (!currentDev.mockGemini) {
         fetchCloudProfileAndUsage();
@@ -3045,7 +3063,6 @@ export default function App() {
     localStorage.setItem('zoutty_onboarding_completed', 'true');
     setHasCompletedOnboarding(true);
     setOnboardingTourStep(null);
-    showToast(t('onboarding.tourFinishedToast'), false);
   };
 
   const handleStartOnboardingTour = () => {
@@ -3142,7 +3159,17 @@ export default function App() {
         <LogoAnimation onComplete={handleLogoAnimationComplete} />
       )}
       {spinnerConfig && <Spinner text={spinnerConfig.text} onCancel={spinnerConfig.onCancel} />}
-      {toastMessage && <Toast message={toastMessage.text} isError={toastMessage.isError} actionText={toastMessage.actionText} onAction={toastMessage.actionText ? toastMessage.onAction : undefined} duration={toastMessage.duration} onClose={() => setToastMessage(null)} />}
+      {toastMessage && (
+        <Toast
+          message={toastMessage.text}
+          isError={toastMessage.isError}
+          variant={toastMessage.variant}
+          actionText={toastMessage.actionText}
+          onAction={toastMessage.actionText ? toastMessage.onAction : undefined}
+          duration={toastMessage.duration}
+          onClose={() => setToastMessage(null)}
+        />
+      )}
       <ApiWakingModal />
 
       <div className="sticky top-0 z-40 w-full flex flex-col">
@@ -4173,6 +4200,7 @@ export default function App() {
             fetchCloudProfileAndUsage();
           }
         }}
+        showToast={showToast}
       />
 
       {/* Pricing / Plan Selection Modal */}
@@ -5147,7 +5175,7 @@ export default function App() {
                 <button
                   onClick={async () => {
                     if (importCodeValue.length !== 6) {
-                      showToast(t('toast.invalidCodeLength'), true);
+                      showToast(t('toast.invalidCodeLength'), false, undefined, undefined, 3000, 'warning');
                       return;
                     }
                     const codeToFetch = importCodeValue;

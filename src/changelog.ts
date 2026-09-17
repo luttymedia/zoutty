@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.12.2',
+    date: '2026-09-17',
+    changes: [
+      'Toast Notification Modernization: Updated toast design with refined dark-glass styling, status-tinted borders, and dedicated icons',
+      'Toast Cleanup & Streamlining: Cleaned up redundant and intrusive toasts to reduce visual interruptions across the app'
+    ]
+  },
+  {
     version: '3.12.1',
     date: '2026-09-17',
     changes: [

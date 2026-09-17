@@ -12,6 +12,10 @@ import {
   Sparkles,
   Sliders,
   AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  Info,
+  Bell,
 } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { UserTier, SubscriptionStatus, TIER_LIMITS } from '../types';
@@ -28,12 +32,21 @@ interface TestLabModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStateApplied?: (state: DevState) => void;
+  showToast?: (
+    text: string,
+    isError?: boolean,
+    actionText?: string,
+    onAction?: () => void,
+    duration?: number,
+    variant?: 'success' | 'error' | 'warning' | 'info'
+  ) => void;
 }
 
 export const TestLabModal: React.FC<TestLabModalProps> = ({
   isOpen,
   onClose,
   onStateApplied,
+  showToast,
 }) => {
   const { t } = useTranslation();
   const [devState, setDevState] = useState<DevState>(getDevState());
@@ -181,6 +194,96 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
               )}
             </div>
           </div>
+
+          {/* Toast Notification Preview */}
+          {showToast && (
+            <div className="p-4 rounded-xl bg-zinc-900/90 border border-white/10 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <Bell className="w-5 h-5 text-brand" />
+                <div>
+                  <div className="text-sm text-white">
+                    {t('billing.dev.toastTestingHeading')}
+                  </div>
+                  <div className="text-[11px] text-white/60">
+                    {t('billing.dev.toastTestingDesc')}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    showToast(
+                      t('billing.dev.toastSampleSuccess'),
+                      false,
+                      t('billing.dev.toastSampleUndo'),
+                      () => {},
+                      6000,
+                      'success'
+                    )
+                  }
+                  className="px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                  <span>{t('billing.dev.toastBtnSuccess')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    showToast(
+                      t('billing.dev.toastSampleError'),
+                      true,
+                      undefined,
+                      undefined,
+                      6000,
+                      'error'
+                    )
+                  }
+                  className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                  <span>{t('billing.dev.toastBtnError')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    showToast(
+                      t('billing.dev.toastSampleWarning'),
+                      false,
+                      undefined,
+                      undefined,
+                      6000,
+                      'warning'
+                    )
+                  }
+                  className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                  <span>{t('billing.dev.toastBtnWarning')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    showToast(
+                      t('billing.dev.toastSampleInfo'),
+                      false,
+                      undefined,
+                      undefined,
+                      6000,
+                      'info'
+                    )
+                  }
+                  className="px-3 py-2 rounded-xl bg-stone-700/30 hover:bg-stone-700/50 border border-stone-600/40 text-stone-200 text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <Info className="w-3.5 h-3.5 shrink-0 text-teal-400" />
+                  <span>{t('billing.dev.toastBtnInfo')}</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Sandbox Controls (Only visible when Mock Mode is active) */}
           {devState.mockGemini && (

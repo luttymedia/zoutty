@@ -753,6 +753,7 @@ const en = {
     resultsCount_multiSession_oneFolder: '{sessionCount} sessions, 1 folder',
     resultsCount_multiSession_multiFolder: '{sessionCount} sessions, {folderCount} folders',
     clearSearch: 'Clear Search',
+    error: 'Error performing search',
   },
   // ─── Billing, Tiers & Limits ──────────────────────────────────────────────
   billing: {
@@ -1025,6 +1026,17 @@ const en = {
       resetCounters: 'Reset Counters',
       resetAll: 'Reset to Clean Default',
       close: 'Close',
+      toastTestingHeading: 'Toast Notification Preview',
+      toastTestingDesc: 'Preview the updated styling for each toast variant (Success, Error, Warning, Info):',
+      toastBtnSuccess: 'Success Toast',
+      toastBtnError: 'Error Toast',
+      toastBtnWarning: 'Warning Toast',
+      toastBtnInfo: 'Info Toast',
+      toastSampleSuccess: 'Backup downloaded successfully! Changes synced.',
+      toastSampleError: 'Failed to extract audio from video.',
+      toastSampleWarning: 'Approaching 3-minute recording limit.',
+      toastSampleInfo: 'Opening Stripe Customer Portal...',
+      toastSampleUndo: 'Undo',
     },
   },
   common: {
