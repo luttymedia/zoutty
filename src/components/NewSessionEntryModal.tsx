@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Video, FileAudio, Mic, FileText, ChevronRight, X } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
+import { BottomSheet } from './BottomSheet';
 
 export type EntryOption = 'video' | 'audio' | 'record' | 'blank';
 
@@ -20,16 +21,6 @@ export const NewSessionEntryModal: React.FC<NewSessionEntryModalProps> = ({
   const { t } = useTranslation();
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
-
-  // Close on Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -76,38 +67,18 @@ export const NewSessionEntryModal: React.FC<NewSessionEntryModalProps> = ({
   ];
 
   return (
-    <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center z-[80] p-0 sm:p-4 animate-in fade-in duration-200"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="glass border border-white/10 p-5 sm:p-6 w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl relative animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200 text-left"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Mobile drag handle indicator */}
-        <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4 sm:hidden" />
-
-        {/* Header */}
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <h2 className="text-lg sm:text-xl text-white tracking-tight">
-              {t('entry.modalTitle')}
-            </h2>
-            <p className="text-xs sm:text-sm text-white/40 mt-0.5 font-normal">
-              {t('entry.modalSubtitle')}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 -mr-2 -mt-1 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
-            title={t('entry.cancel')}
-            aria-label={t('entry.cancel')}
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <BottomSheet isOpen={isOpen} onClose={onClose} maxWidthClass="max-w-lg">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-5 shrink-0 pr-8">
+        <div>
+          <h2 className="text-lg sm:text-xl text-white tracking-tight">
+            {t('entry.modalTitle')}
+          </h2>
+          <p className="text-xs sm:text-sm text-white/40 mt-0.5 font-normal">
+            {t('entry.modalSubtitle')}
+          </p>
         </div>
+      </div>
 
         {/* Hidden inputs for direct file picking */}
         <input
@@ -171,7 +142,6 @@ export const NewSessionEntryModal: React.FC<NewSessionEntryModalProps> = ({
             </button>
           ))}
         </div>
-      </div>
-    </div>
+    </BottomSheet>
   );
 };

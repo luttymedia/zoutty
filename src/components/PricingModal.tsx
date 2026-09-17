@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import {
   X,
-  CheckCircle2,
   Zap,
-  Sparkle,
-  Gift,
   ArrowRight,
+  ShieldCheck,
+  Check,
+  Sparkles,
   Loader2,
+  Gift,
   AlertTriangle,
+  Sparkle,
+  CheckCircle2,
 } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
+import { BottomSheet } from './BottomSheet';
 import { UserTier } from '../types';
 import { startStripeCheckout } from '../lib/stripe';
 
@@ -58,20 +62,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-[80] p-4 sm:p-6 overflow-y-auto">
-      <div
-        className="glass border border-white/15 p-6 sm:p-8 max-w-lg w-full rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col my-auto max-h-[90vh] overflow-y-auto custom-scrollbar"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          disabled={isRedirecting}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer disabled:opacity-30"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
+    <BottomSheet isOpen={true} onClose={onClose} maxWidthClass="max-w-lg" className="border-white/15">
         {/* Modal Header */}
         <div className="text-center mb-6 space-y-1">
           <h3 className="text-2xl text-white tracking-tight">
@@ -189,8 +180,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
-      </div>
-    </div>
+    </BottomSheet>
   );
 };
 

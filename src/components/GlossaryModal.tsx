@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { DanceGlossary } from '../types';
+import { BottomSheet } from './BottomSheet';
 
 interface GlossaryModalProps {
   isOpen: boolean;
@@ -79,19 +80,12 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
   const isSystem = glossary?.isSystem;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      <div className="glass p-6 max-w-md w-full rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between mb-4 shrink-0">
-          <h2 className="text-lg text-white">
-            {glossary ? t('common.edit') : t('glossary.addTitle')}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <BottomSheet isOpen={isOpen} onClose={onClose} maxWidthClass="max-w-md" zIndexClass="z-[100]">
+      <div className="flex items-center justify-between mb-4 shrink-0 pr-8">
+        <h2 className="text-lg text-white">
+          {glossary ? t('common.edit') : t('glossary.addTitle')}
+        </h2>
+      </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
           <div className="space-y-1">
@@ -149,14 +143,13 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
             <button
               onClick={handleSave}
               disabled={!name.trim() || !terms.trim() || isSaving}
-              className="flex-1 px-4 py-3 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-3 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {t('common.save')}
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </BottomSheet>
   );
 };

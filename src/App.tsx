@@ -99,6 +99,7 @@ import { HistoryView } from './components/HistoryView';
 import { TopicsView } from './components/TopicsView';
 import { InteractiveOnboardingOverlay, OnboardingStepConfig } from './components/InteractiveOnboardingOverlay';
 import { SearchModal } from './components/SearchModal';
+import { BottomSheet } from './components/BottomSheet';
 import { SearchFilters, performSearch, normalizeSearchText } from './lib/search';
 import Markdown from 'react-markdown';
 import { useTranslation } from './i18n/TranslationContext';
@@ -3365,8 +3366,13 @@ export default function App() {
 
       {/* Export Session Modal */}
       {showExportConfirm && selectedSession && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6" onClick={() => setShowExportConfirm(false)}>
-          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+        <BottomSheet
+          isOpen={showExportConfirm}
+          onClose={() => setShowExportConfirm(false)}
+          maxWidthClass="max-w-sm"
+          zIndexClass="z-[60]"
+        >
+          <div className="space-y-6">
             <h3 className="text-xl flex items-center gap-2">
               <Download className="w-5 h-5 text-brand" />
               {t('modals.confirmExport')}
@@ -3435,13 +3441,13 @@ export default function App() {
                     setTimeout(() => { document.title = originalTitle; }, 10000);
                   }, 100);
                 }}
-                className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs"
+                className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs font-medium"
               >
                 {t('modals.exportBtn')}
               </button>
             </div>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {/* Reprocess Modal */}
@@ -4372,45 +4378,48 @@ export default function App() {
 
       {/* Version & Changelog Modal */}
       {showVersionModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6" onClick={() => setShowVersionModal(false)}>
-          <div className="glass p-8 max-w-md w-full animate-in zoom-in-95 relative max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="text-center shrink-0">
-              <ZouttyIcon className="w-16 h-16 text-brand mx-auto" />
-              <h3 className="text-xs uppercase tracking-[0.2em] text-brand font-bold font-logo mt-2">ZOUTTY</h3>
-              <p className="inline-block mt-2 px-4 py-1 bg-white/10 text-white/70 font-mono rounded-full border border-white/20 text-sm tracking-widest">
-                v{version}
-              </p>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pr-2 space-y-6 mt-8 custom-scrollbar">
-              <h4 className="text-sm text-white/50 uppercase tracking-wider mb-4 border-b border-white/10 pb-2">
-                Changelog
-              </h4>
-              {changelog.map((entry, idx) => (
-                <div key={idx} className="space-y-2">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-brand font-mono text-sm">v{entry.version}</span>
-                    <span className="text-white/40 text-xs">{entry.date}</span>
-                  </div>
-                  <ul className="list-disc list-inside text-white/70 text-sm space-y-1">
-                    {entry.changes.map((change, cIdx) => (
-                      <li key={cIdx}>{change}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-center mt-8 shrink-0 pt-6 border-t border-white/10">
-              <button
-                onClick={() => setShowVersionModal(false)}
-                className="px-8 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
-              >
-                {t('modals.closeBtn')}
-              </button>
-            </div>
+        <BottomSheet
+          isOpen={showVersionModal}
+          onClose={() => setShowVersionModal(false)}
+          maxWidthClass="max-w-md"
+          zIndexClass="z-[60]"
+        >
+          <div className="text-center shrink-0">
+            <ZouttyIcon className="w-16 h-16 text-brand mx-auto" />
+            <h3 className="text-xs uppercase tracking-[0.2em] text-brand font-bold font-logo mt-2">ZOUTTY</h3>
+            <p className="inline-block mt-2 px-4 py-1 bg-white/10 text-white/70 font-mono rounded-full border border-white/20 text-sm tracking-widest">
+              v{version}
+            </p>
           </div>
-        </div>
+
+          <div className="flex-1 overflow-y-auto pr-2 space-y-6 mt-8 custom-scrollbar">
+            <h4 className="text-sm text-white/50 uppercase tracking-wider mb-4 border-b border-white/10 pb-2">
+              Changelog
+            </h4>
+            {changelog.map((entry, idx) => (
+              <div key={idx} className="space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-brand font-mono text-sm">v{entry.version}</span>
+                  <span className="text-white/40 text-xs">{entry.date}</span>
+                </div>
+                <ul className="list-disc list-inside text-white/70 text-sm space-y-1">
+                  {entry.changes.map((change, cIdx) => (
+                    <li key={cIdx}>{change}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-center mt-8 shrink-0 pt-6 border-t border-white/10">
+            <button
+              onClick={() => setShowVersionModal(false)}
+              className="w-full sm:w-auto px-8 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer"
+            >
+              {t('modals.closeBtn')}
+            </button>
+          </div>
+        </BottomSheet>
       )}
 
       {/* Confirm Restore Modal */}
@@ -4546,8 +4555,13 @@ export default function App() {
 
       {/* Folder Create/Rename Modal */}
       {folderModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
-          <form onSubmit={handleCreateOrRenameFolder} className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+        <BottomSheet
+          isOpen={!!folderModal}
+          onClose={() => setFolderModal(null)}
+          maxWidthClass="max-w-sm"
+          zIndexClass="z-50"
+        >
+          <form onSubmit={handleCreateOrRenameFolder} className="space-y-6">
             <h3 className="text-xl flex items-center gap-2">
               <Folder className="w-6 h-6 text-brand" />
               {folderModal.type === 'create' ? t('modals.createFolder') : t('modals.renameFolder')}
@@ -4565,11 +4579,11 @@ export default function App() {
               />
             </div>
             <div className="flex gap-3 justify-end items-center">
-              <button type="button" onClick={() => setFolderModal(null)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
-              <button type="submit" className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px]">{t('modals.saveBtn')}</button>
+              <button type="button" onClick={() => setFolderModal(null)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer">{t('modals.cancelBtn')}</button>
+              <button type="submit" className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer font-medium">{t('modals.saveBtn')}</button>
             </div>
           </form>
-        </div>
+        </BottomSheet>
       )}
 
       {/* Delete Folder Modal */}
@@ -4627,19 +4641,18 @@ export default function App() {
 
       {/* Move Session Modal */}
       {moveSessionModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
-          <div className="glass p-6 max-w-sm w-full space-y-6 animate-in zoom-in-95">
-            <div className="flex items-center justify-between">
+        <BottomSheet
+          isOpen={!!moveSessionModal}
+          onClose={() => setMoveSessionModal(null)}
+          maxWidthClass="max-w-sm"
+          zIndexClass="z-50"
+        >
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pr-8">
               <h3 className="text-lg flex items-center gap-2">
                 <FolderOpen className="w-5 h-5 text-brand" />
                 {t('modals.moveSessionTitle')}
               </h3>
-              <button
-                onClick={() => setMoveSessionModal(null)}
-                className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors text-white/60"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
             <p className="text-xs text-white/60 font-sans">
@@ -4654,7 +4667,7 @@ export default function App() {
                   showToast(t('toast.sessionMovedToRoot'));
                   setMoveSessionModal(null);
                 }}
-                className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${!moveSessionModal.currentGroupId
+                className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left cursor-pointer ${!moveSessionModal.currentGroupId
                   ? 'bg-brand/20 border-brand text-brand'
                   : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
                   }`}
@@ -4673,7 +4686,7 @@ export default function App() {
                     showToast(t('toast.sessionMovedToFolder', { name: group.name }));
                     setMoveSessionModal(null);
                   }}
-                  className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left ${moveSessionModal.currentGroupId === group.id
+                  className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all text-left cursor-pointer ${moveSessionModal.currentGroupId === group.id
                     ? 'bg-blue-500/20 border-blue-500 text-blue-400'
                     : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80'
                     }`}
@@ -4688,25 +4701,26 @@ export default function App() {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setMoveSessionModal(null)}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-sm min-h-[38px]"
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-sm min-h-[38px] cursor-pointer"
               >
                 {t('modals.cancelBtn')}
               </button>
             </div>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {/* Share Session Modal */}
       {shareModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4 sm:p-6 overflow-y-auto">
-          <div
-            className="glass border border-white/10 p-6 max-w-md w-full rounded-2xl shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh] my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4 shrink-0">
-              <div className="flex items-center gap-3">
+        <BottomSheet
+          isOpen={!!shareModal}
+          onClose={() => setShareModal(null)}
+          maxWidthClass="max-w-md"
+          zIndexClass="z-50"
+        >
+          {/* Modal Header */}
+          <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4 shrink-0 pr-8">
+            <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/30 flex items-center justify-center text-brand shrink-0 shadow-inner">
                   <Share2 className="w-5 h-5" />
                 </div>
@@ -4719,13 +4733,6 @@ export default function App() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShareModal(null)}
-                className="p-2 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors cursor-pointer"
-                title={t('modals.closeBtn')}
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
 
             {shareModal.viewState === 'checklist' ? (
@@ -5092,16 +5099,23 @@ export default function App() {
                 </div>
               </div>
             ) : null}
-          </div>
-        </div>
+        </BottomSheet>
       )}
 
 
 
       {/* Import Code Modal */}
       {showImportCodeModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
-          <div className="glass p-8 max-w-sm w-full space-y-6 animate-in zoom-in-95">
+        <BottomSheet
+          isOpen={showImportCodeModal}
+          onClose={() => {
+            setShowImportCodeModal(false);
+            setImportCodeValue('');
+          }}
+          maxWidthClass="max-w-sm"
+          zIndexClass="z-50"
+        >
+          <div className="space-y-6">
             <h3 className="text-xl text-brand flex items-center gap-2">
               <Download className="w-6 h-6 shrink-0 text-brand" />
               {t('modals.importCodeTitle')}
@@ -5126,7 +5140,7 @@ export default function App() {
                     setShowImportCodeModal(false);
                     setImportCodeValue('');
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer"
                 >
                   {t('modals.cancelBtn')}
                 </button>
@@ -5164,7 +5178,7 @@ export default function App() {
                     }
                   }}
                   disabled={importCodeValue.length !== 6}
-                  className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
+                  className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px] cursor-pointer font-medium"
                 >
                   {t('modals.importSessionBtn')}
                 </button>
@@ -5182,13 +5196,21 @@ export default function App() {
               </label>
             </div>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {/* Import Preview Modal */}
       {importPreview && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
-          <div className="glass p-8 max-w-md w-full space-y-6 animate-in zoom-in-95 max-h-[85vh] overflow-y-auto">
+        <BottomSheet
+          isOpen={!!importPreview}
+          onClose={() => {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setImportPreview(null);
+          }}
+          maxWidthClass="max-w-md"
+          zIndexClass="z-50"
+        >
+          <div className="space-y-6">
             <h3 className="text-xl text-brand flex items-center gap-2">
               <Share2 className="w-6 h-6 shrink-0" />
               {t('modals.sharedSession')}
@@ -5252,19 +5274,19 @@ export default function App() {
                   window.history.replaceState({}, document.title, window.location.pathname);
                   setImportPreview(null);
                 }}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer"
               >
                 {t('modals.rejectBtn')}
               </button>
               <button
                 onClick={handleImportSession}
-                className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px]"
+                className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px] cursor-pointer font-medium"
               >
                 {t('modals.importSessionBtn')}
               </button>
             </div>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {/* Top Bar */}

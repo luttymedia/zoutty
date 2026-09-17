@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Gift, Copy, Check, X, Share2, Sparkles, Users, CreditCard } from 'lucide-react';
+import { X, Gift, Copy, Check, Users, Sparkles, Share2, CreditCard } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
+import { BottomSheet } from './BottomSheet';
 import { UserTier, TIER_LIMITS } from '../types';
 
 interface ReferralModalProps {
@@ -75,19 +76,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-[80] p-4 sm:p-6 overflow-y-auto" onClick={onClose}>
-      <div
-        className="glass border border-purple-500/40 p-6 sm:p-8 max-w-md w-full rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col text-center my-auto max-h-[90vh] overflow-y-auto custom-scrollbar"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer z-10"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
+    <BottomSheet isOpen={true} onClose={onClose} maxWidthClass="max-w-md" className="border-purple-500/40 text-center">
         {/* Header Icon */}
         <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mx-auto shadow-lg mb-4 shrink-0">
           <Gift className="w-8 h-8" />
@@ -220,13 +209,12 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
         <button
           type="button"
           onClick={handleShare}
-          className="w-full py-3.5 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-sm shadow-lg shadow-brand/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3.5 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-sm shadow-lg shadow-brand/25 transition-all flex items-center justify-center gap-2 cursor-pointer mt-4 shrink-0 font-medium"
         >
           <Share2 className="w-4 h-4" />
           <span>{t('billing.referrals.shareAction')}</span>
         </button>
-      </div>
-    </div>
+    </BottomSheet>
   );
 };
 

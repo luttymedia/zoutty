@@ -6,6 +6,7 @@ import { CustomSelect } from './CustomSelect';
 import { SearchFilters, defaultSearchFilters } from '../lib/search';
 import { DanceGlossary } from '../types';
 import { useTranslation } from '../i18n/TranslationContext';
+import { BottomSheet } from './BottomSheet';
 
 interface SearchModalProps {
   onClose: () => void;
@@ -89,17 +90,13 @@ export function SearchModal({
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-50 p-6">
-      <div className="glass p-6 max-w-md w-full animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-        <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-4">
-          <div className="w-10 h-10 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
-            <Search className="w-5 h-5 text-brand" />
-          </div>
-          <h2 className="text-xl text-white">{t('search.title')}</h2>
-          <button onClick={onClose} className="ml-auto p-2 hover:bg-white/10 rounded-full transition-colors">
-            <X className="w-5 h-5 text-white/70" />
-          </button>
+    <BottomSheet isOpen={true} onClose={onClose} maxWidthClass="max-w-md" zIndexClass="z-50">
+      <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-4 shrink-0 pr-8">
+        <div className="w-10 h-10 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+          <Search className="w-5 h-5 text-brand" />
         </div>
+        <h2 className="text-xl text-white">{t('search.title')}</h2>
+      </div>
 
         {/* Search Input */}
         <div className="mb-6 relative">
@@ -205,21 +202,20 @@ export function SearchModal({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 mt-auto">
+        <div className="flex gap-3 mt-auto shrink-0 pt-4">
           <button
             onClick={onClose}
-            className="flex-1 py-3 glass bg-white/5 border-white/10 text-white/70 rounded-xl hover:bg-white/10 transition-colors"
+            className="flex-1 py-3 glass bg-white/5 border-white/10 text-white/70 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
           >
             {t('search.cancel')}
           </button>
           <button
             onClick={() => onConfirm(query, filters)}
-            className="flex-1 py-3 rounded-xl bg-brand text-black hover:bg-brand/90 transition-colors shadow-[0_0_15px_rgba(45,212,191,0.2)]"
+            className="flex-1 py-3 rounded-xl bg-brand text-black hover:bg-brand/90 transition-colors shadow-[0_0_15px_rgba(45,212,191,0.2)] cursor-pointer font-medium"
           >
             {t('search.confirm')}
           </button>
         </div>
-      </div>
-    </div>
+    </BottomSheet>
   );
 }

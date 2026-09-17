@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.12.1',
+    date: '2026-09-17',
+    changes: [
+      'Native Bottom Sheets: Modernized modal design across the app into full-width bottom sheets with background scroll locking and touch drag-to-dismiss gesture support',
+      'Unified Header Controls: Standardized close button positioning, interaction styling, and touch targets across all modal views',
+      'Modal Fixes & Stability: Resolved icon rendering issues in subscription management and pricing views'
+    ]
+  },
+  {
     version: '3.12.0',
     date: '2026-09-13',
     changes: [

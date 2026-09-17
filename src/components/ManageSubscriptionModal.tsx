@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
 import {
-  X,
   Zap,
-  Sparkle,
+  X,
   Calendar,
-  CreditCard,
-  ExternalLink,
-  ShieldAlert,
+  AlertCircle,
   ArrowLeft,
-  Loader2,
+  ExternalLink,
+  ShieldCheck,
   CheckCircle2,
+  ChevronRight,
+  PauseCircle,
+  Sparkle,
+  CreditCard,
+  Loader2,
+  ShieldAlert,
   XCircle,
 } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
+import { BottomSheet } from './BottomSheet';
 import { TIER_LIMITS, UserTier } from '../types';
 
 interface ManageSubscriptionModalProps {
@@ -70,11 +75,10 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-lg rounded-3xl bg-zinc-900 border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <BottomSheet isOpen={true} onClose={handleClose} maxWidthClass="max-w-lg" zIndexClass="z-50">
+      {/* Header */}
+      <div className="p-1 pb-4 border-b border-white/5 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
             {view !== 'overview' && (
               <button
                 onClick={() => setView('overview')}
@@ -104,12 +108,6 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
               </div>
             </div>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Modal Body */}
@@ -307,8 +305,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </BottomSheet>
   );
 };
 
