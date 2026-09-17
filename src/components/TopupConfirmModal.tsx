@@ -33,7 +33,7 @@ export const TopupConfirmModal: React.FC<TopupConfirmModalProps> = ({
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -104,7 +104,7 @@ export const TopupConfirmModal: React.FC<TopupConfirmModalProps> = ({
           type="button"
           onClick={onConfirm}
           disabled={isLoading}
-          className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 text-sm shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full h-9 px-4.5 rounded-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 text-xs sm:text-sm font-semibold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">

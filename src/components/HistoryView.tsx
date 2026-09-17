@@ -241,7 +241,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           <button
             type="button"
             onClick={handleToggleViewMode}
-            className="text-xs font-medium uppercase tracking-wider text-white/50 hover:text-brand transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-white/5"
+            className="text-xs font-semibold uppercase tracking-wider text-white/50 hover:text-brand transition-all cursor-pointer py-1 px-3 rounded-full hover:bg-white/5 active:scale-95"
           >
             {viewMode === 'list' ? t('history.toggleCalendar') : t('history.toggleList')}
           </button>

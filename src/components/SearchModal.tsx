@@ -205,13 +205,13 @@ export function SearchModal({
         <div className="flex gap-3 mt-auto shrink-0 pt-4">
           <button
             onClick={onClose}
-            className="flex-1 py-3 glass bg-white/5 border-white/10 text-white/70 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+            className="flex-1 h-9 px-4.5 bg-white/5 border border-white/10 text-white/70 rounded-full hover:bg-white/10 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center active:scale-95 cursor-pointer"
           >
             {t('search.cancel')}
           </button>
           <button
             onClick={() => onConfirm(query, filters)}
-            className="flex-1 py-3 rounded-xl bg-brand text-black hover:bg-brand/90 transition-colors shadow-[0_0_15px_rgba(45,212,191,0.2)] cursor-pointer font-medium"
+            className="flex-1 h-9 px-4.5 rounded-full bg-brand text-bg-dark hover:bg-brand/90 text-xs sm:text-sm font-semibold transition-all shadow-[0_0_15px_rgba(45,212,191,0.2)] flex items-center justify-center active:scale-95 cursor-pointer"
           >
             {t('search.confirm')}
           </button>

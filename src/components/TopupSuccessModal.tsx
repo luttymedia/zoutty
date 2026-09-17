@@ -106,7 +106,7 @@ export const TopupSuccessModal: React.FC<TopupSuccessModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full h-9 px-4.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs sm:text-sm font-semibold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
         >
           <span>{t('billing.topup.continueBtn')}</span>
           <ArrowRight className="w-4 h-4" />

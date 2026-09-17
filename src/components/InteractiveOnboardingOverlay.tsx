@@ -212,7 +212,7 @@ export function InteractiveOnboardingOverlay({
         {!isLastStep && (
           <button
             onClick={onSkip}
-            className="text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1 cursor-pointer"
+            className="h-7 px-2.5 rounded-full text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/10 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
             title={t('onboarding.tourSkipBtn')}
           >
             <span>{t('onboarding.tourSkipBtn')}</span>
@@ -303,7 +303,7 @@ export function InteractiveOnboardingOverlay({
         {!isFirstStep ? (
           <button
             onClick={onPrev}
-            className="px-3.5 py-2 rounded-xl text-xs text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 min-h-[38px]"
+            className="h-10 px-4 rounded-full text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             {t('onboarding.tourBackBtn')}
@@ -316,7 +316,7 @@ export function InteractiveOnboardingOverlay({
         {isLastStep ? (
           <button
             onClick={onFinish}
-            className="px-5 py-2 rounded-xl text-xs text-black bg-brand hover:brightness-110 shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 min-h-[38px]"
+            className="h-10 px-5 rounded-full text-xs sm:text-sm font-semibold text-black bg-brand hover:brightness-110 shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
           >
             {t('onboarding.tourFinishBtn')}
             <CheckCircle2 className="w-4 h-4" />
@@ -324,7 +324,7 @@ export function InteractiveOnboardingOverlay({
         ) : (
           <button
             onClick={onNext}
-            className="px-4 py-2 rounded-xl text-xs text-black bg-brand hover:brightness-110 shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 ml-auto min-h-[38px]"
+            className="h-10 px-5 rounded-full text-xs sm:text-sm font-semibold text-black bg-brand hover:brightness-110 shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 ml-auto"
           >
             {isFirstStep
               ? t('onboarding.tourStartBtn')

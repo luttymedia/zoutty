@@ -179,7 +179,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                   </div>
                   <button
                     onClick={onReactivate}
-                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20"
+                    className="w-full h-9 px-4.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20 active:scale-95"
                   >
                     <Zap className="w-4 h-4 fill-zinc-950" />
                     <span>{t('billing.manage.reactivateBtn')}</span>
@@ -209,7 +209,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                 <button
                   disabled={isPortalLoading}
                   onClick={onOpenCustomerPortal}
-                  className="w-full py-2.5 px-4 rounded-xl bg-brand/10 hover:bg-brand/20 text-brand border border-brand/30 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm shadow-brand/10"
+                  className="w-full h-9 px-4.5 rounded-full bg-brand/10 hover:bg-brand/20 text-brand border border-brand/30 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm shadow-brand/10 active:scale-95"
                 >
                   {isPortalLoading ? (
                     <>
@@ -283,11 +283,10 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2.5 pt-2">
                 <button
                   onClick={handleClose}
-                  className="w-full py-3 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand/20"
+                  className="w-full h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 text-zinc-950 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand/20 active:scale-95"
                 >
                   <Zap className="w-4 h-4 fill-zinc-950" />
                   <span>{t('billing.manage.keepSubscriptionBtn')}</span>
@@ -297,7 +296,7 @@ export const ManageSubscriptionModal: React.FC<ManageSubscriptionModalProps> = (
                     onCancelSubscription();
                     handleClose();
                   }}
-                  className="w-full py-2.5 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs transition-all cursor-pointer"
+                  className="w-full h-9 px-4.5 rounded-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center cursor-pointer active:scale-95"
                 >
                   {t('billing.manage.confirmCancelBtn')}
                 </button>

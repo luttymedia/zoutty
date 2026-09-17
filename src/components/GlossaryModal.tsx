@@ -126,7 +126,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
             <button
               onClick={handleDelete}
               disabled={isDeleting || isSaving}
-              className="px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm transition-colors flex items-center justify-center disabled:opacity-50"
+              className="h-9 w-9 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm transition-all flex items-center justify-center disabled:opacity-50 active:scale-95 cursor-pointer shrink-0"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -134,7 +134,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
           
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm transition-colors"
+            className="flex-1 h-9 px-4.5 rounded-full bg-white/5 hover:bg-white/10 text-white text-xs sm:text-sm font-semibold transition-all flex items-center justify-center active:scale-95 cursor-pointer"
           >
             {t('common.cancel')}
           </button>
@@ -143,7 +143,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
             <button
               onClick={handleSave}
               disabled={!name.trim() || !terms.trim() || isSaving}
-              className="flex-1 px-4 py-3 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 text-bg-dark text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {t('common.save')}

@@ -3095,8 +3095,8 @@ export default function App() {
           <p className="text-zinc-400 text-sm leading-relaxed">
             {t('modals.syncConflictMsg')}
           </p>
-          <div className="flex flex-col gap-3 mt-6">
-            <button onClick={() => finishInitialSync()} className="w-full px-5 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-400 transition-colors text-zinc-950 text-sm">{t('modals.syncMergeBtn')}</button>
+          <div className="flex flex-col gap-2.5 mt-6">
+            <button onClick={() => finishInitialSync()} className="w-full h-9 px-4.5 rounded-full bg-orange-500 hover:bg-orange-400 transition-all text-zinc-950 text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.syncMergeBtn')}</button>
             <button onClick={async () => {
               showSpinner('Replacing cloud data...');
               if (session?.user) {
@@ -3118,13 +3118,13 @@ export default function App() {
               }
               hideSpinner();
               finishInitialSync();
-            }} className="w-full px-5 py-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncReplaceCloudBtn')}</button>
+            }} className="w-full h-9 px-4.5 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-all text-zinc-100 text-xs sm:text-sm font-semibold border border-zinc-700/50 flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.syncReplaceCloudBtn')}</button>
             <button onClick={async () => {
               showSpinner('Clearing local data...');
               await db.clearDatabase();
               hideSpinner();
               finishInitialSync();
-            }} className="w-full px-5 py-3.5 rounded-xl bg-zinc-800 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors text-zinc-100 text-sm border border-zinc-700/50">{t('modals.syncUseCloudBtn')}</button>
+            }} className="w-full h-9 px-4.5 rounded-full bg-zinc-800 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all text-zinc-100 text-xs sm:text-sm font-semibold border border-zinc-700/50 flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.syncUseCloudBtn')}</button>
           </div>
         </div>
       </div>
@@ -3166,7 +3166,7 @@ export default function App() {
               <button
                 onClick={handleOpenBillingPortal}
                 disabled={isPortalLoading}
-                className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs transition-all shadow-md active:scale-95 disabled:opacity-50 min-h-[36px] flex items-center gap-1.5 cursor-pointer"
+                className="h-9 px-4 rounded-full bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>{t('billing.banner.updateBillingBtn')}</span>
@@ -3193,7 +3193,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setOfflineBannerDismissed(true)}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-zinc-700/50 hover:bg-zinc-600/50 text-zinc-300 text-xs transition-colors min-h-[36px]"
+              className="shrink-0 h-8 px-3.5 rounded-full bg-zinc-700/50 hover:bg-zinc-600/50 text-zinc-300 text-xs font-medium transition-all active:scale-95 cursor-pointer flex items-center justify-center"
             >
               {t('offline.dismiss')}
             </button>
@@ -3210,7 +3210,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setStorageBannerDismissed(true)}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 text-xs transition-colors min-h-[36px]"
+              className="shrink-0 h-8 px-3.5 rounded-full bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 text-xs font-medium transition-all active:scale-95 cursor-pointer flex items-center justify-center"
             >
               {t('storageFull.dismiss')}
             </button>
@@ -3227,7 +3227,7 @@ export default function App() {
             <p className="text-white/70 text-sm text-center leading-relaxed">{t('storageFull.bothFailed')}</p>
             <button
               onClick={() => setShowBothFailed(false)}
-              className="w-full py-3 rounded-xl bg-brand hover:bg-brand/90 transition-colors text-white"
+              className="w-full h-11 sm:h-12 px-5 rounded-full bg-brand hover:bg-brand/90 transition-all text-white text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer"
             >
               {t('storageFull.bothFailedBtn')}
             </button>
@@ -3245,8 +3245,8 @@ export default function App() {
               {deleteModal.type === 'session' ? t('modals.deleteSessionMsg', { title: deleteModal.title }) : t('modals.deleteAudioMsg', { title: deleteModal.title })}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setDeleteModal(null)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
-              <button onClick={confirmDelete} className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]">{t('modals.deleteBtn')}</button>
+              <button onClick={() => setDeleteModal(null)} className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition-all flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.cancelBtn')}</button>
+              <button onClick={confirmDelete} className="h-9 px-4.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-red-600/30 flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.deleteBtn')}</button>
             </div>
           </div>
         </div>
@@ -3276,7 +3276,7 @@ export default function App() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowGuestLockModal(false)}
-                className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white text-sm cursor-pointer"
+                className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer"
               >
                 {t('auth.guestConfirmCancel')}
               </button>
@@ -3285,7 +3285,7 @@ export default function App() {
                   localStorage.removeItem('zoutty_guest_mode');
                   window.location.reload();
                 }}
-                className="px-5 py-3 rounded-xl bg-brand hover:bg-brand/90 transition-colors text-bg-dark text-sm shadow-lg shadow-brand/20 flex items-center justify-center gap-2 cursor-pointer"
+                className="h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 transition-all text-bg-dark text-xs sm:text-sm font-semibold shadow-lg shadow-brand/20 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
               >
                 <LogOut className="w-4 h-4 rotate-180" />
                 {t('appSettings.signInSignUpBtn')}
@@ -3345,7 +3345,7 @@ export default function App() {
                   localStorage.removeItem('zoutty_guest_mode');
                   setIsGuestMode(false);
                 }}
-                className="w-full py-3 px-5 rounded-xl bg-brand hover:bg-brand/90 transition-all text-bg-dark font-medium text-sm shadow-lg shadow-brand/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                className="w-full h-11 sm:h-12 px-5 rounded-full bg-brand hover:bg-brand/90 transition-all text-bg-dark font-semibold text-sm shadow-lg shadow-brand/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 <LogOut className="w-4 h-4 rotate-180" />
                 {t('appSettings.signInSignUpBtn')}
@@ -3409,7 +3409,7 @@ export default function App() {
             <div className="flex gap-3 justify-end items-center mt-6">
               <button
                 onClick={() => setShowExportConfirm(false)}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer text-xs"
+                className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -3441,7 +3441,7 @@ export default function App() {
                     setTimeout(() => { document.title = originalTitle; }, 10000);
                   }, 100);
                 }}
-                className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-light text-black transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer text-xs font-medium"
+                className="h-9 px-4.5 rounded-full bg-brand hover:bg-brand-light text-bg-dark transition-all shadow-lg shadow-brand/20 text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer"
               >
                 {t('modals.exportBtn')}
               </button>
@@ -3462,8 +3462,8 @@ export default function App() {
               {t('modals.reprocessMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setReprocessModal(null)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]">{t('modals.cancelBtn')}</button>
-              <button onClick={confirmReprocess} className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px]">{t('modals.reprocessBtn')}</button>
+              <button onClick={() => setReprocessModal(null)} className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition-all flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.cancelBtn')}</button>
+              <button onClick={confirmReprocess} className="h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 transition-all shadow-lg shadow-brand/30 text-bg-dark text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.reprocessBtn')}</button>
             </div>
           </div>
         </div>
@@ -3519,7 +3519,7 @@ export default function App() {
                         <button
                           key={code}
                           onClick={() => setUILanguage(code as any)}
-                          className={`px-3.5 py-1.5 text-xs rounded-xl transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                          className={`px-3.5 py-1.5 text-xs rounded-full transition-all duration-200 flex items-center gap-1.5 cursor-pointer active:scale-95 ${
                             uiLanguage === code
                               ? 'bg-brand text-bg-dark font-medium shadow-[0_2px_8px_rgba(45,212,191,0.3)]'
                               : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10 border border-white/5'
@@ -3634,7 +3634,7 @@ export default function App() {
                                   !editDisplayName.trim() ||
                                   editDisplayName.trim() === (devState.display_name || session?.user?.user_metadata?.display_name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '')
                                 }
-                                className="w-full py-2 bg-brand text-bg-dark font-medium text-xs rounded-xl hover:bg-brand/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer shadow-sm"
+                                className="w-full h-9 px-4.5 bg-brand text-bg-dark font-semibold text-xs sm:text-sm rounded-full hover:bg-brand/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
                               >
                                 {isSavingDisplayName ? (
                                   <LoaderIcon className="w-4 h-4" />
@@ -3711,7 +3711,7 @@ export default function App() {
                               <button
                                 type="submit"
                                 disabled={isUpdatingPassword || !newPassword || !confirmNewPassword}
-                                className="w-full py-2 bg-white/10 hover:bg-white/15 text-white text-xs rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
+                                className="w-full h-9 px-4.5 bg-white/10 hover:bg-white/15 text-white font-semibold text-xs sm:text-sm rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                               >
                                 <Lock className="w-3.5 h-3.5 text-white/70" />
                                 {isUpdatingPassword ? t('common.processing') : (userHasPassword ? t('appSettings.updatePasswordBtn') : t('appSettings.setPasswordBtn'))}
@@ -3732,7 +3732,7 @@ export default function App() {
                                   setDeleteAccountConfirmInput('');
                                   setShowDeleteAccountModal(true);
                                 }}
-                                className="w-full flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all text-xs cursor-pointer"
+                                className="w-full h-9 px-4.5 rounded-full border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                                 {t('appSettings.deleteAccountBtn')}
@@ -3749,7 +3749,7 @@ export default function App() {
                           localStorage.removeItem('zoutty_guest_mode');
                           setIsGuestMode(false);
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs cursor-pointer"
+                        className="w-full h-9 px-4.5 rounded-full border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                       >
                         <ArrowRight className="w-4 h-4" />
                         {t('appSettings.signInBtn')}
@@ -3759,7 +3759,7 @@ export default function App() {
                         onClick={() => {
                           setShowLogoutConfirm(true);
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs cursor-pointer"
+                        className="w-full h-9 px-4.5 rounded-full border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10 hover:text-white transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                       >
                         <LogOut className="w-4 h-4" />
                         {t('modals.logoutBtn')}
@@ -3786,7 +3786,7 @@ export default function App() {
                           localStorage.removeItem('zoutty_guest_mode');
                           window.location.reload();
                         }}
-                        className="w-full py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs font-medium transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                        className="w-full h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 text-zinc-950 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
                       >
                         <LogOut className="w-3.5 h-3.5 rotate-180" />
                         <span>{t('appSettings.signInSignUpBtn')}</span>
@@ -3955,7 +3955,7 @@ export default function App() {
                                   setShowManageSubscriptionModal(true);
                                 }
                               }}
-                              className="flex-1 py-2.5 px-3 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 font-medium text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                              className="flex-1 h-9 px-4 rounded-full bg-brand hover:bg-brand/90 text-zinc-950 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                             >
                               <Zap className="w-3.5 h-3.5 fill-zinc-950" />
                               <span>{devState.tier === 'free' ? t('billing.limits.upgradeAction') : t('billing.plans.manageSubscription')}</span>
@@ -3964,7 +3964,7 @@ export default function App() {
                               onClick={() => {
                                 setShowReferralModal(true);
                               }}
-                              className="py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                              className="h-9 px-4 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                               title={t('billing.referrals.title')}
                             >
                               <Gift className="w-3.5 h-3.5 text-purple-400" />
@@ -3978,7 +3978,7 @@ export default function App() {
                               onClick={() => {
                                 setShowReferralModal(true);
                               }}
-                              className="w-full py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                              className="w-full h-9 px-4.5 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
                             >
                               <Gift className="w-4 h-4 text-purple-400" />
                               <span>{t('billing.limits.referralAction')}</span>
@@ -3991,7 +3991,7 @@ export default function App() {
                               onClick={() => {
                                 setShowTopupConfirmModal(true);
                               }}
-                              className="w-full py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                              className="w-full h-9 px-4.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
                             >
                               <Zap className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
                               <span>{t('billing.topup.buttonSettings')}</span>
@@ -4058,7 +4058,7 @@ export default function App() {
                   <div className="space-y-2.5 pt-1">
                     <button
                       onClick={handleStartOnboardingTour}
-                      className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-brand/20 bg-brand/5 text-brand hover:bg-brand/10 transition-all text-xs cursor-pointer"
+                      className="w-full h-9 px-4.5 rounded-full border border-brand/20 bg-brand/5 text-brand hover:bg-brand/10 transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                     >
                       <Compass className="w-4 h-4 text-brand" />
                       {t('onboarding.replayOnboardingBtn')}
@@ -4069,7 +4069,7 @@ export default function App() {
                         setShowAppSettings(false);
                         setShowReferralModal(true);
                       }}
-                      className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-purple-500/20 bg-purple-500/5 text-purple-300 hover:bg-purple-500/10 transition-all text-xs cursor-pointer"
+                      className="w-full h-9 px-4.5 rounded-full border border-purple-500/20 bg-purple-500/5 text-purple-300 hover:bg-purple-500/10 transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                     >
                       <Gift className="w-4 h-4 text-purple-400" />
                       {t('billing.referrals.title')}
@@ -4093,7 +4093,7 @@ export default function App() {
                       </p>
                       <button
                         onClick={handleExportBackup}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-xs cursor-pointer"
+                        className="w-full h-9 px-4.5 rounded-full border border-white/10 hover:bg-white/5 transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                       >
                         <Download className="w-4 h-4 text-brand" />
                         {t('appSettings.exportBackupBtn')}
@@ -4105,7 +4105,7 @@ export default function App() {
                       <p className="text-xs text-white/60 leading-relaxed">
                         {t('appSettings.restoreDesc')}
                       </p>
-                      <label className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-xs cursor-pointer">
+                      <label className="w-full h-9 px-4.5 rounded-full border border-white/10 hover:bg-white/5 transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95">
                         <Upload className="w-4 h-4 text-brand" />
                         <span>{t('appSettings.restoreBackupBtn')}</span>
                         <input
@@ -4139,7 +4139,7 @@ export default function App() {
                     </p>
                     <button
                       onClick={() => setShowResetConfirm(true)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 transition-all text-xs cursor-pointer"
+                      className="w-full h-9 px-4.5 rounded-full border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                     >
                       <AlertTriangle className="w-4 h-4" />
                       {t('appSettings.resetAppBtn')}
@@ -4414,7 +4414,7 @@ export default function App() {
           <div className="flex justify-center mt-8 shrink-0 pt-6 border-t border-white/10">
             <button
               onClick={() => setShowVersionModal(false)}
-              className="w-full sm:w-auto px-8 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer"
+              className="w-full sm:w-auto h-9 px-6 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer"
             >
               {t('modals.closeBtn')}
             </button>
@@ -4433,10 +4433,10 @@ export default function App() {
             <p className="text-white/70 text-sm leading-relaxed">
               {t('modals.restoreDbMsg')}
             </p>
-            <div className="flex flex-wrap gap-3 justify-center items-center mt-6">
-              <button onClick={() => setRestoreBackupFile(null)} className="px-4 sm:px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
-              <button onClick={() => executeImportBackup(restoreBackupFile, true)} className="px-4 sm:px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors shadow-lg text-white min-h-[44px] text-sm">{t('modals.restoreMergeBtn')}</button>
-              <button onClick={() => executeImportBackup(restoreBackupFile, false)} className="px-4 sm:px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 transition-colors shadow-lg shadow-brand/30 text-black min-h-[44px] text-sm">{t('modals.restoreReplaceBtn')}</button>
+            <div className="flex flex-wrap gap-2.5 justify-center items-center mt-6">
+              <button onClick={() => setRestoreBackupFile(null)} className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.cancelBtn')}</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile, true)} className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all shadow-lg text-white text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.restoreMergeBtn')}</button>
+              <button onClick={() => executeImportBackup(restoreBackupFile, false)} className="h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 transition-all shadow-lg shadow-brand/30 text-bg-dark text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.restoreReplaceBtn')}</button>
             </div>
           </div>
         </div>
@@ -4456,8 +4456,8 @@ export default function App() {
               {t('modals.resetWarningMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setShowResetConfirm(false)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
-              <button onClick={handleResetApp} className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm">{t('modals.resetEverythingBtn')}</button>
+              <button onClick={() => setShowResetConfirm(false)} className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition-all flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.cancelBtn')}</button>
+              <button onClick={handleResetApp} className="h-9 px-4.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-red-600/30 flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.resetEverythingBtn')}</button>
             </div>
           </div>
         </div>
@@ -4476,7 +4476,7 @@ export default function App() {
               {t('modals.logoutWarningMsg')}
             </p>
             <div className="flex gap-3 justify-end items-center mt-6">
-              <button onClick={() => setShowLogoutConfirm(false)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm">{t('modals.cancelBtn')}</button>
+              <button onClick={() => setShowLogoutConfirm(false)} className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition-all flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.cancelBtn')}</button>
               <button 
                 onClick={async () => {
                   try {
@@ -4493,7 +4493,7 @@ export default function App() {
                     console.error('Logout error', e);
                   }
                 }} 
-                className="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 transition-colors shadow-lg shadow-orange-600/30 text-white min-h-[44px] text-sm"
+                className="h-9 px-4.5 rounded-full bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-orange-600/30 flex items-center justify-center active:scale-95 cursor-pointer"
               >
                 {t('modals.logoutBtn')}
               </button>
@@ -4532,7 +4532,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowDeleteAccountModal(false)}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] text-sm text-white"
+                className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -4544,7 +4544,7 @@ export default function App() {
                    deleteAccountConfirmInput.trim().toUpperCase() !== 'BORRAR')
                 }
                 onClick={handleDeleteAccount}
-                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-9 px-4.5 rounded-full bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-600/30 text-white text-xs sm:text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center active:scale-95 cursor-pointer"
               >
                 {t('appSettings.deleteAccountConfirmBtn')}
               </button>
@@ -4579,8 +4579,8 @@ export default function App() {
               />
             </div>
             <div className="flex gap-3 justify-end items-center">
-              <button type="button" onClick={() => setFolderModal(null)} className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer">{t('modals.cancelBtn')}</button>
-              <button type="submit" className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/20 min-h-[44px] cursor-pointer font-medium">{t('modals.saveBtn')}</button>
+              <button type="button" onClick={() => setFolderModal(null)} className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.cancelBtn')}</button>
+              <button type="submit" className="h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 text-bg-dark transition-all shadow-lg shadow-brand/20 text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer">{t('modals.saveBtn')}</button>
             </div>
           </form>
         </BottomSheet>
@@ -4621,7 +4621,7 @@ export default function App() {
                   setDeleteFolderModal(null);
                   setDeleteFolderAlsoSessions(false);
                 }}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px]"
+                className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -4630,7 +4630,7 @@ export default function App() {
                   confirmDeleteFolder(deleteFolderAlsoSessions);
                   setDeleteFolderAlsoSessions(false);
                 }}
-                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px]"
+                className="h-9 px-4.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-red-600/30 flex items-center justify-center active:scale-95 cursor-pointer"
               >
                 {t('modals.deleteFolderBtn')}
               </button>
@@ -4701,7 +4701,7 @@ export default function App() {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setMoveSessionModal(null)}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-sm min-h-[38px] cursor-pointer"
+                className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold flex items-center justify-center active:scale-95 cursor-pointer"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -4913,7 +4913,7 @@ export default function App() {
                   <button
                     onClick={() => handleGenerateShareLink(false)}
                     disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTopics && !shareModal.shareTranscripts && !shareModal.shareMedia}
-                    className="w-full py-3 rounded-xl bg-brand text-bg-dark font-medium hover:bg-brand/90 disabled:opacity-20 transition-all shadow-[0_0_15px_rgba(45,212,191,0.2)] min-h-[44px] cursor-pointer"
+                    className="w-full h-9 px-4.5 rounded-full bg-brand text-bg-dark font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-brand/90 disabled:opacity-20 transition-all shadow-[0_0_15px_rgba(45,212,191,0.2)] active:scale-95 cursor-pointer"
                   >
                     {selectedSession.shareId ? t('modals.updateShareLink') : t('modals.generateShareLink')}
                   </button>
@@ -4928,7 +4928,7 @@ export default function App() {
                     <button
                       onClick={() => handleGenerateShareLink(true)}
                       disabled={!shareModal.shareReport && !shareModal.shareNotes && !shareModal.shareTopics && !shareModal.shareTranscripts && !shareModal.shareMedia}
-                      className="w-full py-2.5 rounded-xl border border-white/15 hover:bg-white/5 disabled:opacity-20 text-white/80 hover:text-white transition-colors min-h-[40px] text-sm cursor-pointer"
+                      className="w-full h-9 px-4.5 rounded-full border border-white/15 hover:bg-white/5 disabled:opacity-20 text-white/80 hover:text-white transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
                     >
                       {t('modals.exportFileBtn')}
                     </button>
@@ -5019,7 +5019,7 @@ export default function App() {
                       showToast(t('toast.codeCopied'));
                     }
                   }}
-                  className="w-full py-3 bg-brand text-bg-dark font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(45,212,191,0.2)] min-h-[44px] cursor-pointer"
+                  className="w-full h-9 px-4.5 bg-brand text-bg-dark font-semibold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-95 shadow-[0_0_15px_rgba(45,212,191,0.2)] cursor-pointer"
                 >
                   <Share2 className="w-4 h-4" />
                   <span>{t('modals.shareCodeBtn')}</span>
@@ -5034,7 +5034,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => setShareModal(null)}
-                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-xs transition-colors cursor-pointer"
+                    className="h-9 px-4 rounded-full bg-white/10 hover:bg-white/15 text-white/80 text-xs font-semibold flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                   >
                     {t('modals.closeBtn')}
                   </button>
@@ -5077,7 +5077,7 @@ export default function App() {
 
                 <button
                   onClick={() => handleGenerateShareLink(true)}
-                  className="w-full py-3 bg-brand text-bg-dark font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(45,212,191,0.2)] min-h-[44px] cursor-pointer"
+                  className="w-full h-9 px-4.5 bg-brand text-bg-dark font-semibold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-95 shadow-[0_0_15px_rgba(45,212,191,0.2)] cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   <span>{t('modals.exportFileAgainBtn')}</span>
@@ -5092,7 +5092,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => setShareModal(null)}
-                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-xs transition-colors cursor-pointer"
+                    className="h-9 px-4 rounded-full bg-white/10 hover:bg-white/15 text-white/80 text-xs font-semibold flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                   >
                     {t('modals.closeBtn')}
                   </button>
@@ -5140,7 +5140,7 @@ export default function App() {
                     setShowImportCodeModal(false);
                     setImportCodeValue('');
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer"
+                  className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                 >
                   {t('modals.cancelBtn')}
                 </button>
@@ -5178,7 +5178,7 @@ export default function App() {
                     }
                   }}
                   disabled={importCodeValue.length !== 6}
-                  className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px] cursor-pointer font-medium"
+                  className="h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 disabled:opacity-20 text-bg-dark transition-all shadow-lg shadow-brand/30 active:scale-95 cursor-pointer text-xs sm:text-sm font-semibold flex items-center justify-center"
                 >
                   {t('modals.importSessionBtn')}
                 </button>
@@ -5191,7 +5191,7 @@ export default function App() {
               </div>
 
               <input type="file" id="zoutty-import-file" accept=".zoutty,.zoutty.zip,.zip,application/zip" className="hidden" onChange={handleImportFile} />
-              <label htmlFor="zoutty-import-file" className="w-full text-center px-5 py-3 rounded-xl border border-white/10 text-white/80 hover:bg-white/5 transition-colors cursor-pointer">
+              <label htmlFor="zoutty-import-file" className="w-full h-9 px-4.5 rounded-full border border-white/10 text-white/80 hover:bg-white/5 transition-all text-xs sm:text-sm font-semibold flex items-center justify-center cursor-pointer active:scale-95">
                 {t('modals.importFromFile')}
               </label>
             </div>
@@ -5219,49 +5219,47 @@ export default function App() {
 
             <div className="bg-black/30 p-5 rounded-2xl border border-white/10 space-y-3.5">
               <div>
-                <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedTitle')}</span>
-                <span className="text-sm text-white">{importPreview.title}</span>
+                <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedSessionTitle')}</span>
+                <span className="text-base text-white font-medium block mt-1">{importPreview.name}</span>
               </div>
-              {importPreview.subtitle && (
+              <div>
+                <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedDanceType')}</span>
+                <span className="text-sm text-white/80 block mt-1">{importPreview.danceType}</span>
+              </div>
+              {importPreview.parsedReport && (
                 <div>
-                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedSubtitle')}</span>
-                  <span className="text-sm text-white/80">{importPreview.subtitle}</span>
+                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedReportAnalysis')}</span>
+                  <span className="text-xs text-brand-light block mt-1 font-sans">{t('modals.sharedFullBreakdown')}</span>
                 </div>
               )}
-              {Array.isArray(importPreview.tags) && importPreview.tags.length > 0 && (
-                <div>
-                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedTopicsShared')}</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1.5">
-                    {importPreview.tags.map((tag: string, idx: number) => (
-                      <span key={idx} className="text-xs px-2.5 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-brand font-medium">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {importPreview.notes && (
+              {importPreview.parsedNotes && importPreview.parsedNotes.length > 0 && (
                 <div>
                   <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedNotesShared')}</span>
-                  <span className="text-xs text-green-400 block mt-1 font-sans">{t('modals.sharedNotesIncluded')}</span>
+                  <span className="text-xs text-brand-light block mt-1 font-sans">
+                    {t('modals.sharedTimestampedObservations', { count: importPreview.parsedNotes.length })}
+                  </span>
                 </div>
               )}
-              {importPreview.report && (
+              {importPreview.parsedTopics && importPreview.parsedTopics.length > 0 && (
                 <div>
-                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedReportShared')}</span>
-                  <span className="text-xs text-green-400 block mt-1 font-sans">{t('modals.sharedReportIncluded')}</span>
+                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedTopicsShared')}</span>
+                  <span className="text-xs text-brand-light block mt-1 font-sans">
+                    {t('modals.sharedTopicCategories', { count: importPreview.parsedTopics.length })}
+                  </span>
                 </div>
               )}
-              {importPreview.transcripts && (
+              {(importPreview.parsedMediaFiles?.filter((f: any) => f.isAudioEntry).length > 0 || (importPreview.audioEntries && importPreview.audioEntries.length > 0)) && (
                 <div>
-                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedClipsShared')}</span>
-                  <span className="text-xs text-blue-400 block mt-1 font-sans">{t('modals.sharedClipsIncluded', { count: importPreview.transcripts.length })}</span>
+                  <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedAudioRecordings')}</span>
+                  <span className="text-xs text-brand-light block mt-1 font-sans">
+                    {t('modals.sharedAudioTracks', { count: (importPreview.parsedMediaFiles?.filter((f: any) => f.isAudioEntry).length || 0) + (importPreview.audioEntries?.length || 0) })}
+                  </span>
                 </div>
               )}
               {(importPreview.parsedMediaFiles?.filter((f: any) => !f.isAudioEntry).length > 0 || (importPreview.mediaItems && importPreview.mediaItems.length > 0)) && (
                 <div>
                   <span className="text-xs uppercase tracking-widest text-brand block">{t('modals.sharedMediaShared')}</span>
-                  <span className="text-xs text-purple-400 block mt-1 font-sans">
+                  <span className="text-xs text-brand-light block mt-1 font-sans">
                     {t('modals.sharedMediaIncluded', { count: (importPreview.parsedMediaFiles?.filter((f: any) => !f.isAudioEntry).length || 0) + (importPreview.mediaItems?.length || 0) })}
                   </span>
                 </div>
@@ -5274,13 +5272,13 @@ export default function App() {
                   window.history.replaceState({}, document.title, window.location.pathname);
                   setImportPreview(null);
                 }}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer"
+                className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold flex items-center justify-center transition-all active:scale-95 cursor-pointer"
               >
                 {t('modals.rejectBtn')}
               </button>
               <button
                 onClick={handleImportSession}
-                className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark transition-colors shadow-lg shadow-brand/30 min-h-[44px] cursor-pointer font-medium"
+                className="h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 text-bg-dark transition-all shadow-lg shadow-brand/30 active:scale-95 cursor-pointer text-xs sm:text-sm font-semibold flex items-center justify-center"
               >
                 {t('modals.importSessionBtn')}
               </button>
@@ -6837,7 +6835,7 @@ function SessionDetail({
                   setIsAddingTopic(true);
                 }
               }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-brand text-xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-brand text-xs font-medium transition-all active:scale-95 cursor-pointer"
               title={t('session.addTopic')}
             >
               <Plus className="w-3.5 h-3.5" />
@@ -6889,7 +6887,7 @@ function SessionDetail({
                       lessonVideoInputRef.current?.click();
                     }
                   }}
-                  className="text-xs text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 cursor-pointer py-1 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20"
+                  className="h-8 px-3 rounded-full text-xs font-medium text-amber-400 hover:text-amber-300 transition-all flex items-center gap-1.5 cursor-pointer bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 active:scale-95"
                   title={t('session.addLessonVideo')}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -7207,14 +7205,14 @@ function SessionDetail({
               <div className="flex gap-3">
                 <button
                   onClick={handleCancelSettings}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white text-xs min-h-[40px]"
+                  className="flex-1 h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold active:scale-95 cursor-pointer flex items-center justify-center"
                 >
                   {t('sessionSettings.cancelBtn')}
                 </button>
                 <button
                   onClick={handleConfirmSettings}
                   disabled={tempActiveGlossaryIds.length === 0}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-light text-black transition-colors text-xs min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 h-9 px-4.5 rounded-full bg-brand hover:bg-brand-light text-bg-dark transition-all text-xs sm:text-sm font-semibold active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {t('sessionSettings.confirmBtn')}
                 </button>
@@ -7223,9 +7221,9 @@ function SessionDetail({
                 onClick={() => {
                   onDeleteSession();
                 }}
-                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-[11px] shadow-sm"
+                className="w-full h-9 px-4.5 flex items-center justify-center gap-2 rounded-full border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-xs sm:text-sm font-semibold shadow-sm active:scale-95 cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
                 {t('sessionSettings.deleteSessionBtn')}
               </button>
             </div>
@@ -7506,7 +7504,7 @@ function SessionDetail({
             <div className="flex gap-3 justify-end items-center mt-6">
               <button
                 onClick={() => setMediaToDelete(null)}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-h-[44px] cursor-pointer text-xs"
+                className="h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold active:scale-95 cursor-pointer flex items-center justify-center"
               >
                 {t('modals.cancelBtn')}
               </button>
@@ -7519,7 +7517,7 @@ function SessionDetail({
                     setLightboxItem(null);
                   }
                 }}
-                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors shadow-lg shadow-red-600/30 text-white min-h-[44px] cursor-pointer text-xs"
+                className="h-9 px-4.5 rounded-full bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-600/30 text-white text-xs sm:text-sm font-semibold active:scale-95 cursor-pointer flex items-center justify-center"
               >
                 {t('modals.deleteBtn')}
               </button>
@@ -8062,7 +8060,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
                  setNewNoteText('');
                  setIsNoteVisible(false);
                }}
-               className="px-3 py-1.5 text-white/40 hover:text-white text-xs transition-colors cursor-pointer"
+               className="h-8 px-3 rounded-full text-white/50 hover:text-white text-xs font-semibold transition-all active:scale-95 cursor-pointer flex items-center justify-center"
              >
                {t('sessionSettings.cancelBtn')}
              </button>
@@ -8075,7 +8073,7 @@ function SessionStructuredData({ sessionId, entries, processingIds, isReordering
                    setIsNoteVisible(false);
                  }
                }}
-               className="px-3.5 py-1.5 bg-brand/15 border border-brand/30 text-brand hover:bg-brand/25 rounded-xl text-xs transition-colors cursor-pointer"
+               className="h-8 px-3.5 bg-brand/15 border border-brand/30 text-brand hover:bg-brand/25 rounded-full text-xs font-semibold transition-all active:scale-95 cursor-pointer flex items-center justify-center"
              >
                {t('sessionSettings.confirmBtn')}
              </button>
@@ -8353,7 +8351,7 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                   e.stopPropagation();
                   onRequestReprocess();
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-xs shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 h-9 px-4 bg-brand/10 hover:bg-brand/20 text-brand rounded-full border border-brand/20 transition-all text-xs font-semibold shadow-sm active:scale-95 cursor-pointer"
                 title={t('session.reprocessClip')}
               >
                 <Zap className="w-3.5 h-3.5" />
@@ -8365,11 +8363,11 @@ function AudioEntryCard({ displayTitle, time, audio, isOpen, isProcessing, hasNe
                   e.stopPropagation();
                   onProcess();
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-brand/10 hover:bg-brand/20 text-brand rounded-xl border border-brand/20 transition-all text-sm shadow-sm"
+                className="flex items-center gap-2 h-9 px-4 bg-brand/10 hover:bg-brand/20 text-brand rounded-full border border-brand/20 transition-all text-xs font-semibold shadow-sm active:scale-95 cursor-pointer"
                 title={t('session.processClip')}
               >
                 <Zap className="w-4 h-4" />
-                {t('session.processClip')}
+                <span>{t('session.processClip')}</span>
               </button>
             )}
           </div>

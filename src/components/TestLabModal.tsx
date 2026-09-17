@@ -125,7 +125,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -651,7 +651,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs transition-all cursor-pointer"
+            className="h-9 px-4.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs sm:text-sm font-semibold transition-all flex items-center justify-center active:scale-95 cursor-pointer"
           >
             {t('billing.dev.close')}
           </button>
@@ -666,7 +666,7 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-2.5 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-xs shadow-lg shadow-brand/20 transition-all flex items-center gap-2 cursor-pointer"
+              className="h-9 px-5 rounded-full bg-brand hover:bg-brand/90 text-zinc-950 text-xs sm:text-sm font-semibold shadow-lg shadow-brand/20 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               {t('billing.dev.applyOverrides')}

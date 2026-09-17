@@ -63,7 +63,7 @@ export const ApiWakingToast: React.FC = () => {
             </div>
             <button
               onClick={() => apiState.retry()}
-              className="px-2.5 py-1 text-xs font-medium bg-teal-500 hover:bg-teal-400 text-stone-950 rounded-lg transition-colors shrink-0"
+              className="h-7 px-3 text-xs font-semibold bg-teal-500 hover:bg-teal-400 text-stone-950 rounded-full transition-all shrink-0 active:scale-95 cursor-pointer"
             >
               {t('apiStatus.retryBtn')}
             </button>

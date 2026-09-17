@@ -43,7 +43,7 @@ export const RecordingAutoStoppedModal: React.FC<RecordingAutoStoppedModalProps>
       {/* Action Button */}
       <button
         onClick={onClose}
-        className="w-full py-3.5 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-sm shadow-lg shadow-brand/25 transition-all flex items-center justify-center gap-2 cursor-pointer mt-auto shrink-0 font-medium"
+        className="w-full h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 text-zinc-950 text-xs sm:text-sm font-semibold shadow-lg shadow-brand/25 transition-all flex items-center justify-center gap-2 cursor-pointer mt-auto shrink-0 active:scale-95"
       >
         <span>{t('billing.limits.audioDurationUnderstood')}</span>
       </button>

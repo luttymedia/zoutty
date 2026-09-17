@@ -84,7 +84,7 @@ export function WelcomeModal({
                     <button
                       key={style.id}
                       onClick={() => toggleStyle(style.id)}
-                      className={`px-4 py-2 rounded-xl text-sm transition-all duration-300 border ${
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border active:scale-95 cursor-pointer ${
                         selectedStyles.includes(style.id)
                           ? 'bg-brand/20 border-brand/50 text-brand'
                           : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white/90'
@@ -99,10 +99,10 @@ export function WelcomeModal({
 
             <button
               onClick={handleNext}
-              className="w-full mt-4 bg-brand text-black text-base py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-brand/90 transition-colors active:scale-[0.98] shadow-lg shadow-brand/20"
+              className="w-full h-9 px-4.5 mt-4 bg-brand text-black text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 hover:bg-brand/90 transition-all active:scale-95 shadow-lg shadow-brand/20 cursor-pointer"
             >
               {t('onboarding.continueBtn')}
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </>
         ) : (
@@ -158,10 +158,10 @@ export function WelcomeModal({
 
             <button
               onClick={onComplete}
-              className="w-full mt-4 bg-brand text-black text-base py-3.5 rounded-xl flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-[0.98] shadow-lg shadow-brand/20"
+              className="w-full h-9 px-4.5 mt-4 bg-brand text-black text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-brand/20 cursor-pointer"
             >
               {t('onboarding.startExploring')}
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </>
         )}

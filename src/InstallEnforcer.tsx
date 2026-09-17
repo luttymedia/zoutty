@@ -235,7 +235,7 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
               </div>
             </div>
             
-            <button className="w-full bg-white/10 hover:bg-white/15 text-white py-3.5 rounded-xl transition-colors" onClick={() => setShowIosGuide(false)}>
+            <button className="w-full h-11 sm:h-12 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold rounded-full transition-all flex items-center justify-center active:scale-95 cursor-pointer" onClick={() => setShowIosGuide(false)}>
               {t('installEnforcer.iosGotIt')}
             </button>
           </div>

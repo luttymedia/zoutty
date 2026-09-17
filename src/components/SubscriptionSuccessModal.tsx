@@ -114,7 +114,7 @@ export const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> =
         {/* Primary Action Button */}
         <button
           onClick={onClose}
-          className={`w-full py-3.5 px-6 rounded-xl text-sm text-zinc-950 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${themeColor.btnBg}`}
+          className={`w-full h-9 px-4.5 rounded-full text-xs sm:text-sm font-semibold text-zinc-950 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer ${themeColor.btnBg}`}
         >
           <span>{t('billing.plans.getStartedBtn')}</span>
           <ArrowRight className="w-4 h-4" />

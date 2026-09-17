@@ -133,12 +133,12 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             <button
               disabled={isPlus || isRedirecting}
               onClick={handleSelectPlan}
-              className={`w-full py-3.5 px-4 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer ${
+              className={`w-full h-9 px-4.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer ${
                 isPlus
                   ? 'bg-amber-500/20 text-amber-300 cursor-default opacity-80'
                   : isRedirecting
                   ? 'bg-amber-500/50 text-zinc-950 cursor-wait'
-                  : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md shadow-amber-500/20 active:scale-[0.99]'
+                  : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md shadow-amber-500/20 active:scale-95'
               }`}
             >
               {isPlus ? (
@@ -174,7 +174,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
               onClose();
               onOpenReferrals();
             }}
-            className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+            className="h-9 px-4 rounded-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs font-semibold transition-all shrink-0 flex items-center gap-1 active:scale-95 cursor-pointer"
           >
             <span>{t('billing.referrals.shareAction')}</span>
             <ArrowRight className="w-3.5 h-3.5" />

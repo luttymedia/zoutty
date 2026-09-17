@@ -48,9 +48,9 @@ export const MandatoryGlossaryModal: React.FC<MandatoryGlossaryModalProps> = ({
           <button
             onClick={() => onSave(selectedIds)}
             disabled={selectedIds.length === 0}
-            className="w-full px-4 py-4 rounded-xl bg-brand hover:bg-brand/90 text-bg-dark text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand/20"
+            className="w-full h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 text-bg-dark text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand/20 active:scale-95 cursor-pointer"
           >
-            <Save className="w-5 h-5" />
+            <Save className="w-4 h-4" />
             {t('glossary.continueBtn')}
           </button>
           {selectedIds.length === 0 && (

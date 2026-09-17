@@ -167,7 +167,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                   onClose();
                   onUpgradeClick('plus');
                 }}
-                className="w-full py-3.5 px-4 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md shadow-amber-500/20 active:scale-[0.99]"
+                className="w-full h-9 px-4.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md shadow-amber-500/20 active:scale-95"
               >
                 <Zap className="w-4 h-4 fill-zinc-950" />
                 <span>{t('billing.plans.selectPlan', { plan: t('billing.plans.plusName') })}</span>
@@ -190,7 +190,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                   onClose();
                   onReferralClick();
                 }}
-                className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+                className="h-9 px-4 rounded-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs font-semibold transition-all shrink-0 flex items-center gap-1 active:scale-95 cursor-pointer"
               >
                 <span>{t('billing.referrals.shareAction')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -208,7 +208,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                 onClose();
                 if (onOpenBillingPortal) onOpenBillingPortal();
               }}
-              className="w-full py-3.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full h-9 px-4.5 rounded-full bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               <CreditCard className="w-4 h-4" />
               <span>{t('billing.limits.paymentIssueAction')}</span>
@@ -222,18 +222,18 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                 onClose();
                 onTopupClick();
               }}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-zinc-950 text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-between group cursor-pointer"
+              className="w-full h-10 px-4.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-zinc-950 text-xs sm:text-sm font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-between group cursor-pointer active:scale-95"
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-zinc-950/20 flex items-center justify-center">
-                  <Zap className="w-4 h-4 fill-zinc-950 text-zinc-950" />
+                <div className="w-6 h-6 rounded-full bg-zinc-950/20 flex items-center justify-center">
+                  <Zap className="w-3.5 h-3.5 fill-zinc-950 text-zinc-950" />
                 </div>
                 <div className="text-left">
                   <span className="block text-xs">{t('billing.topup.buyBtn')}</span>
                   <span className="block text-[10px] text-zinc-900/80">{t('billing.topup.noExpireNote')}</span>
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded-lg bg-zinc-950/15 text-zinc-950 text-xs font-mono shrink-0 ml-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-zinc-950/15 text-zinc-950 text-xs font-mono shrink-0 ml-2">
                 {t('billing.topup.price')}
               </span>
             </button>
@@ -246,7 +246,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
                 onClose();
                 onReferralClick();
               }}
-              className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              className="w-full h-9 px-4.5 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
             >
               <Gift className="w-4 h-4 text-purple-400" />
               <span>{t('billing.limits.referralActionPaid')}</span>
@@ -255,7 +255,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
 
           <button
             onClick={onClose}
-            className="w-full py-2 text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+            className="w-full h-9 px-4.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center active:scale-95 cursor-pointer"
           >
             {t('common.cancel')}
           </button>

@@ -188,7 +188,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
             <button
               type="button"
               onClick={handleCopy}
-              className="px-4 py-2 rounded-xl bg-brand/10 hover:bg-brand/20 text-brand text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              className="h-9 px-4 rounded-full bg-brand/10 hover:bg-brand/20 text-brand text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
             >
               {copied ? (
                 <>
@@ -209,7 +209,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
         <button
           type="button"
           onClick={handleShare}
-          className="w-full py-3.5 px-4 rounded-xl bg-brand hover:bg-brand/90 text-zinc-950 text-sm shadow-lg shadow-brand/25 transition-all flex items-center justify-center gap-2 cursor-pointer mt-4 shrink-0 font-medium"
+          className="w-full h-9 px-4.5 rounded-full bg-brand hover:bg-brand/90 text-zinc-950 text-xs sm:text-sm font-semibold shadow-lg shadow-brand/25 transition-all flex items-center justify-center gap-2 cursor-pointer mt-4 shrink-0 active:scale-95"
         >
           <Share2 className="w-4 h-4" />
           <span>{t('billing.referrals.shareAction')}</span>

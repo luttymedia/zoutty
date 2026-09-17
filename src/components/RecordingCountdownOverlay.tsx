@@ -93,7 +93,7 @@ export const RecordingCountdownOverlay: React.FC<RecordingCountdownOverlayProps>
         {/* Cancel Button */}
         <button
           onClick={onCancel}
-          className="mt-12 px-5 py-2.5 rounded-full glass border border-white/20 hover:bg-white/15 text-white/80 hover:text-white transition-all text-sm font-medium flex items-center gap-2 cursor-pointer shadow-xl active:scale-95"
+          className="mt-12 h-9 px-4.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/15 text-white/80 hover:text-white transition-all text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer shadow-xl active:scale-95"
           title={t('session.cancelCountdown')}
         >
           <X className="w-4 h-4" />

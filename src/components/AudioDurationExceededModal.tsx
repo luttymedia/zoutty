@@ -114,7 +114,7 @@ export const AudioDurationExceededModal: React.FC<AudioDurationExceededModalProp
         {/* Action Button */}
         <button
           onClick={onClose}
-          className="w-full py-3.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-all flex items-center justify-center gap-2 cursor-pointer mt-4 shrink-0 font-medium"
+          className="w-full h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer mt-4 shrink-0 active:scale-95"
         >
           <Check className="w-4 h-4" />
           <span>{t('billing.limits.audioDurationUnderstood')}</span>
