@@ -7268,147 +7268,142 @@ function SessionDetail({
         </button>
       </div>
 
-      {/* Settings Drawer */}
+      {/* Session Settings Modal / BottomSheet */}
       {isSettingsOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 animate-in fade-in duration-200"
-            onClick={handleCancelSettings}
-          />
-          {/* Drawer Panel */}
-          <div
-            className="fixed bottom-0 left-0 right-0 rounded-t-3xl border-t border-white/10 p-6 pb-8 bg-[#041c1f]/95 backdrop-blur-md z-50 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto sm:w-96 sm:rounded-l-3xl sm:rounded-tr-none sm:border-l sm:border-t-0 sm:slide-in-from-right"
-          >
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <h3 className="text-lg text-white flex items-center gap-2">
-                <SlidersHorizontal className="w-5 h-5 text-brand" />
-                {t('sessionSettings.drawerTitle')}
-              </h3>
-              <button
-                onClick={handleCancelSettings}
-                className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        <BottomSheet
+          isOpen={isSettingsOpen}
+          onClose={handleCancelSettings}
+          maxWidthClass="max-w-md"
+          maxHeightClass="max-h-[90vh]"
+          showCloseButton={false}
+          zIndexClass="z-50"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-white/5 pb-3 shrink-0">
+            <h3 className="text-lg text-white flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-brand" />
+              {t('sessionSettings.drawerTitle')}
+            </h3>
+            <button
+              onClick={handleCancelSettings}
+              className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-            {/* Drawer Content */}
-            <div className="flex-1 overflow-y-auto space-y-6 pr-1">
-              {/* Session Date Selector (DD/MM/YYYY) */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-brand" />
-                  {t('sessionSettings.dateLabel')}
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    value={tempDate}
-                    onChange={(e) => setTempDate(e.target.value)}
-                    placeholder="DD/MM/YYYY"
-                    maxLength={10}
-                    className="w-full bg-[#1b1b1f]/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white/95 outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/40 transition-all pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      try {
-                        dateInputRef.current?.showPicker?.();
-                      } catch {
-                        dateInputRef.current?.focus();
-                      }
-                    }}
-                    className="absolute right-2 p-1.5 rounded-lg text-white/40 hover:text-brand hover:bg-white/5 transition-colors cursor-pointer"
-                    title={t('sessionSettings.dateLabel')}
-                  >
-                    <Calendar className="w-4 h-4" />
-                  </button>
-                  <input
-                    ref={dateInputRef}
-                    type="date"
-                    value={formatDMYToIso(tempDate)}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        const [year, month, day] = e.target.value.split('-');
-                        setTempDate(`${day}/${month}/${year}`);
-                      }
-                    }}
-                    className="absolute opacity-0 pointer-events-none w-0 h-0 -z-10 [color-scheme:dark]"
-                    tabIndex={-1}
-                  />
-                </div>
-              </div>
-
-              {/* Folder Selector */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1.5">
-                  <Folder className="w-3.5 h-3.5 text-brand" />
-                  {t('sessionSettings.folderLabel')}
-                </label>
-                <CustomSelect
-                  value={tempGroupId || ''}
-                  onChange={setTempGroupId}
-                  position="relative"
-                  options={[
-                    { value: '', label: t('sessionSettings.folderNone') },
-                    ...groups.map(g => ({ value: g.id, label: g.name }))
-                  ]}
+          {/* Drawer Content */}
+          <div className="flex-1 overflow-y-auto space-y-6 pr-1 py-4">
+            {/* Session Date Selector (DD/MM/YYYY) */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-brand" />
+                {t('sessionSettings.dateLabel')}
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  value={tempDate}
+                  onChange={(e) => setTempDate(e.target.value)}
+                  placeholder="DD/MM/YYYY"
+                  maxLength={10}
+                  className="w-full bg-[#1b1b1f]/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white/95 outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/40 transition-all pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      dateInputRef.current?.showPicker?.();
+                    } catch {
+                      dateInputRef.current?.focus();
+                    }
+                  }}
+                  className="absolute right-2 p-1.5 rounded-lg text-white/40 hover:text-brand hover:bg-white/5 transition-colors cursor-pointer"
+                  title={t('sessionSettings.dateLabel')}
+                >
+                  <Calendar className="w-4 h-4" />
+                </button>
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  value={formatDMYToIso(tempDate)}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const [year, month, day] = e.target.value.split('-');
+                      setTempDate(`${day}/${month}/${year}`);
+                    }
+                  }}
+                  className="absolute opacity-0 pointer-events-none w-0 h-0 -z-10 [color-scheme:dark]"
+                  tabIndex={-1}
                 />
               </div>
-
-              {/* Glossary Selector */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5 text-brand" />
-                  {t('sessionSettings.glossaryLabel')}
-                </label>
-                <MultiSelectCombobox
-                  selectedValues={tempActiveGlossaryIds}
-                  onChange={setTempActiveGlossaryIds}
-                  options={SYSTEM_GLOSSARIES.map(g => ({ value: g.id, label: getDanceStyleLabel(g.id) }))}
-                  placeholder={t('glossary.searchPlaceholder')}
-                />
-                {tempActiveGlossaryIds.length === 0 && (
-                  <p className="text-[11px] text-amber-400 mt-1">
-                    {t('glossary.requireOne')}
-                  </p>
-                )}
-              </div>
-
-
             </div>
 
-            {/* Drawer Footer / Confirm, Cancel, and Delete Actions */}
-            <div className="border-t border-white/5 pt-4 mt-auto flex flex-col gap-3">
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCancelSettings}
-                  className="flex-1 h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold active:scale-95 cursor-pointer flex items-center justify-center"
-                >
-                  {t('sessionSettings.cancelBtn')}
-                </button>
-                <button
-                  onClick={handleConfirmSettings}
-                  disabled={tempActiveGlossaryIds.length === 0}
-                  className="flex-1 h-9 px-4.5 rounded-full bg-brand hover:bg-brand-light text-bg-dark transition-all text-xs sm:text-sm font-semibold active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                >
-                  {t('sessionSettings.confirmBtn')}
-                </button>
-              </div>
-              <button
-                onClick={() => {
-                  onDeleteSession();
-                }}
-                className="w-full h-9 px-4.5 flex items-center justify-center gap-2 rounded-full border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-xs sm:text-sm font-semibold shadow-sm active:scale-95 cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4" />
-                {t('sessionSettings.deleteSessionBtn')}
-              </button>
+            {/* Folder Selector */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+                <Folder className="w-3.5 h-3.5 text-brand" />
+                {t('sessionSettings.folderLabel')}
+              </label>
+              <CustomSelect
+                value={tempGroupId || ''}
+                onChange={setTempGroupId}
+                position="relative"
+                options={[
+                  { value: '', label: t('sessionSettings.folderNone') },
+                  ...groups.map(g => ({ value: g.id, label: g.name }))
+                ]}
+              />
+            </div>
+
+            {/* Glossary Selector */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-brand" />
+                {t('sessionSettings.glossaryLabel')}
+              </label>
+              <MultiSelectCombobox
+                selectedValues={tempActiveGlossaryIds}
+                onChange={setTempActiveGlossaryIds}
+                options={SYSTEM_GLOSSARIES.map(g => ({ value: g.id, label: getDanceStyleLabel(g.id) }))}
+                placeholder={t('glossary.searchPlaceholder')}
+              />
+              {tempActiveGlossaryIds.length === 0 && (
+                <p className="text-[11px] text-amber-400 mt-1">
+                  {t('glossary.requireOne')}
+                </p>
+              )}
             </div>
           </div>
-        </>
+
+          {/* Drawer Footer / Confirm, Cancel, and Delete Actions */}
+          <div className="border-t border-white/5 pt-4 mt-auto flex flex-col gap-3 shrink-0">
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelSettings}
+                className="flex-1 h-9 px-4.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white text-xs sm:text-sm font-semibold active:scale-95 cursor-pointer flex items-center justify-center"
+              >
+                {t('sessionSettings.cancelBtn')}
+              </button>
+              <button
+                onClick={handleConfirmSettings}
+                disabled={tempActiveGlossaryIds.length === 0}
+                className="flex-1 h-9 px-4.5 rounded-full bg-brand hover:bg-brand-light text-bg-dark transition-all text-xs sm:text-sm font-semibold active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {t('sessionSettings.confirmBtn')}
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                onDeleteSession();
+              }}
+              className="w-full h-9 px-4.5 flex items-center justify-center gap-2 rounded-full border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:text-white transition-all text-xs sm:text-sm font-semibold shadow-sm active:scale-95 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              {t('sessionSettings.deleteSessionBtn')}
+            </button>
+          </div>
+        </BottomSheet>
       )}
 
       {/* Hidden file input for blob mode (Safari/iOS) */}
@@ -7439,179 +7434,178 @@ function SessionDetail({
         }}
       />
 
-      {/* Gallery Drawer */}
+      {/* Gallery Modal / BottomSheet */}
       {isGalleryOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 animate-in fade-in duration-200"
-            onClick={() => {
-              setIsGalleryOpen(false);
-              setIsDeleteMode(false);
-            }}
-          />
-          {/* Drawer Panel */}
-          <div className="fixed bottom-0 left-0 right-0 rounded-t-3xl border-t border-white/10 p-6 pb-8 bg-[#041c1f]/95 backdrop-blur-md z-50 flex flex-col gap-5 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto sm:w-[480px] sm:rounded-l-3xl sm:rounded-tr-none sm:border-l sm:border-t-0 sm:slide-in-from-right max-h-[90vh] sm:max-h-full">
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between border-b border-white/5 pb-3 shrink-0">
-              <h3 className="text-lg text-white flex items-center gap-2">
-                <Images className="w-5 h-5 text-purple-400" />
-                {t('session.galleryTitle')}
-                {mediaItems.length > 0 && (
-                  <span className="text-xs font-normal text-white/40 ml-1">{t('session.galleryItemCount', { count: mediaItems.length })}</span>
-                )}
-              </h3>
-              <div className="flex items-center gap-2">
-                {mediaItems.length > 0 && (
-                  <button
-                    onClick={() => setIsDeleteMode(!isDeleteMode)}
-                    className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${isDeleteMode
-                      ? 'bg-red-500/20 border-red-500/40 text-red-300'
-                      : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
-                      }`}
-                  >
-                    {isDeleteMode ? t('session.galleryDoneBtn') : t('session.galleryEditBtn')}
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setIsGalleryOpen(false);
-                    setIsDeleteMode(false);
-                  }}
-                  className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Storage info note */}
-            <div className="shrink-0 text-[11px] text-white/40 bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 leading-relaxed flex items-start gap-2">
-              <AlertTriangle className="w-3.5 h-3.5 text-yellow-400/70 mt-0.5 shrink-0" />
-              <span>{isFileAccessSupported ? t('session.galleryStorageNote') : t('session.galleryBlobNote')}</span>
-            </div>
-
-            {/* Content */}
-            <div
-              className="flex-1 overflow-y-auto space-y-3 pr-1"
-              onClick={() => {
-                if (isDeleteMode) setIsDeleteMode(false);
-              }}
-            >
-              {mediaItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-white/30 gap-3">
-                  <Images className="w-10 h-10 opacity-30" />
-                  <p className="text-sm">{t('session.galleryEmpty')}</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {mediaItems.map(item => {
-                    const url = mediaObjectUrls[item.id];
-                    const broken = brokenMediaIds.has(item.id);
-                    const isVideo = item.mimeType.startsWith('video/');
-                    return (
-                      <div
-                        key={item.id}
-                        className={`relative group rounded-xl overflow-hidden border bg-black/30 aspect-square transition-all ${isDeleteMode
-                          ? 'animate-wiggle border-red-500/40 shadow-lg shadow-red-500/10'
-                          : 'border-white/10'
-                          }`}
-                      >
-                        {broken ? (
-                          <button
-                            className="w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-center cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isDeleteMode) {
-                                if (session.isDemo) {
-                                  onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
-                                } else {
-                                  setMediaToDelete(item);
-                                }
-                              }
-                            }}
-                          >
-                            <LinkIcon className="w-6 h-6 text-red-400/60" />
-                            <p className="text-[9px] text-white/40 leading-tight">{t('session.galleryBrokenLink')}</p>
-                          </button>
-                        ) : url ? (
-                          <button
-                            className="w-full h-full cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isDeleteMode) {
-                                if (session.isDemo) {
-                                  onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
-                                } else {
-                                  setMediaToDelete(item);
-                                }
-                              } else {
-                                setLightboxItem(item);
-                              }
-                            }}
-                          >
-                            {isVideo ? (
-                              <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
-                            ) : (
-                              <img src={url} alt={item.filename} className="w-full h-full object-cover" />
-                            )}
-                            {isVideo && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center">
-                                  <span className="text-white text-xs ml-0.5">▶</span>
-                                </div>
-                              </div>
-                            )}
-                          </button>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <div className="w-5 h-5 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
-                          </div>
-                        )}
-                        {/* Delete button (visible when in delete mode) */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (session.isDemo) {
-                              onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
-                            } else {
-                              setMediaToDelete(item);
-                            }
-                          }}
-                          className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-600 border border-red-500 text-white transition-all flex items-center justify-center z-10 ${isDeleteMode ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'
-                            }`}
-                          title={t('session.galleryDeleteItem')}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        {/* Filename tooltip */}
-                        <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ${isDeleteMode ? 'hidden' : ''}`}>
-                          <p className="text-[9px] text-white/80 truncate">{item.filename}</p>
-                          <p className="text-[8px] text-white/40">{formatBytes(item.size)}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+        <BottomSheet
+          isOpen={isGalleryOpen}
+          onClose={() => {
+            setIsGalleryOpen(false);
+            setIsDeleteMode(false);
+          }}
+          maxWidthClass="max-w-lg"
+          maxHeightClass="max-h-[90vh]"
+          showCloseButton={false}
+          zIndexClass="z-50"
+        >
+          {/* Drawer Header */}
+          <div className="flex items-center justify-between border-b border-white/5 pb-3 shrink-0">
+            <h3 className="text-lg text-white flex items-center gap-2">
+              <Images className="w-5 h-5 text-purple-400" />
+              {t('session.galleryTitle')}
+              {mediaItems.length > 0 && (
+                <span className="text-xs font-normal text-white/40 ml-1">{t('session.galleryItemCount', { count: mediaItems.length })}</span>
               )}
-            </div>
-
-            {/* Add Media Button */}
-            <div className="shrink-0 border-t border-white/5 pt-4">
+            </h3>
+            <div className="flex items-center gap-2">
+              {mediaItems.length > 0 && (
+                <button
+                  onClick={() => setIsDeleteMode(!isDeleteMode)}
+                  className={`px-3 py-1.5 rounded-lg text-xs border transition-all cursor-pointer ${isDeleteMode
+                    ? 'bg-red-500/20 border-red-500/40 text-red-300'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                    }`}
+                >
+                  {isDeleteMode ? t('session.galleryDoneBtn') : t('session.galleryEditBtn')}
+                </button>
+              )}
               <button
-                onClick={(e) => handleAddMedia(e)}
-                disabled={isAddingMedia}
-                className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400/60 transition-all text-xs shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => {
+                  setIsGalleryOpen(false);
+                  setIsDeleteMode(false);
+                }}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
               >
-                {isAddingMedia ? (
-                  <><div className="w-4 h-4 border-2 border-purple-400/40 border-t-purple-400 rounded-full animate-spin" />{t('session.galleryCompressingImage')}</>
-                ) : (
-                  <><Images className="w-4 h-4" />{t('session.galleryAddBtn')}</>
-                )}
+                <X className="w-5 h-5" />
               </button>
             </div>
           </div>
-        </>
+
+          {/* Storage info note */}
+          <div className="shrink-0 text-[11px] text-white/40 bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 leading-relaxed flex items-start gap-2 my-3">
+            <AlertTriangle className="w-3.5 h-3.5 text-yellow-400/70 mt-0.5 shrink-0" />
+            <span>{isFileAccessSupported ? t('session.galleryStorageNote') : t('session.galleryBlobNote')}</span>
+          </div>
+
+          {/* Content */}
+          <div
+            className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0 py-2"
+            onClick={() => {
+              if (isDeleteMode) setIsDeleteMode(false);
+            }}
+          >
+            {mediaItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-white/30 gap-3">
+                <Images className="w-10 h-10 opacity-30" />
+                <p className="text-sm">{t('session.galleryEmpty')}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {mediaItems.map(item => {
+                  const url = mediaObjectUrls[item.id];
+                  const broken = brokenMediaIds.has(item.id);
+                  const isVideo = item.mimeType.startsWith('video/');
+                  return (
+                    <div
+                      key={item.id}
+                      className={`relative group rounded-xl overflow-hidden border bg-black/30 aspect-square transition-all ${isDeleteMode
+                        ? 'animate-wiggle border-red-500/40 shadow-lg shadow-red-500/10'
+                        : 'border-white/10'
+                        }`}
+                    >
+                      {broken ? (
+                        <button
+                          className="w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-center cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isDeleteMode) {
+                              if (session.isDemo) {
+                                onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
+                              } else {
+                                setMediaToDelete(item);
+                              }
+                            }
+                          }}
+                        >
+                          <LinkIcon className="w-6 h-6 text-red-400/60" />
+                          <p className="text-[9px] text-white/40 leading-tight">{t('session.galleryBrokenLink')}</p>
+                        </button>
+                      ) : url ? (
+                        <button
+                          className="w-full h-full cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isDeleteMode) {
+                              if (session.isDemo) {
+                                onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
+                              } else {
+                                setMediaToDelete(item);
+                              }
+                            } else {
+                              setLightboxItem(item);
+                            }
+                          }}
+                        >
+                          {isVideo ? (
+                            <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                          ) : (
+                            <img src={url} alt={item.filename} className="w-full h-full object-cover" />
+                          )}
+                          {isVideo && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center">
+                                <span className="text-white text-xs ml-0.5">▶</span>
+                              </div>
+                            </div>
+                          )}
+                        </button>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="w-5 h-5 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
+                        </div>
+                      )}
+                      {/* Delete button (visible when in delete mode) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (session.isDemo) {
+                            onTriggerDemoGuide?.(e, t('onboarding.guideTagDelete'), t('onboarding.demoTooltipDelete'), 'trash');
+                          } else {
+                            setMediaToDelete(item);
+                          }
+                        }}
+                        className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-600 border border-red-500 text-white transition-all flex items-center justify-center z-10 ${isDeleteMode ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'
+                          }`}
+                        title={t('session.galleryDeleteItem')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      {/* Filename tooltip */}
+                      <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ${isDeleteMode ? 'hidden' : ''}`}>
+                        <p className="text-[9px] text-white/80 truncate">{item.filename}</p>
+                        <p className="text-[8px] text-white/40">{formatBytes(item.size)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Add Media Button */}
+          <div className="shrink-0 border-t border-white/5 pt-4 mt-auto">
+            <button
+              onClick={(e) => handleAddMedia(e)}
+              disabled={isAddingMedia}
+              className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400/60 transition-all text-xs shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isAddingMedia ? (
+                <><div className="w-4 h-4 border-2 border-purple-400/40 border-t-purple-400 rounded-full animate-spin" />{t('session.galleryCompressingImage')}</>
+              ) : (
+                <><Images className="w-4 h-4" />{t('session.galleryAddBtn')}</>
+              )}
+            </button>
+          </div>
+        </BottomSheet>
       )}
 
       {/* Lightbox */}
