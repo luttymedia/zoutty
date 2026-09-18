@@ -144,7 +144,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
             onClick={() => setUILanguage(code as any)}
             className={`px-[14px] py-[6px] text-[12px] rounded-full tracking-[0.05em] transition-all duration-300 ${
               uiLanguage === code 
-                ? 'bg-brand text-bg-dark shadow-[0_2px_8px_rgba(45,212,191,0.3)]' 
+                ? 'bg-brand text-bg-dark font-medium' 
                 : 'text-white/50 hover:text-white/80 hover:bg-white/5'
             }`}
           >

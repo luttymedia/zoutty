@@ -17,7 +17,7 @@
 @layer base {
   body {
     @apply antialiased bg-bg-dark text-white;
-    background: radial-gradient(circle at 50% 0%, #06373A 0%, #021517 70%);
+    background: #021517;
     background-attachment: fixed;
   }
 

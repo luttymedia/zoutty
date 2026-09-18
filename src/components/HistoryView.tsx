@@ -292,7 +292,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
               {/* Session Rows in Month */}
               {!isCollapsed && (
-                <div className="flex flex-col">
+                <div className="divide-y-2 divide-bg-dark rounded-2xl bg-white/[0.05] overflow-hidden">
                   {group.sessions.map((session) => (
                     <HistorySessionRow
                       key={session.id}

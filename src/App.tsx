@@ -3546,7 +3546,7 @@ export default function App() {
           />
           {/* Drawer Panel */}
           <div
-            className="fixed top-0 bottom-0 right-0 w-full sm:w-96 bg-[#1e1e22]/95 border-l border-white/10 backdrop-blur-md pt-6 pb-6 pl-6 pr-0 z-50 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-right duration-300"
+            className="fixed top-0 bottom-0 right-0 w-full sm:w-96 bg-[#041c1f]/95 border-l border-white/10 backdrop-blur-md pt-6 pb-6 pl-6 pr-0 z-50 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-right duration-300"
           >
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-white/5 pb-3 pr-6">
@@ -3586,14 +3586,14 @@ export default function App() {
                         <button
                           key={code}
                           onClick={() => setUILanguage(code as any)}
-                          className={`px-3.5 py-1.5 text-xs rounded-full transition-all duration-200 flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                          className={`px-3.5 py-1.5 text-xs rounded-full transition-all duration-200 flex items-center gap-1.5 cursor-pointer active:scale-95 leading-normal ${
                             uiLanguage === code
-                              ? 'bg-brand text-bg-dark font-medium shadow-[0_2px_8px_rgba(45,212,191,0.3)]'
+                              ? 'bg-brand text-bg-dark font-medium'
                               : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10 border border-white/5'
                           }`}
                         >
-                          <span className="uppercase font-mono">{code}</span>
-                          <span className={`text-[11px] ${uiLanguage === code ? 'text-bg-dark/80' : 'text-white/40'}`}>
+                          <span className="font-semibold uppercase tracking-wide">{code}</span>
+                          <span className={uiLanguage === code ? 'text-bg-dark/80' : 'text-white/40'}>
                             ({name})
                           </span>
                         </button>
@@ -5557,7 +5557,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 pb-32">
+      <main className={`max-w-2xl mx-auto pb-32 ${view === 'list' ? 'px-2.5 sm:px-4' : 'px-4 sm:px-6'}`}>
         {view === 'list' ? (
           <div className="space-y-6">
             {/* Home Tab Bar: Lesson History vs Library vs Topics */}
@@ -5724,7 +5724,7 @@ export default function App() {
 
             {/* Folders List - Shown in Root */}
             {!selectedGroupId && groups.filter(g => activeSearch ? activeSearch.matchedGroupIds.has(g.id) : g.id !== 'root').length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
                   <h2 className="text-xs sm:text-sm font-medium tracking-wider uppercase text-blue-400/90">{t('home.foldersHeading')}</h2>
 
@@ -5757,12 +5757,12 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="flex flex-col">
+                <div className="divide-y-2 divide-bg-dark rounded-2xl bg-white/[0.05] overflow-hidden">
                   {sortFolders(groups.filter(g => activeSearch ? activeSearch.matchedGroupIds.has(g.id) : g.id !== 'root')).map(group => (
                     <div
                       key={group.id}
                       onClick={() => navigateTo('list', null, group.id)}
-                      className="flex items-center gap-3.5 py-3 px-1 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                      className="flex items-center gap-3.5 py-2.5 px-3 hover:bg-white/[0.07] transition-colors cursor-pointer group"
                     >
                       <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
                         <Folder className="w-4 h-4 text-blue-400" />
@@ -5796,7 +5796,7 @@ export default function App() {
             )}
 
             {showSessionsSection && (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
                   <h2 className="text-xs sm:text-sm font-medium tracking-wider uppercase text-brand/90">
                     {selectedGroupId ? t('home.sessionsInFolderHeading') : t('home.sessionsHeading')}
@@ -5842,13 +5842,13 @@ export default function App() {
                       <p className="text-sm sm:text-base text-white/50 max-w-sm leading-relaxed">{t('home.emptyHomeDesc')}</p>
                     </div>
                   ) : (
-                    <div className="p-12 text-center text-white/30 border-b border-white/5">
+                    <div className="p-8 sm:p-12 text-center text-white/30 rounded-2xl bg-white/[0.05]">
                       <Folder className="w-10 h-10 mx-auto mb-2.5 opacity-20" />
                       <p className="text-sm">{t('home.noSessionsInFolder')}</p>
                     </div>
                   )
                 ) : (
-                  <div className="flex flex-col">
+                  <div className="divide-y-2 divide-bg-dark rounded-2xl bg-white/[0.05] overflow-hidden">
                     {sortSessions(
                       sessions.filter(s => activeSearch ? activeSearch.matchedSessionIds.has(s.id) : (selectedGroupId ? s.groupId === selectedGroupId : !s.groupId))
                     ).map(session => (
@@ -5857,7 +5857,7 @@ export default function App() {
                         onClick={() => {
                           navigateTo('detail', session.id, selectedGroupId);
                         }}
-                        className={`flex items-center gap-3.5 py-3.5 px-1 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group ${session.isDemo && sessions.length === 1 ? 'border-brand/40 shadow-[0_0_15px_rgba(45,212,191,0.15)] animate-pulse' : ''}`}
+                        className={`flex items-center gap-3.5 py-2.5 px-3 hover:bg-white/[0.07] transition-colors cursor-pointer group ${session.isDemo && sessions.length === 1 ? 'ring-1 ring-brand/40 shadow-[0_0_15px_rgba(45,212,191,0.15)] animate-pulse' : ''}`}
                       >
                         <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
                           <FileAudio className="w-4 h-4 text-brand" />
@@ -7278,7 +7278,7 @@ function SessionDetail({
           />
           {/* Drawer Panel */}
           <div
-            className="fixed bottom-0 left-0 right-0 rounded-t-3xl border-t border-white/10 p-6 pb-8 bg-[#1e1e22]/95 backdrop-blur-md z-50 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto sm:w-96 sm:rounded-l-3xl sm:rounded-tr-none sm:border-l sm:border-t-0 sm:slide-in-from-right"
+            className="fixed bottom-0 left-0 right-0 rounded-t-3xl border-t border-white/10 p-6 pb-8 bg-[#041c1f]/95 backdrop-blur-md z-50 flex flex-col gap-6 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto sm:w-96 sm:rounded-l-3xl sm:rounded-tr-none sm:border-l sm:border-t-0 sm:slide-in-from-right"
           >
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -7451,7 +7451,7 @@ function SessionDetail({
             }}
           />
           {/* Drawer Panel */}
-          <div className="fixed bottom-0 left-0 right-0 rounded-t-3xl border-t border-white/10 p-6 pb-8 bg-[#1e1e22]/95 backdrop-blur-md z-50 flex flex-col gap-5 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto sm:w-[480px] sm:rounded-l-3xl sm:rounded-tr-none sm:border-l sm:border-t-0 sm:slide-in-from-right max-h-[90vh] sm:max-h-full">
+          <div className="fixed bottom-0 left-0 right-0 rounded-t-3xl border-t border-white/10 p-6 pb-8 bg-[#041c1f]/95 backdrop-blur-md z-50 flex flex-col gap-5 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto sm:w-[480px] sm:rounded-l-3xl sm:rounded-tr-none sm:border-l sm:border-t-0 sm:slide-in-from-right max-h-[90vh] sm:max-h-full">
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-white/5 pb-3 shrink-0">
               <h3 className="text-lg text-white flex items-center gap-2">

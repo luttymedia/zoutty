@@ -163,7 +163,7 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
     const count = activeTopicData ? activeTopicData.sessions.length : 0;
 
     return (
-      <div className="space-y-6 animate-in fade-in duration-200">
+      <div className="space-y-3 animate-in fade-in duration-200">
         {/* Search header if active */}
         {renderSearchBanner()}
 
@@ -197,7 +197,7 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
                 </span>
                 {activeTopicData && (
                   <>
-                    <span>•</span>
+                    <span>&middot;</span>
                     <span>
                       {t('topics.lastWorkedOn', {
                         relative: formatRelativeTime(activeTopicData.lastDate),
@@ -225,7 +225,7 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
 
         {/* Sessions List */}
         {activeTopicData && count > 0 && (
-          <div className="flex flex-col">
+          <div className="divide-y-2 divide-bg-dark rounded-2xl bg-white/[0.05] overflow-hidden">
             {activeTopicData.sessions.map((session) => {
               const hasReport = Boolean(session.summary);
               const sessionTags = session.tags || [];
@@ -234,7 +234,7 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
                 <div
                   key={session.id}
                   onClick={() => onSelectSession(session.id, session.groupId || null)}
-                  className="flex items-center gap-4 py-3.5 px-1 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                  className="flex items-center gap-4 py-2.5 px-3 hover:bg-white/[0.07] transition-colors cursor-pointer group"
                 >
                   {/* Left stacked date column */}
                   <div className="w-14 shrink-0 text-left flex flex-col justify-center">
@@ -308,7 +308,7 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
   const totalTopics = topicsList.length;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-3 animate-in fade-in duration-200">
       {/* Search header if active */}
       {renderSearchBanner()}
 
@@ -339,7 +339,7 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
 
       {/* Topics List Items */}
       {totalTopics > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {/* Section Summary Header */}
           <div className="flex items-center justify-between px-1 text-xs text-white/40 uppercase tracking-wider">
             <span>
@@ -349,7 +349,7 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
             </span>
           </div>
 
-          <div className="divide-y divide-white/5 rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden">
+          <div className="divide-y-2 divide-bg-dark rounded-2xl bg-white/[0.05] overflow-hidden">
             {topicsList.map((topic) => {
               const count = topic.count;
 
@@ -357,7 +357,7 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
                 <div
                   key={topic.name.toLowerCase()}
                   onClick={() => setSelectedTopic(topic.name)}
-                  className="flex items-center justify-between gap-3 p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group"
+                  className="flex items-center justify-between gap-3 py-2.5 px-3 hover:bg-white/[0.07] transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
                     <div className="w-9 h-9 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand shrink-0 group-hover:scale-105 group-hover:bg-brand/20 transition-all">
@@ -374,7 +374,7 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
                             ? t('topics.sessionCountSingular')
                             : t('topics.sessionCountPlural', { count })}
                         </span>
-                        <span>•</span>
+                        <span>&middot;</span>
                         <span className="truncate">
                           {t('topics.lastWorkedOn', {
                             relative: formatRelativeTime(topic.lastDate),
@@ -394,3 +394,4 @@ export const TopicsView: React.FC<TopicsViewProps> = ({
     </div>
   );
 };
+

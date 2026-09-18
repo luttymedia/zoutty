@@ -9,7 +9,7 @@ const es: Translations = {
   appSubtitle: 'Asistente de Clases Privadas',
   guestModeBadge: 'Modo Invitado',
   freePlanBadge: 'Plan Gratis',
-  plusPlanBadge: 'Plan Plus',
+  plusPlanBadge: 'Zoutty Plus',
   installApp: 'Instalar App',
   goToHome: 'Ir a Inicio',
 

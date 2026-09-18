@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.12.3',
+    date: '2026-09-18',
+    changes: [
+      'Discrete Cards UI Redesign: Transformed Lesson History, Library, and Topics lists into unified card groups separated by 2px background-colored dividers',
+      'Optimized Economic Spacing: Tightened outer screen gutters and inner card row paddings for an edge-to-edge, content-focused mobile experience',
+      'Palette & Drawer Cohesion: Standardized settings and detail drawers with dark teal surfaces matching the app background, and eliminated button glow and baseline misalignment from language toggles'
+    ]
+  },
+  {
     version: '3.12.2',
     date: '2026-09-17',
     changes: [

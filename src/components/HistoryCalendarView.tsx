@@ -279,7 +279,7 @@ export const HistoryCalendarView: React.FC<HistoryCalendarViewProps> = ({
         </div>
 
         {selectedDateSessions.length > 0 ? (
-          <div className="flex flex-col">
+          <div className="divide-y-2 divide-bg-dark rounded-2xl bg-white/[0.05] overflow-hidden">
             {selectedDateSessions.map((session) => (
               <HistorySessionRow
                 key={session.id}

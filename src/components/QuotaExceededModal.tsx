@@ -61,9 +61,8 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-[80] p-4 sm:p-6 overflow-y-auto">
       <div
-        className={`glass p-6 sm:p-8 max-w-md w-full rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col text-center border max-h-[90vh] overflow-y-auto custom-scrollbar my-auto ${
-          isPaymentIssue ? 'border-red-500/50 shadow-red-950/40' : 'border-brand/40'
-        }`}
+        className={`glass p-6 sm:p-8 max-w-md w-full rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col text-center border max-h-[90vh] overflow-y-auto custom-scrollbar my-auto ${isPaymentIssue ? 'border-red-500/50 shadow-red-950/40' : 'border-brand/40'
+          }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -74,7 +73,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header Icon (shown for payment issues or for Plus plan users, hidden for free tier) */}
+        {/* Header Icon (shown for payment issues or for Zoutty Plus users, hidden for free tier) */}
         {isPaymentIssue ? (
           <div className="w-16 h-16 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mx-auto shadow-lg shadow-red-500/20 mb-4 animate-bounce duration-1000">
             <AlertTriangle className="w-8 h-8" />
@@ -88,11 +87,10 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
         {/* Title & Badge */}
         <div className="space-y-1 mb-3">
           {(isPaymentIssue || !isFree) && (
-            <span className={`text-[10px] px-3 py-1 rounded-full uppercase tracking-widest font-mono border ${
-              isPaymentIssue
+            <span className={`text-[10px] px-3 py-1 rounded-full uppercase tracking-widest font-mono border ${isPaymentIssue
                 ? 'bg-red-500/20 text-red-300 border-red-500/40'
                 : 'bg-brand/20 text-brand border-brand/30'
-            }`}>
+              }`}>
               {isPaymentIssue
                 ? t('billing.limits.paymentIssueBadge')
                 : t('billing.limits.monthlyLimitBadge')}
@@ -110,8 +108,8 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
           {isPaymentIssue
             ? t('billing.limits.paymentIssueDesc')
             : isFree
-            ? freeDescription
-            : t('billing.limits.quotaExceededPaidDesc')}
+              ? freeDescription
+              : t('billing.limits.quotaExceededPaidDesc')}
         </p>
 
         {/* Reset Date Notice for Active Paid Users */}
@@ -125,7 +123,7 @@ export const QuotaExceededModal: React.FC<QuotaExceededModalProps> = ({
         {/* Subscription Plan Option for Free Tier (Non-Payment Issue) */}
         {isFree && (
           <div className="space-y-4 mb-5 text-left">
-            {/* Zoutty Plus Plan Card */}
+            {/* Zoutty Zoutty Plus Card */}
             <div className="p-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/50 transition-all flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">

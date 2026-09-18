@@ -7,7 +7,7 @@ const en = {
   appSubtitle: 'Private Lesson Companion',
   guestModeBadge: 'Guest Mode',
   freePlanBadge: 'Free Plan',
-  plusPlanBadge: 'Plus Plan',
+  plusPlanBadge: 'Zoutty Plus',
   installApp: 'Install App',
   goToHome: 'Go to Home',
 

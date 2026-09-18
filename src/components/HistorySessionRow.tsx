@@ -35,9 +35,9 @@ export const HistorySessionRow: React.FC<HistorySessionRowProps> = ({
   return (
     <div
       onClick={() => onSelectSession(session.id, session.groupId || null)}
-      className={`flex items-center gap-4 py-3.5 px-1 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group ${
+      className={`flex items-center gap-4 py-2.5 px-3 hover:bg-white/[0.07] transition-colors cursor-pointer group ${
         isSingleDemoSession
-          ? 'border-brand/40 shadow-[0_0_15px_rgba(45,212,191,0.15)] animate-pulse'
+          ? 'ring-1 ring-brand/40 shadow-[0_0_15px_rgba(45,212,191,0.15)] animate-pulse'
           : ''
       }`}
     >
