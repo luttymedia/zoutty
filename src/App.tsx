@@ -5725,7 +5725,7 @@ export default function App() {
             {/* Folders List - Shown in Root */}
             {!selectedGroupId && groups.filter(g => activeSearch ? activeSearch.matchedGroupIds.has(g.id) : g.id !== 'root').length > 0 && (
               <div className="space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <h2 className="text-xs sm:text-sm font-medium tracking-wider uppercase text-blue-400/90">{t('home.foldersHeading')}</h2>
 
                   {/* Folder Sorting controls bar */}
@@ -5797,7 +5797,7 @@ export default function App() {
 
             {showSessionsSection && (
               <div className="space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <h2 className="text-xs sm:text-sm font-medium tracking-wider uppercase text-brand/90">
                     {selectedGroupId ? t('home.sessionsInFolderHeading') : t('home.sessionsHeading')}
                   </h2>

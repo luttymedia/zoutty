@@ -267,7 +267,7 @@ export const HistoryCalendarView: React.FC<HistoryCalendarViewProps> = ({
 
       {/* Selected Day Inspector */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between px-1 border-b border-white/5 pb-2">
+        <div className="flex items-center justify-between px-1">
           <h3 className="text-sm sm:text-base font-medium text-white/90">
             {formattedSelectedDate}
           </h3>
