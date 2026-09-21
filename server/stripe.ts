@@ -200,6 +200,7 @@ export async function createCheckoutSession(params: CreateCheckoutParams) {
     customer_email: customerId ? undefined : user?.email,
     mode: 'subscription',
     payment_method_types: ['card'],
+    payment_method_collection: 'if_required',
     line_items: [
       {
         price: priceId,
@@ -320,6 +321,7 @@ export async function createTopupCheckoutSession(params: CreateTopupParams) {
     customer_email: customerId ? undefined : user.email,
     mode: 'payment',
     payment_method_types: ['card'],
+    payment_method_collection: 'if_required',
     line_items: [
       {
         price: priceId,
