@@ -68,6 +68,7 @@ export async function startStripeCheckout(
     }
 
     if (data.url) {
+      window.location.href = data.url;
       return {
         success: true,
         url: data.url,

@@ -4367,6 +4367,8 @@ export default function App() {
             setShowSubscriptionSuccessModal({ isOpen: true, tier: 'plus' });
           } else if (!result.success) {
             showToast(result.error || t('billing.plans.checkoutError'), true);
+          } else if (result.url) {
+            window.location.href = result.url;
           }
         }}
         onReferralClick={() => {

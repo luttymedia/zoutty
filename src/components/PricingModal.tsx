@@ -58,7 +58,15 @@ export const PricingModal: React.FC<PricingModalProps> = ({
       if (onCheckoutSuccess) {
         onCheckoutSuccess('plus', true);
       }
+      return;
     }
+
+    if (result.url) {
+      window.location.href = result.url;
+      return;
+    }
+
+    setIsRedirecting(false);
   };
 
   return (
