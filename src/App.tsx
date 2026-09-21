@@ -4141,6 +4141,19 @@ export default function App() {
                       <Gift className="w-4 h-4 text-purple-400" />
                       {t('billing.referrals.title')}
                     </button>
+
+                    <button
+                      onClick={() => setShowTestLabModal(true)}
+                      className="w-full h-9 px-4.5 rounded-full border border-brand/20 bg-brand/5 text-brand hover:bg-brand/10 transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <FlaskConical className={`w-4 h-4 ${devState.mockGemini ? 'text-brand animate-pulse' : 'text-zinc-400'}`} />
+                      <span>{t('billing.dev.panelTitle')}</span>
+                      {devState.mockGemini && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand/20 text-brand border border-brand/30 font-mono uppercase">
+                          {t('billing.dev.mockBadge')}
+                        </span>
+                      )}
+                    </button>
                   </div>
                 </AppSettingsCollapsible>
               </div>
@@ -5408,22 +5421,6 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Quick Test Lab Access Button */}
-          <button
-            onClick={() => setShowTestLabModal(true)}
-            className={`h-9 sm:h-10 px-2 flex items-center gap-1.5 transition-all text-xs cursor-pointer hover:opacity-80 ${
-              devState.mockGemini
-                ? 'text-brand'
-                : 'text-white/60 hover:text-white'
-            }`}
-            title={t('billing.dev.panelTitle')}
-          >
-            <FlaskConical className={`w-4 h-4 ${devState.mockGemini ? 'text-brand animate-pulse' : 'text-zinc-400'}`} />
-            <span className="hidden sm:inline text-[11px] font-mono tracking-wider">
-              {devState.mockGemini ? 'Mock Active' : 'Lab'}
-            </span>
-          </button>
-
           {view === 'list' && (
             <>
               <button

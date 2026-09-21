@@ -16,6 +16,9 @@ import {
   CheckCircle2,
   Info,
   Bell,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { UserTier, SubscriptionStatus, TIER_LIMITS } from '../types';
@@ -42,6 +45,8 @@ interface TestLabModalProps {
   ) => void;
 }
 
+const TEST_LAB_PASSWORD = '666.666';
+
 export const TestLabModal: React.FC<TestLabModalProps> = ({
   isOpen,
   onClose,
@@ -51,15 +56,33 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
   const { t } = useTranslation();
   const [devState, setDevState] = useState<DevState>(getDevState());
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setDevState(getDevState());
       setSavedSuccess(false);
+      setIsUnlocked(false);
+      setPasswordInput('');
+      setPasswordError(false);
+      setShowPassword(false);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput.trim() === TEST_LAB_PASSWORD) {
+      setIsUnlocked(true);
+      setPasswordError(false);
+    } else {
+      setPasswordError(true);
+    }
+  };
 
   const handleSave = () => {
     const updated = saveDevState(devState);
@@ -112,6 +135,100 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
     devState.referral_boost_expires_at &&
     new Date(devState.referral_boost_expires_at).getTime() > Date.now();
 
+  if (!isUnlocked) {
+    return (
+      <div
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center z-[70] p-4 sm:p-6"
+        onClick={onClose}
+      >
+        <div
+          className="glass border border-brand/30 p-6 sm:p-8 max-w-sm w-full rounded-2xl shadow-2xl relative flex flex-col animate-in zoom-in-95 space-y-5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/30 flex items-center justify-center text-brand shadow-inner">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">
+                  {t('billing.dev.passwordModalTitle')}
+                </h3>
+                <p className="text-xs text-white/50">
+                  {t('billing.dev.passwordModalSubtitle')}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+              title={t('billing.dev.close')}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs text-white/70 block font-medium">
+                {t('billing.dev.passwordPromptLabel')}
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoFocus
+                  value={passwordInput}
+                  onChange={(e) => {
+                    setPasswordInput(e.target.value);
+                    if (passwordError) setPasswordError(false);
+                  }}
+                  placeholder={t('billing.dev.passwordPlaceholder')}
+                  className={`w-full bg-white/5 border rounded-xl px-3.5 py-2.5 pr-10 text-sm text-white placeholder:text-white/30 focus:outline-none transition-all ${
+                    passwordError
+                      ? 'border-red-500/80 focus:border-red-500 ring-1 ring-red-500/30'
+                      : 'border-white/10 focus:border-brand/50'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {passwordError && (
+                <p className="text-xs text-red-400 flex items-center gap-1 mt-1 animate-in fade-in">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{t('billing.dev.incorrectPassword')}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 h-9 px-4 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition-all flex items-center justify-center cursor-pointer active:scale-95"
+              >
+                {t('modals.cancelBtn')}
+              </button>
+              <button
+                type="submit"
+                disabled={!passwordInput.trim()}
+                className="flex-1 h-9 px-4 rounded-full bg-brand hover:bg-brand/90 text-zinc-950 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>{t('billing.dev.unlockBtn')}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center z-[70] p-4 sm:p-6 overflow-y-auto">
       <div
@@ -128,20 +245,33 @@ export const TestLabModal: React.FC<TestLabModalProps> = ({
               <h3 className="text-base text-white flex items-center gap-2">
                 {t('billing.dev.panelTitle')}
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand/20 text-brand border border-brand/30 uppercase tracking-widest font-mono">
-                  Sandbox
+                  {t('billing.dev.badgeSandbox')}
                 </span>
               </h3>
               <p className="text-xs text-white/50">
-                Override tiers, simulate billing events, and test limits safely.
+                {t('billing.dev.panelSubtitle')}
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                setIsUnlocked(false);
+                setPasswordInput('');
+              }}
+              className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
+              title={t('billing.dev.lockBtn')}
+            >
+              <Lock className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
+              title={t('billing.dev.close')}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Content */}
