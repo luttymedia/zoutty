@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description"
-    content="Zoutty – Private Lesson Companion. Capture, organize, and revisit your dance lessons with AI.">
+    content="Zoutty – Dance Lesson Companion. Turn your recap videos and voice notes into structured AI lessons with corrections, drills, and homework.">
   <title>Welcome to Zoutty</title>
   <link rel="apple-touch-icon" href="/icons/192x192.png">
   <meta name="theme-color" content="#2DD4BF">
@@ -25,7 +25,6 @@
       --brand-30: rgba(45, 212, 191, 0.30);
       --bg-dark: #021517;
       --card-bg: rgba(255, 255, 255, 0.05);
-      --card-border: rgba(255, 255, 255, 0.09);
     }
 
     *, *::before, *::after {
@@ -43,8 +42,6 @@
       min-height: 100%;
       font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
-      background: radial-gradient(circle at 50% 0%, #06373A 0%, #021517 70%);
-      background-attachment: fixed;
       background-color: var(--bg-dark);
       color: #fff;
       overflow-x: hidden;
@@ -57,7 +54,7 @@
     .page {
       max-width: 480px;
       margin: 0 auto;
-      padding: 0 20px 48px;
+      padding: 0 16px 44px;
     }
 
     /* ─── Header ─── */
@@ -65,7 +62,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 28px 0 32px;
+      padding: 24px 0 28px;
     }
 
     .header-brand {
@@ -84,19 +81,46 @@
     }
 
     .brand-sub {
+      display: none;
       font-size: 10px;
       font-weight: 600;
-      color: rgba(255, 255, 255, 0.5);
+      color: rgba(255, 255, 255, 0.45);
       margin-top: 4px;
       letter-spacing: 0.04em;
       line-height: 1;
+    }
+
+    .beta-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(45, 212, 191, 0.15);
+      color: var(--brand);
+      border: 1px solid rgba(45, 212, 191, 0.3);
+      line-height: 1;
+      margin-top: 4px;
+    }
+
+    @media (min-width: 640px) {
+      .brand-sub {
+        display: block;
+      }
+      .beta-pill {
+        display: none;
+      }
     }
 
     /* ─── Language switcher ─── */
     .lang-switch {
       display: flex;
       gap: 2px;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 9999px;
       padding: 3px;
@@ -106,61 +130,71 @@
       background: none;
       border: none;
       border-radius: 9999px;
-      padding: 4px 10px;
+      padding: 5px 12px;
       font-size: 11px;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.4);
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.5);
       cursor: pointer;
       font-family: inherit;
       transition: all 0.2s;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.05em;
     }
 
     .lang-btn.active {
       background: var(--brand);
       color: #021517;
+      font-weight: 700;
     }
 
     /* ─── Greeting ─── */
     .greeting {
-      margin-bottom: 32px;
+      margin-bottom: 24px;
     }
 
     .greeting-title {
-      font-size: 22px;
+      font-size: 21px;
       font-weight: 700;
       line-height: 1.25;
       color: #fff;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
     }
 
     .greeting-sub {
-      font-size: 14px;
+      font-size: 13.5px;
       color: rgba(255, 255, 255, 0.5);
-      line-height: 1.55;
+      line-height: 1.5;
     }
 
-    /* ─── Feature list ─── */
-    .features {
+    /* ─── Discrete Card Groups (v3.12.3) ─── */
+    .card-group {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-bottom: 36px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .features {
+      margin-bottom: 16px;
     }
 
     .feature-row {
       display: flex;
       align-items: flex-start;
-      gap: 14px;
-      padding: 14px 16px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
+      gap: 13px;
+      padding: 13px 15px;
+      border-bottom: 2px solid var(--bg-dark);
+      transition: background 0.15s ease;
+    }
+
+    .feature-row:last-child {
+      border-bottom: none;
     }
 
     .feature-icon {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       border-radius: 10px;
       display: flex;
       align-items: center;
@@ -178,52 +212,75 @@
     .feature-icon.blue { background: rgba(96, 165, 250, 0.12); }
     .feature-icon.green { background: rgba(52, 211, 153, 0.12); }
 
-    .feature-text {}
+    .feature-text {
+      flex: 1;
+      min-width: 0;
+    }
 
     .feature-label {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 600;
       color: #fff;
-      line-height: 1.2;
+      line-height: 1.25;
       margin-bottom: 2px;
     }
 
     .feature-desc {
       font-size: 12px;
       color: rgba(255, 255, 255, 0.45);
-      line-height: 1.5;
+      line-height: 1.45;
     }
 
-    /* ─── Divider ─── */
-    .divider {
-      height: 1px;
-      background: rgba(255, 255, 255, 0.06);
-      margin-bottom: 28px;
+    /* ─── Info Callout Card ─── */
+    .info-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 15px;
+      background: rgba(45, 212, 191, 0.07);
+      border: 1px solid rgba(45, 212, 191, 0.22);
+      border-radius: 16px;
+      margin-bottom: 24px;
+    }
+
+    .info-card-icon {
+      font-size: 16px;
+      line-height: 1.3;
+      flex-shrink: 0;
+    }
+
+    .info-card-text {
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .info-card-text strong {
+      color: #fff;
+      font-weight: 600;
     }
 
     /* ─── How it works ─── */
     .section-label {
       font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
+      font-weight: 600;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.28);
-      margin-bottom: 14px;
+      color: rgba(255, 255, 255, 0.35);
+      margin-bottom: 10px;
+      padding-left: 2px;
     }
 
     .steps {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      margin-bottom: 36px;
+      margin-bottom: 28px;
     }
 
     .step-row {
       display: flex;
-      align-items: flex-start;
-      gap: 14px;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      align-items: center;
+      gap: 13px;
+      padding: 12px 15px;
+      border-bottom: 2px solid var(--bg-dark);
     }
 
     .step-row:last-child {
@@ -231,10 +288,11 @@
     }
 
     .step-num {
-      width: 26px;
-      height: 26px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
-      border: 1px solid rgba(45, 212, 191, 0.35);
+      background: rgba(45, 212, 191, 0.12);
+      border: 1px solid rgba(45, 212, 191, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -242,13 +300,12 @@
       font-weight: 700;
       color: var(--brand);
       flex-shrink: 0;
-      margin-top: 1px;
     }
 
     .step-text {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.7);
-      line-height: 1.5;
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 1.45;
     }
 
     .step-text strong {
@@ -256,54 +313,50 @@
       font-weight: 600;
     }
 
-    /* ─── Install CTA ─── */
+    /* ─── Install CTA (v3.12.3 Pill Button) ─── */
     .install-section {
       text-align: center;
     }
 
     .btn-install {
       width: 100%;
-      display: flex;
+      height: 44px;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      padding: 17px 24px;
-      border-radius: 14px;
+      gap: 8px;
+      padding: 0 24px;
+      border-radius: 9999px;
       border: none;
       background: var(--brand);
       color: #021517;
       font-family: inherit;
-      font-size: 15px;
-      font-weight: 700;
+      font-size: 13.5px;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      box-shadow: 0 0 32px rgba(45, 212, 191, 0.35);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn-install::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
-      pointer-events: none;
+      box-shadow: 0 0 20px rgba(45, 212, 191, 0.25);
     }
 
     .btn-install:hover:not(:disabled) {
       background: #26bfac;
-      box-shadow: 0 0 40px rgba(45, 212, 191, 0.5);
+      box-shadow: 0 0 28px rgba(45, 212, 191, 0.4);
+    }
+
+    .btn-install:active:not(:disabled) {
+      transform: scale(0.97);
     }
 
     .btn-install:disabled, .btn-install.disabled-look {
       opacity: 0.45;
       cursor: default;
       box-shadow: none;
+      transform: none;
     }
 
     .btn-install svg {
-      width: 18px;
-      height: 18px;
+      width: 17px;
+      height: 17px;
       flex-shrink: 0;
     }
 
@@ -311,20 +364,20 @@
       font-size: 12px;
       color: rgba(255, 255, 255, 0.35);
       margin-top: 10px;
-      line-height: 1.5;
+      line-height: 1.4;
     }
 
     /* ─── Non-mobile notice ─── */
     .desktop-notice {
       display: none;
-      margin-bottom: 24px;
-      padding: 14px 16px;
-      border-radius: 12px;
+      margin-bottom: 20px;
+      padding: 13px 15px;
+      border-radius: 16px;
       background: rgba(249, 115, 22, 0.08);
-      border: 1px solid rgba(249, 115, 22, 0.22);
-      font-size: 13px;
+      border: 1px solid rgba(249, 115, 22, 0.25);
+      font-size: 12.5px;
       color: rgba(255, 255, 255, 0.75);
-      line-height: 1.55;
+      line-height: 1.5;
       text-align: center;
     }
 
@@ -332,7 +385,7 @@
       color: #fb923c;
     }
 
-    /* ─── iOS install guide sheet ─── */
+    /* ─── iOS install guide sheet (v3.12.1 Native Bottom Sheet) ─── */
     #ios-guide {
       display: none;
       position: fixed;
@@ -354,9 +407,17 @@
       max-width: 480px;
       background: #0d2325;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px 20px 0 0;
-      padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+      border-radius: 24px 24px 0 0;
+      padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
       animation: slide-up-sheet 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .ios-grab-handle {
+      width: 36px;
+      height: 4px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.2);
+      margin: 0 auto 16px;
     }
 
     @keyframes slide-up-sheet {
@@ -368,7 +429,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .ios-card-title {
@@ -390,24 +451,36 @@
       align-items: center;
       justify-content: center;
       font-family: inherit;
+      transition: background 0.15s;
+    }
+
+    .ios-close-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    .ios-steps-group {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 20px;
     }
 
     .ios-step {
       display: flex;
       align-items: flex-start;
-      gap: 14px;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 2px solid #0d2325;
     }
 
-    .ios-step:last-of-type {
+    .ios-step:last-child {
       border-bottom: none;
-      margin-bottom: 20px;
     }
 
     .ios-step-num {
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: var(--brand-10);
       border: 1px solid var(--brand-20);
@@ -418,13 +491,13 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      margin-top: 1px;
     }
 
     .ios-step-text {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.75);
-      line-height: 1.55;
-      padding-top: 3px;
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.45;
     }
 
     .ios-step-text strong {
@@ -433,21 +506,26 @@
 
     .btn-got-it {
       width: 100%;
-      padding: 14px;
-      border-radius: 12px;
+      height: 42px;
+      border-radius: 9999px;
       border: none;
       background: var(--brand);
       color: #021517;
       font-family: inherit;
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 13.5px;
+      font-weight: 600;
       cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-got-it:active {
+      transform: scale(0.97);
     }
 
     /* ─── Animations ─── */
     @keyframes float {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
+      50% { transform: translateY(-5px); }
     }
 
     .logo-float {
@@ -476,7 +554,8 @@
         </svg>
         <div>
           <div class="brand-name">ZOUTTY</div>
-          <div class="brand-sub" id="lbl-brand-sub">Private Lesson Companion</div>
+          <div class="brand-sub" id="lbl-brand-sub">Dance Lesson Companion</div>
+          <span class="beta-pill">Beta</span>
         </div>
       </div>
 
@@ -488,39 +567,39 @@
 
     <!-- ── Greeting ── -->
     <div class="greeting">
-      <h1 class="greeting-title" id="lbl-greeting-title">Hey, thanks for testing! 👋</h1>
-      <p class="greeting-sub" id="lbl-greeting-sub">Here's a quick look at what Zoutty does before you install.</p>
+      <h1 class="greeting-title" id="lbl-greeting-title">Hey, welcome to Zoutty! 👋</h1>
+      <p class="greeting-sub" id="lbl-greeting-sub">Turn your recap videos and practice recordings into structured AI lessons. Here's what Zoutty does before you install.</p>
     </div>
 
-    <!-- ── Features ── -->
-    <div class="features">
+    <!-- ── Features (Discrete Cards) ── -->
+    <div class="card-group features">
 
-      <!-- Organize -->
+      <!-- Upload Video -->
       <div class="feature-row">
-        <div class="feature-icon blue">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        <div class="feature-icon teal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m22 8-6 4 6 4V8Z"/>
+            <rect width="14" height="12" x="2" y="6" rx="2" ry="2"/>
           </svg>
         </div>
         <div class="feature-text">
-          <div class="feature-label" id="lbl-feat1-title">Organize by student</div>
-          <div class="feature-desc" id="lbl-feat1-desc">Create a folder for a student, a class, or a topic. Sessions live inside.</div>
+          <div class="feature-label" id="lbl-feat1-title">Upload recap videos</div>
+          <div class="feature-desc" id="lbl-feat1-desc">Import videos recorded at your lessons, workshops, or festivals. Full videos are preserved in your session gallery.</div>
         </div>
       </div>
 
-      <!-- Record -->
+      <!-- Speech Transcription -->
       <div class="feature-row">
-        <div class="feature-icon teal">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="var(--brand)" stroke="none"/>
+        <div class="feature-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
           </svg>
         </div>
         <div class="feature-text">
-          <div class="feature-label" id="lbl-feat2-title">Capture audio notes</div>
-          <div class="feature-desc" id="lbl-feat2-desc">Record notes, corrections, and key moments live during lessons.</div>
+          <div class="feature-label" id="lbl-feat2-title">Speech transcription</div>
+          <div class="feature-desc" id="lbl-feat2-desc">Zoutty automatically transcribes spoken explanations, teacher advice, and voice notes into text.</div>
         </div>
       </div>
 
@@ -532,48 +611,50 @@
           </svg>
         </div>
         <div class="feature-text">
-          <div class="feature-label" id="lbl-feat3-title">AI session report</div>
-          <div class="feature-desc" id="lbl-feat3-desc">Tap the wand — get a structured report with key points, drills, and homework.</div>
+          <div class="feature-label" id="lbl-feat3-title">AI lesson breakdown</div>
+          <div class="feature-desc" id="lbl-feat3-desc">Tap the wand to turn spoken transcripts into structured technical corrections, drills, and homework.</div>
         </div>
       </div>
 
-      <!-- Cloud -->
+      <!-- Organize & Sync -->
       <div class="feature-row">
         <div class="feature-icon green">
           <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
-            <path d="M12 12v9"/>
-            <path d="m8 17 4-5 4 5"/>
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
         </div>
         <div class="feature-text">
-          <div class="feature-label" id="lbl-feat4-title">Cloud sync</div>
-          <div class="feature-desc" id="lbl-feat4-desc">Your sessions are backed up automatically. Nothing gets lost.</div>
+          <div class="feature-label" id="lbl-feat4-title">Organize by teacher & style</div>
+          <div class="feature-desc" id="lbl-feat4-desc">Group your lessons into folders by instructor, dance style, or event—securely backed up to the cloud.</div>
         </div>
       </div>
 
     </div>
 
-    <div class="divider"></div>
-
-    <!-- ── How it works ── -->
-    <div class="section-label" id="lbl-how-section">How it works</div>
-    <div class="steps">
-      <div class="step-row">
-        <div class="step-num">1</div>
-        <div class="step-text" id="lbl-step1">Create a <strong>folder</strong> for a student, a class, or a topic.</div>
-      </div>
-      <div class="step-row">
-        <div class="step-num">2</div>
-        <div class="step-text" id="lbl-step2">Open a <strong>session</strong> and tap the mic to capture notes during the lesson.</div>
-      </div>
-      <div class="step-row">
-        <div class="step-num">3</div>
-        <div class="step-text" id="lbl-step3">Tap the <strong>wand</strong> to generate an AI report from your notes.</div>
+    <!-- ── Clarification note ── -->
+    <div class="info-card">
+      <div class="info-card-icon">💡</div>
+      <div class="info-card-text" id="lbl-info-note">
+        <strong>How video processing works:</strong> Zoutty processes the <strong>spoken audio transcription</strong> (teacher explanations, cues, and feedback), not the actual video footage. Your original video is saved in your gallery so you can always watch it.
       </div>
     </div>
 
-    <div class="divider"></div>
+    <!-- ── How it works (Discrete Cards) ── -->
+    <div class="section-label" id="lbl-how-section">How it works</div>
+    <div class="card-group steps">
+      <div class="step-row">
+        <div class="step-num">1</div>
+        <div class="step-text" id="lbl-step1">Import a <strong>recap video</strong> or record a live voice note from your lesson or workshop.</div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">2</div>
+        <div class="step-text" id="lbl-step2">Zoutty extracts the audio and creates an accurate <strong>speech transcription</strong>.</div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">3</div>
+        <div class="step-text" id="lbl-step3">Tap the <strong>wand</strong> to generate structured corrections, drills, and homework from the transcript.</div>
+      </div>
+    </div>
 
     <!-- ── Desktop notice (shown only on non-mobile) ── -->
     <div class="desktop-notice" id="desktop-notice">
@@ -600,29 +681,32 @@
   <!-- ── iOS install guide sheet ── -->
   <div id="ios-guide" onclick="closeIos()">
     <div class="ios-card" onclick="event.stopPropagation()">
+      <div class="ios-grab-handle"></div>
       <div class="ios-card-header">
         <span class="ios-card-title" id="ios-guide-title">Install on iPhone</span>
         <button class="ios-close-btn" onclick="closeIos()">✕</button>
       </div>
-      <div class="ios-step">
-        <div class="ios-step-num">1</div>
-        <div class="ios-step-text" id="ios-step1">
-          Tap the <strong>Share</strong> button
-          <svg style="display:inline;vertical-align:middle;width:17px;height:17px;fill:var(--brand);" viewBox="0 0 24 24">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
-            <polyline points="16 6 12 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
-            <line x1="12" y1="2" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
-          </svg>
-          in Safari's toolbar.
+      <div class="ios-steps-group">
+        <div class="ios-step">
+          <div class="ios-step-num">1</div>
+          <div class="ios-step-text" id="ios-step1">
+            Tap the <strong>Share</strong> button
+            <svg style="display:inline;vertical-align:middle;width:17px;height:17px;fill:var(--brand);" viewBox="0 0 24 24">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+              <polyline points="16 6 12 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+              <line x1="12" y1="2" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+            </svg>
+            in Safari's toolbar.
+          </div>
         </div>
-      </div>
-      <div class="ios-step">
-        <div class="ios-step-num">2</div>
-        <div class="ios-step-text" id="ios-step2">Scroll the share sheet and tap <strong>"Add to Home Screen"</strong>.</div>
-      </div>
-      <div class="ios-step">
-        <div class="ios-step-num">3</div>
-        <div class="ios-step-text" id="ios-step3">Tap <strong>Add</strong> in the top right corner.</div>
+        <div class="ios-step">
+          <div class="ios-step-num">2</div>
+          <div class="ios-step-text" id="ios-step2">Scroll the share sheet and tap <strong>"Add to Home Screen"</strong>.</div>
+        </div>
+        <div class="ios-step">
+          <div class="ios-step-num">3</div>
+          <div class="ios-step-text" id="ios-step3">Tap <strong>Add</strong> in the top right corner.</div>
+        </div>
       </div>
       <button class="btn-got-it" onclick="closeIos()" id="ios-got-it-btn">Got it!</button>
     </div>
@@ -661,23 +745,25 @@
 
     const T = {
       en: {
-        brandSub: 'Private Lesson Companion',
-        greetingTitle: 'Hey, thanks for testing! 👋',
-        greetingSub: 'Here\'s a quick look at what Zoutty does before you install.',
+        brandSub: 'Dance Lesson Companion',
+        greetingTitle: 'Hey, welcome to Zoutty! 👋',
+        greetingSub: 'Turn your recap videos and practice recordings into structured AI lessons. Here\'s what Zoutty does before you install.',
 
-        feat1Title: 'Organize your lessons',
-        feat1Desc: 'Create a folder for a student, a class, or a topic. Sessions live inside.',
-        feat2Title: 'Capture audio notes',
-        feat2Desc: 'Record notes, corrections, and key moments live during lessons.',
-        feat3Title: 'AI session report',
-        feat3Desc: 'Tap the wand — get a structured report with key points, drills, and homework.',
-        feat4Title: 'Cloud sync',
-        feat4Desc: 'Your sessions are backed up automatically. Nothing gets lost.',
+        feat1Title: 'Upload recap videos',
+        feat1Desc: 'Import videos recorded at your lessons, workshops, or festivals. Full videos are preserved in your session gallery.',
+        feat2Title: 'Speech transcription',
+        feat2Desc: 'Zoutty automatically transcribes spoken explanations, teacher advice, and voice notes into text.',
+        feat3Title: 'AI lesson breakdown',
+        feat3Desc: 'Tap the wand to turn spoken transcripts into structured technical corrections, drills, and homework.',
+        feat4Title: 'Organize by teacher & style',
+        feat4Desc: 'Group your lessons into folders by instructor, dance style, or event—securely backed up to the cloud.',
+
+        infoNote: '<strong>How video processing works:</strong> Zoutty processes the <strong>spoken audio transcription</strong> (teacher explanations, cues, and feedback), not the actual video footage. Your original video is saved in your gallery so you can always watch it.',
 
         howSection: 'How it works',
-        step1: 'Create a <strong>folder</strong> for a student, a class, or a topic.',
-        step2: 'Open a <strong>session</strong> and tap the mic to capture notes during the lesson.',
-        step3: 'Tap the <strong>wand</strong> to generate an AI report from your notes.',
+        step1: 'Import a <strong>recap video</strong> or record a live voice note from your lesson or workshop.',
+        step2: 'Zoutty extracts the audio and creates an accurate <strong>speech transcription</strong>.',
+        step3: 'Tap the <strong>wand</strong> to generate structured corrections, drills, and homework from the transcript.',
 
         desktopNoticeTitle: 'Zoutty is for mobile',
         desktopNoticeBody: 'Open this link on your iPhone or Android phone to install it.',
@@ -703,23 +789,25 @@
         iosGotIt: 'Got it!',
       },
       es: {
-        brandSub: 'Asistente de Clases Privadas',
-        greetingTitle: '¡Hola, gracias por probar! 👋',
-        greetingSub: 'Un vistazo rápido a lo que hace Zoutty antes de instalar.',
+        brandSub: 'Asistente de Clases de Baile',
+        greetingTitle: '¡Te damos la bienvenida a Zoutty! 👋',
+        greetingSub: 'Convierte tus videos resumen y grabaciones de clase en lecciones estructuradas con IA. Así funciona antes de instalar.',
 
-        feat1Title: 'Organiza tus clases',
-        feat1Desc: 'Crea una carpeta para un alumno, una clase o un tema. Las sesiones viven dentro.',
-        feat2Title: 'Captura notas de audio',
-        feat2Desc: 'Graba notas, correcciones y momentos clave en tiempo real durante las clases.',
-        feat3Title: 'Informe con IA',
-        feat3Desc: 'Toca la varita — obtén un informe con puntos clave, ejercicios y tareas.',
-        feat4Title: 'Sincronización en la nube',
-        feat4Desc: 'Tus sesiones se respaldan automáticamente. Nada se pierde.',
+        feat1Title: 'Sube videos resumen',
+        feat1Desc: 'Importa videos grabados en tus clases, talleres o festivales. El video completo se conserva en la galería de tu sesión.',
+        feat2Title: 'Transcripción de voz',
+        feat2Desc: 'Zoutty transcribe automáticamente las explicaciones habladas, consejos del profesor y notas de voz a texto.',
+        feat3Title: 'Clases estructuradas con IA',
+        feat3Desc: 'Toca la varita para transformar las transcripciones en correcciones técnicas, ejercicios prácticos y tareas.',
+        feat4Title: 'Organiza por profesor y estilo',
+        feat4Desc: 'Agrupa tus clases en carpetas por profesor, estilo de baile o evento, con copia de seguridad en la nube.',
+
+        infoNote: '<strong>Cómo funciona el procesamiento de video:</strong> Zoutty procesa la <strong>transcripción del audio hablado</strong> (explicaciones, correcciones y notas del profesor), no el metraje del video en sí. Tu video original se guarda en tu galería para que puedas verlo cuando quieras.',
 
         howSection: 'Cómo funciona',
-        step1: 'Crea una <strong>carpeta</strong> para un alumno, una clase o un tema.',
-        step2: 'Abre una <strong>sesión</strong> y toca el micrófono para capturar notas durante la clase.',
-        step3: 'Toca la <strong>varita</strong> para generar un informe de IA a partir de tus notas.',
+        step1: 'Importa un <strong>video resumen</strong> o graba una nota de voz de tu clase o taller.',
+        step2: 'Zoutty extrae el audio y genera una <strong>transcripción de voz</strong> precisa.',
+        step3: 'Toca la <strong>varita</strong> para generar correcciones, ejercicios y tareas a partir de la transcripción.',
 
         desktopNoticeTitle: 'Zoutty es para móvil',
         desktopNoticeBody: 'Abre este enlace en tu iPhone o Android para instalarlo.',
@@ -764,6 +852,8 @@
       document.getElementById('lbl-feat3-desc').textContent = t.feat3Desc;
       document.getElementById('lbl-feat4-title').textContent = t.feat4Title;
       document.getElementById('lbl-feat4-desc').textContent = t.feat4Desc;
+
+      document.getElementById('lbl-info-note').innerHTML = t.infoNote;
 
       document.getElementById('lbl-how-section').textContent = t.howSection;
       document.getElementById('lbl-step1').innerHTML = t.step1;
