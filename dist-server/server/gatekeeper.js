@@ -51,8 +51,8 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                 }
                 const periodSessions = Number(dev.period_sessions) || 0;
                 const periodClips = Number(dev.period_clips) || 0;
-                const lifetimeSessions = Math.max(Number(dev.lifetime_sessions) || 0, periodSessions);
-                const lifetimeClips = Math.max(Number(dev.lifetime_clips) || 0, periodClips);
+                const lifetimeSessions = Number(dev.lifetime_sessions) || 0;
+                const lifetimeClips = Number(dev.lifetime_clips) || 0;
                 const isBoostActive = Boolean(dev.referral_boost_active) &&
                     Boolean(dev.referral_boost_expires_at) &&
                     new Date(dev.referral_boost_expires_at).getTime() > Date.now();
@@ -194,8 +194,8 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
             }
             const periodSessions = usage?.period_sessions || 0;
             const periodClips = usage?.period_clips || 0;
-            const lifetimeSessions = Math.max(usage?.lifetime_sessions || 0, periodSessions);
-            const lifetimeClips = Math.max(usage?.lifetime_clips || 0, periodClips);
+            const lifetimeSessions = usage?.lifetime_sessions || 0;
+            const lifetimeClips = usage?.lifetime_clips || 0;
             const isBoostActive = Boolean(profile?.referral_boost_active) &&
                 Boolean(profile?.referral_boost_expires_at) &&
                 new Date(profile.referral_boost_expires_at).getTime() > Date.now();

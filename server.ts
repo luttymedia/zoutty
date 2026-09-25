@@ -479,8 +479,9 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
 
         // Optimistically update usage counters in the returned payload
         if (gate.usage) {
-            gate.usage.lifetime_clips = (gate.usage.lifetime_clips || 0) + 1;
-            if (gate.tier === 'plus') {
+            if (gate.tier === 'free') {
+                gate.usage.lifetime_clips = (gate.usage.lifetime_clips || 0) + 1;
+            } else if (gate.tier === 'plus') {
                 gate.usage.period_clips = (gate.usage.period_clips || 0) + 1;
             }
         }
@@ -671,9 +672,10 @@ app.post('/api/gemini/process-audio', async (req, res) => {
 
         // Optimistically update usage counters in the returned payload
         if (gate.usage) {
-            gate.usage.lifetime_sessions = (gate.usage.lifetime_sessions || 0) + 1;
-            gate.usage.lifetime_clips = (gate.usage.lifetime_clips || 0) + newlyTranscribedClipsCount;
-            if (gate.tier === 'plus') {
+            if (gate.tier === 'free') {
+                gate.usage.lifetime_sessions = (gate.usage.lifetime_sessions || 0) + 1;
+                gate.usage.lifetime_clips = (gate.usage.lifetime_clips || 0) + newlyTranscribedClipsCount;
+            } else if (gate.tier === 'plus') {
                 gate.usage.period_sessions = (gate.usage.period_sessions || 0) + 1;
                 gate.usage.period_clips = (gate.usage.period_clips || 0) + newlyTranscribedClipsCount;
             }

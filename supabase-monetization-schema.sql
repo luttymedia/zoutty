@@ -215,7 +215,7 @@ begin
   select tier into v_tier from public.profiles where id = target_user_id;
 
   update public.usage_tracking
-  set lifetime_clips = lifetime_clips + clip_count,
+  set lifetime_clips = case when v_tier = 'free' then lifetime_clips + clip_count else lifetime_clips end,
       period_clips = case when v_tier in ('plus', 'student', 'teacher') then period_clips + clip_count else period_clips end,
       updated_at = timezone('utc'::text, now())
   where user_id = target_user_id;
@@ -233,7 +233,7 @@ begin
   select tier into v_tier from public.profiles where id = target_user_id;
 
   update public.usage_tracking
-  set lifetime_sessions = lifetime_sessions + 1,
+  set lifetime_sessions = case when v_tier = 'free' then lifetime_sessions + 1 else lifetime_sessions end,
       period_sessions = case when v_tier in ('plus', 'student', 'teacher') then period_sessions + 1 else period_sessions end,
       updated_at = timezone('utc'::text, now())
   where user_id = target_user_id;

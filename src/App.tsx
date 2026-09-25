@@ -2809,8 +2809,8 @@ export default function App() {
           topup_extra_clips: nextTopupClips,
           period_sessions: nextPeriodSessions,
           period_clips: nextPeriodClips,
-          lifetime_sessions: (currentDev.lifetime_sessions || 0) + 1,
-          lifetime_clips: (currentDev.lifetime_clips || 0) + clipsCount,
+          lifetime_sessions: isFree ? (currentDev.lifetime_sessions || 0) + 1 : (currentDev.lifetime_sessions || 0),
+          lifetime_clips: isFree ? (currentDev.lifetime_clips || 0) + clipsCount : (currentDev.lifetime_clips || 0),
         });
       }
 

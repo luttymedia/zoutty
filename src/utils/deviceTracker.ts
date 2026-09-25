@@ -155,6 +155,8 @@ export function getDeviceInfo(): DeviceInfo {
 
 const STORAGE_KEY = 'zoutty_device_install_tracked_v2';
 
+let isTrackingInProgress = false;
+
 /**
  * Tracks the PWA installation event to Supabase and the server.
  * Uses direct Supabase client insertion first for guaranteed delivery on static/mobile clients,
@@ -164,6 +166,12 @@ export async function trackInstallation(
   source: 'pwa_prompt' | 'standalone_launch' | 'ios_standalone' | 'ios_guide' | 'related_apps' | 'existing_install' | 'manual' = 'pwa_prompt',
   force: boolean = false
 ): Promise<boolean> {
+  if (isTrackingInProgress) {
+    return false;
+  }
+
+  isTrackingInProgress = true;
+
   try {
     if (!force && typeof localStorage !== 'undefined') {
       const alreadyTracked = localStorage.getItem(STORAGE_KEY);
@@ -257,6 +265,8 @@ export async function trackInstallation(
     }
   } catch (err) {
     console.warn('[tracker] Failed to track installation:', err);
+  } finally {
+    isTrackingInProgress = false;
   }
 
   return false;
