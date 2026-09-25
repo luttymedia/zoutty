@@ -346,7 +346,7 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
         const authHeader = req.headers.authorization;
         const devOverride = req.headers['x-dev-override'] || (req.body.devState ? JSON.stringify(req.body.devState) : undefined);
         // 1. Gatekeeper: Enforce 3-minute hard cap and user tier quotas
-        const gate = await checkGatekeeper(authHeader, 'single_clip', durationSeconds, devOverride);
+        const gate = await checkGatekeeper(authHeader, 'single_clip', durationSeconds, devOverride, 1);
         if (!gate.allowed) {
             console.warn(`[/api/gemini/process-single-audio] Gatekeeper rejected: ${gate.code} - ${gate.error}`);
             return res.status(gate.statusCode || 403).json(gate);
@@ -427,7 +427,14 @@ app.post('/api/gemini/process-single-audio', async (req, res) => {
             });
         }
         // Record database increment on success
-        await recordUsageIncrement(authHeader, 'single_clip');
+        await recordUsageIncrement(authHeader, 'single_clip', 1);
+        // Optimistically update usage counters in the returned payload
+        if (gate.usage) {
+            gate.usage.lifetime_clips = (gate.usage.lifetime_clips || 0) + 1;
+            if (gate.tier === 'plus') {
+                gate.usage.period_clips = (gate.usage.period_clips || 0) + 1;
+            }
+        }
         const emptyResult = {
             strictSummary: [],
             expandedInsights: { drills: [], homework: [], technicalExpansion: [], emotionalNotes: [] },
@@ -462,8 +469,11 @@ app.post('/api/gemini/process-audio', async (req, res) => {
         const { sessionId, audios, glossary, danceStyle, availableGlossaries, appLanguage, mockMode, maxAudioDuration } = req.body;
         const authHeader = req.headers.authorization;
         const devOverride = req.headers['x-dev-override'] || (req.body.devState ? JSON.stringify(req.body.devState) : undefined);
+        const clipsToTranscribe = Array.isArray(audios)
+            ? audios.filter((a) => !a.transcript && a.base64).length
+            : 0;
         // 1. Gatekeeper: Enforce 3-minute hard cap and user tier quotas
-        const gate = await checkGatekeeper(authHeader, 'consolidation', maxAudioDuration, devOverride);
+        const gate = await checkGatekeeper(authHeader, 'consolidation', maxAudioDuration, devOverride, clipsToTranscribe);
         if (!gate.allowed) {
             console.warn(`[/api/gemini/process-audio] Gatekeeper rejected: ${gate.code} - ${gate.error}`);
             return res.status(gate.statusCode || 403).json(gate);
@@ -586,8 +596,18 @@ app.post('/api/gemini/process-audio', async (req, res) => {
         console.log(`[/api/gemini/process-audio] Total transcripts gathered: ${allTranscripts.length}. Synthesizing...`);
         // 3. Synthesize the final consolidated report
         const reportResult = await consolidateTranscriptsWithGemini(allTranscripts, activeGlossary, activeStyle, appLanguage);
-        // Record database increment on success
-        await recordUsageIncrement(authHeader, 'consolidation');
+        // Record database increment on success: 1 session + newly transcribed clips
+        const newlyTranscribedClipsCount = Object.keys(newTranscriptsRecord).length;
+        await recordUsageIncrement(authHeader, 'consolidation', newlyTranscribedClipsCount);
+        // Optimistically update usage counters in the returned payload
+        if (gate.usage) {
+            gate.usage.lifetime_sessions = (gate.usage.lifetime_sessions || 0) + 1;
+            gate.usage.lifetime_clips = (gate.usage.lifetime_clips || 0) + newlyTranscribedClipsCount;
+            if (gate.tier === 'plus') {
+                gate.usage.period_sessions = (gate.usage.period_sessions || 0) + 1;
+                gate.usage.period_clips = (gate.usage.period_clips || 0) + newlyTranscribedClipsCount;
+            }
+        }
         let finalDetectedStyle = detectedStyleName;
         if (reportResult && reportResult.detectedStyle) {
             finalDetectedStyle = reportResult.detectedStyle;

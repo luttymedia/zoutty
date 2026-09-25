@@ -18,12 +18,18 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
   const isDesktop = !isMobile;
 
   useEffect(() => {
-    // Check if running as standalone PWA
-    const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    // Check if running as standalone PWA across all supported modes and Android WebAPK referrers
+    const checkStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches ||
+      window.matchMedia('(display-mode: minimal-ui)').matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes('android-app://');
     
     // Developer bypass
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const isLocalIp = window.location.hostname === '192.168.1.135';
+    const hasPreviousInstall = typeof localStorage !== 'undefined' && localStorage.getItem('zoutty_pwa_installed') === 'true';
     
     if (checkStandalone || isLocalhost || isLocalIp) {
       console.log('InstallEnforcer: Bypassing install screen. checkStandalone:', checkStandalone, 'isLocalhost:', isLocalhost, 'isLocalIp:', isLocalIp);
@@ -32,15 +38,16 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
       try { localStorage.setItem('zoutty_pwa_installed', 'true'); } catch (_) {}
       if (checkStandalone) {
         trackInstallation(isIOS ? 'ios_standalone' : 'standalone_launch');
+      } else if (hasPreviousInstall) {
+        trackInstallation('existing_install');
       }
     } else {
       console.log('InstallEnforcer: Blocking access. Not standalone and no bypass matched.');
       setIsStandalone(false);
-      try {
-        if (localStorage.getItem('zoutty_pwa_installed') === 'true') {
-          setInstallState('installed');
-        }
-      } catch (_) {}
+      if (hasPreviousInstall) {
+        setInstallState('installed');
+        trackInstallation('existing_install');
+      }
     }
 
     if (typeof navigator !== 'undefined' && 'getInstalledRelatedApps' in navigator) {

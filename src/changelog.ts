@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.12.5',
+    date: '2026-09-25',
+    changes: [
+      'Guaranteed Install Telemetry: Added direct client-side Supabase writes for device tracking, eliminating dependence on backend sleep/wake states and static host path routing',
+      'Expanded Standalone & WebAPK Detection: Enhanced standalone display mode detection across fullscreen, minimal-ui, and Android WebAPK launcher referrers',
+      'App Load Telemetry: Automatically triggers install verification and tracking upon main application mount for existing active users'
+    ]
+  },
+  {
     version: '3.12.4',
     date: '2026-09-25',
     changes: [

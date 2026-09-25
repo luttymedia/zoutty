@@ -204,7 +204,7 @@ create policy "Users can view their own referral logs"
   using (auth.uid() = referrer_id or auth.uid() = referred_user_id);
 
 -- 10. HELPER FUNCTIONS: Increment Usage Counters (RPC)
-create or replace function public.increment_usage_clip(target_user_id uuid)
+create or replace function public.increment_usage_clip(target_user_id uuid, clip_count integer default 1)
 returns void
 language plpgsql
 security definer set search_path = public
@@ -215,8 +215,8 @@ begin
   select tier into v_tier from public.profiles where id = target_user_id;
 
   update public.usage_tracking
-  set lifetime_clips = lifetime_clips + 1,
-      period_clips = case when v_tier in ('student', 'teacher') then period_clips + 1 else period_clips end,
+  set lifetime_clips = lifetime_clips + clip_count,
+      period_clips = case when v_tier in ('plus', 'student', 'teacher') then period_clips + clip_count else period_clips end,
       updated_at = timezone('utc'::text, now())
   where user_id = target_user_id;
 end;
@@ -234,7 +234,7 @@ begin
 
   update public.usage_tracking
   set lifetime_sessions = lifetime_sessions + 1,
-      period_sessions = case when v_tier in ('student', 'teacher') then period_sessions + 1 else period_sessions end,
+      period_sessions = case when v_tier in ('plus', 'student', 'teacher') then period_sessions + 1 else period_sessions end,
       updated_at = timezone('utc'::text, now())
   where user_id = target_user_id;
 end;

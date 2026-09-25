@@ -1199,6 +1199,24 @@ export default function App() {
     };
   }, []);
 
+  // Track device installation upon app load (standalone launch or existing install)
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches ||
+      window.matchMedia('(display-mode: minimal-ui)').matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes('android-app://');
+
+    const hasPreviousInstall = typeof localStorage !== 'undefined' && localStorage.getItem('zoutty_pwa_installed') === 'true';
+
+    if (isStandalone) {
+      trackInstallation('standalone_launch');
+    } else if (hasPreviousInstall) {
+      trackInstallation('existing_install');
+    }
+  }, []);
+
   // Load from IndexedDB on mount
   useEffect(() => {
     if (sessionStorage.getItem('zoutty_show_restore_animation') === 'true') {

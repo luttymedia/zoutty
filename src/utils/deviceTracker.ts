@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { apiUrl } from '../lib/api';
 
 export interface DeviceInfo {
   devicePlatform: 'iOS' | 'Android' | 'Windows' | 'macOS' | 'Linux' | 'ChromeOS' | 'Other';
@@ -152,14 +153,15 @@ export function getDeviceInfo(): DeviceInfo {
   };
 }
 
-const STORAGE_KEY = 'zoutty_device_install_tracked_v1';
+const STORAGE_KEY = 'zoutty_device_install_tracked_v2';
 
 /**
- * Tracks the PWA installation event to the server.
- * Ensures each device/installation is tracked once to avoid inflating stats.
+ * Tracks the PWA installation event to Supabase and the server.
+ * Uses direct Supabase client insertion first for guaranteed delivery on static/mobile clients,
+ * and pings the backend API for IP logging.
  */
 export async function trackInstallation(
-  source: 'pwa_prompt' | 'standalone_launch' | 'ios_standalone' | 'ios_guide' | 'related_apps' | 'manual' = 'pwa_prompt',
+  source: 'pwa_prompt' | 'standalone_launch' | 'ios_standalone' | 'ios_guide' | 'related_apps' | 'existing_install' | 'manual' = 'pwa_prompt',
   force: boolean = false
 ): Promise<boolean> {
   try {
@@ -171,35 +173,75 @@ export async function trackInstallation(
     }
 
     const info = getDeviceInfo();
+    let trackedSuccessfully = false;
 
-    // Attach user auth token if session exists
-    let authHeader: string | undefined;
+    // 1. Direct Supabase insertion (immediate, guaranteed delivery on mobile & static hosts)
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const insertPayload = {
+        user_id: session?.user?.id || null,
+        device_platform: info.devicePlatform,
+        device_type: info.deviceType,
+        browser: info.browser,
+        browser_version: info.browserVersion || null,
+        os_version: info.osVersion || null,
+        user_agent: (info.userAgent || '').slice(0, 500),
+        screen_resolution: info.screenResolution,
+        screen_density: info.screenDensity,
+        install_source: source,
+        language: info.language,
+        timezone: info.timezone,
+        raw_details: info.rawDetails || {},
+      };
+
+      const { data, error } = await supabase
+        .from('install_tracking')
+        .insert(insertPayload)
+        .select('id')
+        .maybeSingle();
+
+      if (!error && data?.id) {
+        trackedSuccessfully = true;
+        console.log('[tracker] Device successfully tracked in Supabase:', data.id, info.devicePlatform);
+      } else if (error) {
+        console.warn('[tracker] Supabase direct insert note:', error.message);
+      }
+    } catch (dbErr) {
+      console.warn('[tracker] Supabase direct tracking error:', dbErr);
+    }
+
+    // 2. Also notify backend API (to log request IP and trigger server telemetry)
+    try {
+      let authHeader: string | undefined;
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
         authHeader = `Bearer ${session.access_token}`;
       }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (authHeader) {
+        headers['Authorization'] = authHeader;
+      }
+
+      const endpoint = apiUrl('/api/track-install');
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...info, installSource: source }),
+      });
+
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          trackedSuccessfully = true;
+        }
+      }
     } catch (_) {}
 
-    const payload = {
-      ...info,
-      installSource: source,
-    };
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (authHeader) {
-      headers['Authorization'] = authHeader;
-    }
-
-    const res = await fetch('/api/track-install', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    if (res.ok) {
+    // Only set localStorage if actually tracked
+    if (trackedSuccessfully) {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(
           STORAGE_KEY,
@@ -212,8 +254,6 @@ export async function trackInstallation(
         );
       }
       return true;
-    } else {
-      console.warn('[tracker] Server responded with error tracking install:', res.status);
     }
   } catch (err) {
     console.warn('[tracker] Failed to track installation:', err);

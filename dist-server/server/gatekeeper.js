@@ -27,7 +27,7 @@ export const TIER_CONFIG = {
 /**
  * Validates request against audio duration and user tier quotas.
  */
-export async function checkGatekeeper(authHeader, type, durationSeconds, devOverrideJson) {
+export async function checkGatekeeper(authHeader, type, durationSeconds, devOverrideJson, clipCount) {
     // 1. Enforce 3-minute hard duration cap
     if (durationSeconds && durationSeconds > TIER_CONFIG.max_audio_duration_seconds) {
         return {
@@ -77,8 +77,20 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                             tier: 'free',
                             canBoost: !isBoostActive,
                             limits: { sessions: maxSessions, clips: maxClips },
-                            usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
+                            usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
                             error: 'You have reached your lifetime limit of free AI session consolidations.',
+                        };
+                    }
+                    if (type === 'consolidation' && clipCount && (lifetimeClips + clipCount > maxClips)) {
+                        return {
+                            allowed: false,
+                            statusCode: 403,
+                            code: 'QUOTA_EXCEEDED',
+                            tier: 'free',
+                            canBoost: !isBoostActive,
+                            limits: { sessions: maxSessions, clips: maxClips },
+                            usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
+                            error: 'You do not have enough free audio clip transcriptions remaining for this session.',
                         };
                     }
                     if (type === 'single_clip' && lifetimeClips >= maxClips) {
@@ -89,7 +101,7 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                             tier: 'free',
                             canBoost: !isBoostActive,
                             limits: { sessions: maxSessions, clips: maxClips },
-                            usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
+                            usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
                             error: 'You have reached your lifetime limit of free AI clip transcriptions.',
                         };
                     }
@@ -102,8 +114,19 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                             code: 'QUOTA_EXCEEDED',
                             tier: 'plus',
                             limits: { sessions: maxSessions, clips: maxClips },
-                            usage: { period_sessions: periodSessions, period_clips: periodClips },
+                            usage: { period_sessions: periodSessions, period_clips: periodClips, lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
                             error: 'You have reached your monthly Zoutty Plus AI limit.',
+                        };
+                    }
+                    if (type === 'consolidation' && clipCount && (periodClips + clipCount > maxClips)) {
+                        return {
+                            allowed: false,
+                            statusCode: 403,
+                            code: 'QUOTA_EXCEEDED',
+                            tier: 'plus',
+                            limits: { sessions: maxSessions, clips: maxClips },
+                            usage: { period_sessions: periodSessions, period_clips: periodClips, lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
+                            error: 'You have reached your monthly Zoutty Plus audio clip limit.',
                         };
                     }
                     if (type === 'single_clip' && periodClips >= maxClips) {
@@ -113,7 +136,7 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                             code: 'QUOTA_EXCEEDED',
                             tier: 'plus',
                             limits: { sessions: maxSessions, clips: maxClips },
-                            usage: { period_sessions: periodSessions, period_clips: periodClips },
+                            usage: { period_sessions: periodSessions, period_clips: periodClips, lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
                             error: 'You have reached your monthly Zoutty Plus AI limit.',
                         };
                     }
@@ -199,8 +222,21 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                         tier: 'free',
                         canBoost: !isBoostActive,
                         limits: { sessions: maxSessions, clips: maxClips },
-                        usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
+                        usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
                         error: 'You have reached your lifetime limit of free AI session consolidations.',
+                        userId,
+                    };
+                }
+                if (type === 'consolidation' && clipCount && (lifetimeClips + clipCount > maxClips)) {
+                    return {
+                        allowed: false,
+                        statusCode: 403,
+                        code: 'QUOTA_EXCEEDED',
+                        tier: 'free',
+                        canBoost: !isBoostActive,
+                        limits: { sessions: maxSessions, clips: maxClips },
+                        usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
+                        error: 'You do not have enough free audio clip transcriptions remaining for this session.',
                         userId,
                     };
                 }
@@ -212,7 +248,7 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                         tier: 'free',
                         canBoost: !isBoostActive,
                         limits: { sessions: maxSessions, clips: maxClips },
-                        usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
+                        usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
                         error: 'You have reached your lifetime limit of free AI clip transcriptions.',
                         userId,
                     };
@@ -226,8 +262,20 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                         code: 'QUOTA_EXCEEDED',
                         tier: 'plus',
                         limits: { sessions: maxSessions, clips: maxClips },
-                        usage: { period_sessions: periodSessions, period_clips: periodClips },
+                        usage: { period_sessions: periodSessions, period_clips: periodClips, lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
                         error: 'You have reached your monthly Zoutty Plus AI limit.',
+                        userId,
+                    };
+                }
+                if (type === 'consolidation' && clipCount && (periodClips + clipCount > maxClips)) {
+                    return {
+                        allowed: false,
+                        statusCode: 403,
+                        code: 'QUOTA_EXCEEDED',
+                        tier: 'plus',
+                        limits: { sessions: maxSessions, clips: maxClips },
+                        usage: { period_sessions: periodSessions, period_clips: periodClips, lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
+                        error: 'You have reached your monthly Zoutty Plus audio clip limit.',
                         userId,
                     };
                 }
@@ -238,7 +286,7 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                         code: 'QUOTA_EXCEEDED',
                         tier: 'plus',
                         limits: { sessions: maxSessions, clips: maxClips },
-                        usage: { period_sessions: periodSessions, period_clips: periodClips },
+                        usage: { period_sessions: periodSessions, period_clips: periodClips, lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips },
                         error: 'You have reached your monthly Zoutty Plus AI limit.',
                         userId,
                     };
@@ -261,7 +309,7 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
                 allowed: true,
                 userId,
                 tier,
-                usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions },
+                usage: { lifetime_sessions: lifetimeSessions, lifetime_clips: lifetimeClips, period_sessions: periodSessions, period_clips: periodClips },
                 limits: { sessions: maxSessions, clips: maxClips },
             };
         }
@@ -281,7 +329,7 @@ export async function checkGatekeeper(authHeader, type, durationSeconds, devOver
 /**
  * Increments the database usage tracking counters on successful AI operation and decrements topup if in overage.
  */
-export async function recordUsageIncrement(authHeader, type) {
+export async function recordUsageIncrement(authHeader, type, clipCount = 1) {
     if (!authHeader || !authHeader.startsWith('Bearer ') || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
         return;
     }
@@ -296,10 +344,13 @@ export async function recordUsageIncrement(authHeader, type) {
             return;
         const userId = userData.user.id;
         if (type === 'single_clip') {
-            await supabase.rpc('increment_usage_clip', { target_user_id: userId });
+            await supabase.rpc('increment_usage_clip', { target_user_id: userId, clip_count: 1 });
         }
         else if (type === 'consolidation') {
             await supabase.rpc('increment_usage_session', { target_user_id: userId });
+            if (clipCount > 0) {
+                await supabase.rpc('increment_usage_clip', { target_user_id: userId, clip_count: clipCount });
+            }
         }
         // Check if user has topup balance and is currently exceeding base plan quota
         const [{ data: profile }, { data: usage }] = await Promise.all([
@@ -316,13 +367,14 @@ export async function recordUsageIncrement(authHeader, type) {
                     console.log(`[Gatekeeper] Consumed 1 topup session for user=${userId}. Remaining topup: ${newTopup}`);
                 }
             }
-            else if (type === 'single_clip' && (profile.topup_extra_clips || 0) > 0) {
+            const clipsToDeduct = type === 'single_clip' ? 1 : (type === 'consolidation' ? clipCount : 0);
+            if (clipsToDeduct > 0 && (profile.topup_extra_clips || 0) > 0) {
                 const baseClipLimit = profile.tier === 'plus' ? TIER_CONFIG.plus.monthly_clips : TIER_CONFIG.free.lifetime_clips;
                 const currentClips = profile.tier === 'free' ? (usage?.lifetime_clips || 0) : (usage?.period_clips || 0);
                 if (currentClips > baseClipLimit) {
-                    const newTopupClips = Math.max(0, profile.topup_extra_clips - 1);
+                    const newTopupClips = Math.max(0, profile.topup_extra_clips - clipsToDeduct);
                     await supabase.from('profiles').update({ topup_extra_clips: newTopupClips, updated_at: new Date().toISOString() }).eq('id', userId);
-                    console.log(`[Gatekeeper] Consumed 1 topup clip for user=${userId}. Remaining topup clips: ${newTopupClips}`);
+                    console.log(`[Gatekeeper] Consumed ${clipsToDeduct} topup clip(s) for user=${userId}. Remaining topup clips: ${newTopupClips}`);
                 }
             }
         }
