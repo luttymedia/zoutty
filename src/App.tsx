@@ -1481,11 +1481,15 @@ export default function App() {
       // 1. Clear IndexedDB
       await db.clearDatabase();
 
-      // 2. Clear LocalStorage (preserve user's selected language)
+      // 2. Clear LocalStorage (preserve user's selected language and anon install tracking)
       const savedLang = localStorage.getItem('zoutty_language');
+      const savedAnonTrack = localStorage.getItem('zoutty_device_install_tracked_v2_anon');
       localStorage.clear();
       if (savedLang) {
         localStorage.setItem('zoutty_language', savedLang);
+      }
+      if (savedAnonTrack) {
+        localStorage.setItem('zoutty_device_install_tracked_v2_anon', savedAnonTrack);
       }
 
       // 3. Sign out
@@ -4594,9 +4598,13 @@ export default function App() {
                   try {
                     await db.clearDatabase();
                     const savedLang = localStorage.getItem('zoutty_language');
+                    const savedAnonTrack = localStorage.getItem('zoutty_device_install_tracked_v2_anon');
                     localStorage.clear();
                     if (savedLang) {
                       localStorage.setItem('zoutty_language', savedLang);
+                    }
+                    if (savedAnonTrack) {
+                      localStorage.setItem('zoutty_device_install_tracked_v2_anon', savedAnonTrack);
                     }
                     resetDevState();
                     await supabase.auth.signOut();
