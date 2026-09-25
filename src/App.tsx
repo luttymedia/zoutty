@@ -1481,15 +1481,20 @@ export default function App() {
       // 1. Clear IndexedDB
       await db.clearDatabase();
 
-      // 2. Clear LocalStorage (preserve user's selected language and anon install tracking)
+      // 2. Clear LocalStorage (preserve language and all install tracking flags)
       const savedLang = localStorage.getItem('zoutty_language');
-      const savedAnonTrack = localStorage.getItem('zoutty_device_install_tracked_v2_anon');
-      localStorage.clear();
-      if (savedLang) {
-        localStorage.setItem('zoutty_language', savedLang);
+      const trackingPrefix = 'zoutty_device_install_tracked_v2';
+      const savedTrackingFlags: Record<string, string> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(trackingPrefix)) {
+          savedTrackingFlags[key] = localStorage.getItem(key)!;
+        }
       }
-      if (savedAnonTrack) {
-        localStorage.setItem('zoutty_device_install_tracked_v2_anon', savedAnonTrack);
+      localStorage.clear();
+      if (savedLang) localStorage.setItem('zoutty_language', savedLang);
+      for (const [key, value] of Object.entries(savedTrackingFlags)) {
+        localStorage.setItem(key, value);
       }
 
       // 3. Sign out
@@ -4598,13 +4603,18 @@ export default function App() {
                   try {
                     await db.clearDatabase();
                     const savedLang = localStorage.getItem('zoutty_language');
-                    const savedAnonTrack = localStorage.getItem('zoutty_device_install_tracked_v2_anon');
-                    localStorage.clear();
-                    if (savedLang) {
-                      localStorage.setItem('zoutty_language', savedLang);
+                    const trackingPrefix = 'zoutty_device_install_tracked_v2';
+                    const savedTrackingFlags: Record<string, string> = {};
+                    for (let i = 0; i < localStorage.length; i++) {
+                      const key = localStorage.key(i);
+                      if (key && key.startsWith(trackingPrefix)) {
+                        savedTrackingFlags[key] = localStorage.getItem(key)!;
+                      }
                     }
-                    if (savedAnonTrack) {
-                      localStorage.setItem('zoutty_device_install_tracked_v2_anon', savedAnonTrack);
+                    localStorage.clear();
+                    if (savedLang) localStorage.setItem('zoutty_language', savedLang);
+                    for (const [key, value] of Object.entries(savedTrackingFlags)) {
+                      localStorage.setItem(key, value);
                     }
                     resetDevState();
                     await supabase.auth.signOut();
