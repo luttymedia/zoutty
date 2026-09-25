@@ -184,6 +184,7 @@ export async function trackInstallation(
     let trackedSuccessfully = false;
 
     // 1. Direct Supabase insertion (immediate, guaranteed delivery on mobile & static hosts)
+    let recordId: string | undefined;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const insertPayload = {
@@ -210,6 +211,7 @@ export async function trackInstallation(
 
       if (!error && data?.id) {
         trackedSuccessfully = true;
+        recordId = data.id;
         console.log('[tracker] Device successfully tracked in Supabase:', data.id, info.devicePlatform);
       } else if (error) {
         console.warn('[tracker] Supabase direct insert note:', error.message);
@@ -237,7 +239,7 @@ export async function trackInstallation(
       const res = await fetch(endpoint, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ ...info, installSource: source }),
+        body: JSON.stringify({ ...info, installSource: source, recordId }),
       });
 
       if (res.ok) {

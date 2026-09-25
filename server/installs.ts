@@ -20,13 +20,29 @@ export interface DeviceInstallRecord {
  * Fails gracefully if the database table is not yet migrated.
  */
 export async function recordDeviceInstall(
-  data: DeviceInstallRecord,
+  data: DeviceInstallRecord & { recordId?: string },
   ipAddress?: string,
   userId?: string
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const supabase = getSupabaseAdmin();
 
+    if (data.recordId) {
+      // The frontend already created the record, we just need to append the IP address
+      if (ipAddress) {
+        const { error } = await supabase
+          .from('install_tracking')
+          .update({ ip_address: ipAddress })
+          .eq('id', data.recordId);
+        
+        if (error) {
+          console.warn('[installs] Failed to update IP address on existing install record:', error.message);
+        }
+      }
+      return { success: true, id: data.recordId };
+    }
+
+    // Fallback: If frontend didn't create it, we insert it
     const insertPayload = {
       user_id: userId || null,
       device_platform: data.devicePlatform || 'Unknown',
