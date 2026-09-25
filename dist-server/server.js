@@ -10,6 +10,7 @@ import { GoogleGenAI } from '@google/genai';
 import { checkGatekeeper, recordUsageIncrement } from './server/gatekeeper.js';
 import { createCheckoutSession, createTopupCheckoutSession, createPortalSession, handleStripeWebhook, getAuthenticatedUser, confirmCheckoutSession, updateSubscription, cancelSubscription, getSubscriptionStatus, reactivateSubscription } from './server/stripe.js';
 import { redeemReferralCode, getReferralStats, backfillMissingReferralCodes } from './server/referrals.js';
+import { recordDeviceInstall, getDeviceInstallStats } from './server/installs.js';
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
@@ -865,6 +866,38 @@ app.get('/api/referrals/stats', async (req, res) => {
     catch (error) {
         console.error('[/api/referrals/stats] Error:', error);
         return res.status(500).json({ error: error?.message || 'Failed to fetch referral stats' });
+    }
+});
+// Device Installation Tracking Route (Publicly callable when PWA is installed or launched in standalone mode)
+app.post('/api/track-install', async (req, res) => {
+    try {
+        const payload = req.body || {};
+        const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '';
+        let userId;
+        try {
+            const authHeader = req.headers.authorization;
+            const user = await getAuthenticatedUser(authHeader);
+            if (user?.id)
+                userId = user.id;
+        }
+        catch (_) { }
+        const result = await recordDeviceInstall(payload, clientIp, userId);
+        return res.json(result);
+    }
+    catch (error) {
+        console.error('[/api/track-install] Error:', error);
+        return res.status(500).json({ error: error?.message || 'Failed to record device install' });
+    }
+});
+// Device Installation Stats Route (For admin dashboard or monitoring device installation metrics)
+app.get('/api/installs/stats', async (req, res) => {
+    try {
+        const stats = await getDeviceInstallStats();
+        return res.json(stats);
+    }
+    catch (error) {
+        console.error('[/api/installs/stats] Error:', error);
+        return res.status(500).json({ error: error?.message || 'Failed to fetch install stats' });
     }
 });
 // Fetch shared session by share code (includes topic tags, report, clips, media)

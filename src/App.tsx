@@ -107,6 +107,7 @@ import Markdown from 'react-markdown';
 import { useTranslation } from './i18n/TranslationContext';
 import { UI_LANGUAGE_NAMES } from './i18n';
 import { supabase } from './lib/supabase';
+import { trackInstallation } from './utils/deviceTracker';
 import { syncEngine } from './lib/syncEngine';
 import { AuthScreen } from './components/AuthScreen';
 import { apiUrl, apiState } from './lib/api';
@@ -1177,15 +1178,25 @@ export default function App() {
   };
 
 
-  // Listen for beforeinstallprompt for PWA install button
+  // Listen for beforeinstallprompt and appinstalled for PWA install button
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
       console.log('beforeinstallprompt event fired');
     };
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      trackInstallation('pwa_prompt');
+      console.log('appinstalled event fired');
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   // Load from IndexedDB on mount
@@ -5545,6 +5556,7 @@ export default function App() {
                 console.log(`User response to the install prompt: ${outcome}`);
                 if (outcome === 'accepted') {
                   setDeferredPrompt(null);
+                  trackInstallation('pwa_prompt');
                 }
               }}
               className="flex items-center gap-1.5 px-2 py-2 text-brand hover:opacity-80 transition-opacity font-sans text-sm cursor-pointer"

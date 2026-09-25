@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '3.12.4',
+    date: '2026-09-25',
+    changes: [
+      'PWA Device & Install Tracking: Added silent telemetry to record user device type, platform (iOS, Android, desktop), browser, and screen metrics upon PWA installation and standalone launch',
+      'Supabase Analytics Backend: Integrated backend endpoints and dedicated install_tracking schema for device aggregation and monitoring',
+      'Retroactive Standalone Detection: Automatically records device profiles when existing users launch Zoutty from their device home screen'
+    ]
+  },
+  {
     version: '3.12.3',
     date: '2026-09-18',
     changes: [

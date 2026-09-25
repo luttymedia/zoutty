@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from './i18n/TranslationContext';
+import { trackInstallation } from './utils/deviceTracker';
 
 export default function InstallEnforcer({ children }: { children: React.ReactNode }) {
   const { t, uiLanguage, setUILanguage } = useTranslation();
@@ -29,6 +30,9 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
       setIsStandalone(true);
       setInstallState('installed');
       try { localStorage.setItem('zoutty_pwa_installed', 'true'); } catch (_) {}
+      if (checkStandalone) {
+        trackInstallation(isIOS ? 'ios_standalone' : 'standalone_launch');
+      }
     } else {
       console.log('InstallEnforcer: Blocking access. Not standalone and no bypass matched.');
       setIsStandalone(false);
@@ -44,6 +48,7 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
         if (apps && apps.length > 0) {
           setInstallState('installed');
           try { localStorage.setItem('zoutty_pwa_installed', 'true'); } catch (_) {}
+          trackInstallation('related_apps');
         }
       }).catch(() => {});
     }
@@ -58,6 +63,7 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
       setDeferredPrompt(null);
       setInstallState('installed');
       try { localStorage.setItem('zoutty_pwa_installed', 'true'); } catch (_) {}
+      trackInstallation('pwa_prompt');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -92,6 +98,7 @@ export default function InstallEnforcer({ children }: { children: React.ReactNod
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setInstallState('accepted');
+        trackInstallation('pwa_prompt');
       } else {
         setInstallState('dismissed');
       }
