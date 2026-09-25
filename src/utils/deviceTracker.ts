@@ -173,8 +173,12 @@ export async function trackInstallation(
   isTrackingInProgress = true;
 
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id || 'anon';
+    const userStorageKey = `${STORAGE_KEY}_${userId}`;
+
     if (!force && typeof localStorage !== 'undefined') {
-      const alreadyTracked = localStorage.getItem(STORAGE_KEY);
+      const alreadyTracked = localStorage.getItem(userStorageKey);
       if (alreadyTracked) {
         return false;
       }
@@ -254,12 +258,13 @@ export async function trackInstallation(
     if (trackedSuccessfully) {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(
-          STORAGE_KEY,
+          userStorageKey,
           JSON.stringify({
             trackedAt: Date.now(),
             platform: info.devicePlatform,
             browser: info.browser,
             source,
+            userId,
           })
         );
       }

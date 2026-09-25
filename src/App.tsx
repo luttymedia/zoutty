@@ -1199,7 +1199,7 @@ export default function App() {
     };
   }, []);
 
-  // Track device installation upon app load (standalone launch or existing install)
+  // Track device installation upon app load or user login
   useEffect(() => {
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
@@ -1215,7 +1215,7 @@ export default function App() {
     } else if (hasPreviousInstall) {
       trackInstallation('existing_install');
     }
-  }, []);
+  }, [session?.user?.id]);
 
   // Load from IndexedDB on mount
   useEffect(() => {
